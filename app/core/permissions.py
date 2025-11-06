@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from app.models import OrganizationMembership, OrganizationRole, User
+from app.models import OrganizationMembership, OrganizationRole, MembershipStatus, User
 
 
 def is_site_admin(user: User) -> bool:
@@ -12,13 +12,14 @@ def is_org_admin(db: Session, user: User, organization_id: int) -> bool:
     membership = db.query(OrganizationMembership).filter(
         OrganizationMembership.user_id == user.id,
         OrganizationMembership.organization_id == organization_id,
-        OrganizationMembership.role == OrganizationRole.ADMIN
+        OrganizationMembership.role == OrganizationRole.ADMIN,
+        OrganizationMembership.status == MembershipStatus.ACTIVE
     ).first()
     return membership is not None
 
 
 def is_org_member(db: Session, user: User, organization_id: int) -> bool:
-    """Check if user is a member of the specified organization.
+    """Check if user is an active member of the specified organization.
 
     Site admins are considered members of all organizations.
     """
@@ -27,7 +28,8 @@ def is_org_member(db: Session, user: User, organization_id: int) -> bool:
 
     membership = db.query(OrganizationMembership).filter(
         OrganizationMembership.user_id == user.id,
-        OrganizationMembership.organization_id == organization_id
+        OrganizationMembership.organization_id == organization_id,
+        OrganizationMembership.status == MembershipStatus.ACTIVE
     ).first()
     return membership is not None
 

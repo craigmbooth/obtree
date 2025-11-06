@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import Organization, OrganizationMembership, OrganizationRole, User
+from app.models import Organization, OrganizationMembership, OrganizationRole, MembershipStatus, User
 from app.schemas import (
     OrganizationCreate,
     OrganizationUpdate,
@@ -62,9 +62,10 @@ def list_organizations(
         # Site admins see all organizations
         organizations = db.query(Organization).all()
     else:
-        # Regular users only see organizations they're members of
+        # Regular users only see organizations they're active members of
         memberships = db.query(OrganizationMembership).filter(
-            OrganizationMembership.user_id == current_user.id
+            OrganizationMembership.user_id == current_user.id,
+            OrganizationMembership.status == MembershipStatus.ACTIVE
         ).all()
 
         org_ids = [m.organization_id for m in memberships]
@@ -120,7 +121,7 @@ def get_organization(
     """Get organization details with members."""
     logger.info("get_organization", organization_id=organization_id, user_id=current_user.id)
 
-    # Check if user is a member
+    # Check if user is an active member (or site admin)
     if not is_org_member(db, current_user, organization_id):
         logger.warning(
             "get_organization_forbidden",
@@ -155,6 +156,7 @@ def get_organization(
                 user_id=user.id,
                 email=user.email,
                 role=membership.role,
+                status=membership.status,
                 joined_at=membership.joined_at
             ))
 
@@ -228,8 +230,8 @@ def remove_member(
             detail="Member not found in this organization"
         )
 
-    # Delete the membership
-    db.delete(membership)
+    # Set membership status to removed instead of deleting
+    membership.status = MembershipStatus.REMOVED
     db.commit()
 
     logger.info(

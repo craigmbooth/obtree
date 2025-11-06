@@ -106,8 +106,9 @@
                     document.getElementById('org-description').textContent = 'No description provided.';
                 }
 
-                // Display member count and user role
-                document.getElementById('member-count').textContent = organization.members.length;
+                // Display active member count and user role
+                const activeMembers = organization.members.filter(m => m.status === 'active');
+                document.getElementById('member-count').textContent = activeMembers.length;
 
                 const userMembership = organization.members.find(m => m.user_id === currentUser.id);
                 if (userMembership) {

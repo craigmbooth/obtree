@@ -1,6 +1,6 @@
 from app.models.user import User
 from app.models.organization import Organization
-from app.models.membership import OrganizationMembership, OrganizationRole
+from app.models.membership import OrganizationMembership, OrganizationRole, MembershipStatus
 from app.models.invite import Invite
 
 __all__ = [
@@ -8,5 +8,6 @@ __all__ = [
     "Organization",
     "OrganizationMembership",
     "OrganizationRole",
+    "MembershipStatus",
     "Invite",
 ]

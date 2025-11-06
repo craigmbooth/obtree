@@ -220,6 +220,14 @@
                     formatter: 'badge'
                 },
                 {
+                    field: 'status',
+                    label: 'Status',
+                    visible: true,
+                    sortable: true,
+                    width: 120,
+                    formatter: 'badge'
+                },
+                {
                     field: 'joined_at',
                     label: 'Joined',
                     visible: true,
@@ -238,6 +246,11 @@
 
                         // Don't allow removing yourself
                         if (member.user_id === currentUser.id) {
+                            return '';
+                        }
+
+                        // Don't show remove button for already removed members
+                        if (member.status === 'removed') {
                             return '';
                         }
 

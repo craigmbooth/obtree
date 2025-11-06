@@ -15,6 +15,12 @@ class OrganizationRole(str, enum.Enum):
     USER = "user"
 
 
+class MembershipStatus(str, enum.Enum):
+    """Status of an organization membership."""
+    ACTIVE = "active"
+    REMOVED = "removed"
+
+
 class OrganizationMembership(Base, TableConfigMixin):
     """Association between users and organizations with roles."""
 
@@ -24,6 +30,7 @@ class OrganizationMembership(Base, TableConfigMixin):
     user_id = Column(GUID, ForeignKey("users.id"), nullable=False)
     organization_id = Column(GUID, ForeignKey("organizations.id"), nullable=False)
     role = Column(Enum(OrganizationRole), nullable=False)
+    status = Column(Enum(MembershipStatus), nullable=False, default=MembershipStatus.ACTIVE)
     joined_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
     # Relationships
@@ -57,6 +64,14 @@ class OrganizationMembership(Base, TableConfigMixin):
             {
                 'field': 'role',
                 'label': 'Role',
+                'visible': True,
+                'sortable': True,
+                'width': 120,
+                'formatter': 'badge'
+            },
+            {
+                'field': 'status',
+                'label': 'Status',
                 'visible': True,
                 'sortable': True,
                 'width': 120,

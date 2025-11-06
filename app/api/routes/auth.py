@@ -4,7 +4,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import User, Invite, OrganizationMembership
+from app.models import User, Invite, OrganizationMembership, MembershipStatus
 from app.schemas import UserCreate, UserLogin, UserResponse, Token
 from app.core.security import verify_password, get_password_hash, create_access_token
 from app.api.deps import get_current_user, get_current_site_admin
@@ -75,7 +75,8 @@ def signup(user_data: UserCreate, db: Session = Depends(get_db)):
         membership = OrganizationMembership(
             user_id=new_user.id,
             organization_id=invite.organization_id,
-            role=invite.role
+            role=invite.role,
+            status=MembershipStatus.ACTIVE
         )
         db.add(membership)
 
