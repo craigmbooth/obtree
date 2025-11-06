@@ -11,6 +11,7 @@ from app.schemas import (
     OrganizationResponse,
     OrganizationDetailResponse,
     OrganizationMemberResponse,
+    OrganizationMemberRoleUpdate,
 )
 from app.api.deps import get_current_user, get_current_site_admin
 from app.core.permissions import is_org_member, can_manage_organization
@@ -62,9 +63,10 @@ def list_organizations(
         # Site admins see all organizations
         organizations = db.query(Organization).all()
     else:
-        # Regular users only see organizations they're members of
+        # Regular users only see organizations they're active members of (not removed)
         memberships = db.query(OrganizationMembership).filter(
-            OrganizationMembership.user_id == current_user.id
+            OrganizationMembership.user_id == current_user.id,
+            OrganizationMembership.removed_at.is_(None)
         ).all()
 
         org_ids = [m.organization_id for m in memberships]
@@ -73,8 +75,10 @@ def list_organizations(
     # Calculate member counts for each organization
     result = []
     for org in organizations:
+        # Only count active memberships (not removed)
         memberships = db.query(OrganizationMembership).filter(
-            OrganizationMembership.organization_id == org.id
+            OrganizationMembership.organization_id == org.id,
+            OrganizationMembership.removed_at.is_(None)
         ).all()
 
         # Count total members (excluding site admins)
@@ -150,12 +154,15 @@ def get_organization(
         user = db.query(User).filter(User.id == membership.user_id).first()
         # Don't include site admins in the member list
         if user and not user.is_site_admin:
+            status = "Removed" if membership.removed_at else "Active"
             members.append(OrganizationMemberResponse(
                 id=membership.id,
                 user_id=user.id,
                 email=user.email,
                 role=membership.role,
-                joined_at=membership.joined_at
+                joined_at=membership.joined_at,
+                removed_at=membership.removed_at,
+                status=status
             ))
 
     logger.info(
@@ -228,8 +235,9 @@ def remove_member(
             detail="Member not found in this organization"
         )
 
-    # Delete the membership
-    db.delete(membership)
+    # Soft delete the membership by setting removed_at
+    from datetime import datetime
+    membership.removed_at = datetime.utcnow()
     db.commit()
 
     logger.info(
@@ -240,6 +248,188 @@ def remove_member(
     )
 
     return None
+
+
+@router.post("/{organization_id}/members/{user_id}/reactivate", response_model=OrganizationMemberResponse)
+def reactivate_member(
+    organization_id: UUID,
+    user_id: UUID,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Reactivate a removed member (site admin or org admin only)."""
+    logger.info(
+        "reactivate_member_started",
+        organization_id=organization_id,
+        user_id=user_id,
+        reactivated_by=current_user.id
+    )
+
+    # Check if organization exists
+    organization = db.query(Organization).filter(Organization.id == organization_id).first()
+    if not organization:
+        logger.warning("reactivate_member_org_not_found", organization_id=organization_id)
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Organization not found"
+        )
+
+    # Check if user can manage this organization
+    if not can_manage_organization(db, current_user, organization_id):
+        logger.warning(
+            "reactivate_member_forbidden",
+            organization_id=organization_id,
+            user_id=user_id,
+            reactivated_by=current_user.id
+        )
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not enough permissions to manage members in this organization"
+        )
+
+    # Find the removed membership
+    membership = db.query(OrganizationMembership).filter(
+        OrganizationMembership.organization_id == organization_id,
+        OrganizationMembership.user_id == user_id,
+        OrganizationMembership.removed_at.isnot(None)
+    ).first()
+
+    if not membership:
+        logger.warning(
+            "reactivate_member_not_found",
+            organization_id=organization_id,
+            user_id=user_id
+        )
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Removed member not found in this organization"
+        )
+
+    # Reactivate the membership
+    membership.removed_at = None
+    db.commit()
+    db.refresh(membership)
+
+    # Get user email for response
+    user = db.query(User).filter(User.id == user_id).first()
+
+    logger.info(
+        "member_reactivated",
+        organization_id=organization_id,
+        user_id=user_id,
+        reactivated_by=current_user.id
+    )
+
+    return OrganizationMemberResponse(
+        id=membership.id,
+        user_id=user.id,
+        email=user.email,
+        role=membership.role,
+        joined_at=membership.joined_at,
+        removed_at=membership.removed_at,
+        status="Active"
+    )
+
+
+@router.patch("/{organization_id}/members/{user_id}/role", response_model=OrganizationMemberResponse)
+def update_member_role(
+    organization_id: UUID,
+    user_id: UUID,
+    role_update: OrganizationMemberRoleUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Update a member's role in an organization (site admin or org admin only).
+
+    Users cannot change their own role.
+    """
+    logger.info(
+        "update_member_role_started",
+        organization_id=organization_id,
+        user_id=user_id,
+        new_role=role_update.role,
+        updated_by=current_user.id
+    )
+
+    # Check if organization exists
+    organization = db.query(Organization).filter(Organization.id == organization_id).first()
+    if not organization:
+        logger.warning("update_member_role_org_not_found", organization_id=organization_id)
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Organization not found"
+        )
+
+    # Check if user can manage this organization
+    if not can_manage_organization(db, current_user, organization_id):
+        logger.warning(
+            "update_member_role_forbidden",
+            organization_id=organization_id,
+            user_id=user_id,
+            updated_by=current_user.id
+        )
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not enough permissions to manage members in this organization"
+        )
+
+    # Prevent users from changing their own role
+    if user_id == current_user.id:
+        logger.warning(
+            "update_member_role_self_change_attempted",
+            organization_id=organization_id,
+            user_id=user_id
+        )
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You cannot change your own role"
+        )
+
+    # Find the membership
+    membership = db.query(OrganizationMembership).filter(
+        OrganizationMembership.organization_id == organization_id,
+        OrganizationMembership.user_id == user_id,
+        OrganizationMembership.removed_at.is_(None)
+    ).first()
+
+    if not membership:
+        logger.warning(
+            "update_member_role_not_found",
+            organization_id=organization_id,
+            user_id=user_id
+        )
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Active member not found in this organization"
+        )
+
+    # Update the role
+    old_role = membership.role
+    membership.role = role_update.role
+    db.commit()
+    db.refresh(membership)
+
+    # Get user email for response
+    user = db.query(User).filter(User.id == user_id).first()
+
+    logger.info(
+        "member_role_updated",
+        organization_id=organization_id,
+        user_id=user_id,
+        old_role=old_role,
+        new_role=role_update.role,
+        updated_by=current_user.id
+    )
+
+    return OrganizationMemberResponse(
+        id=membership.id,
+        user_id=user.id,
+        email=user.email,
+        role=membership.role,
+        joined_at=membership.joined_at,
+        removed_at=membership.removed_at,
+        status="Active"
+    )
 
 
 @router.patch("/{organization_id}", response_model=OrganizationResponse)

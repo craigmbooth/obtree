@@ -11,6 +11,7 @@ from app.schemas.organization import (
     OrganizationResponse,
     OrganizationDetailResponse,
     OrganizationMemberResponse,
+    OrganizationMemberRoleUpdate,
 )
 from app.schemas.invite import (
     InviteCreate,
@@ -34,6 +35,7 @@ __all__ = [
     "OrganizationResponse",
     "OrganizationDetailResponse",
     "OrganizationMemberResponse",
+    "OrganizationMemberRoleUpdate",
     "InviteCreate",
     "InviteResponse",
     "InviteValidateResponse",

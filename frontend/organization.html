@@ -121,8 +121,9 @@
                     document.getElementById('org-description').textContent = 'No description provided.';
                 }
 
-                // Display member count and user role
-                document.getElementById('member-count').textContent = organization.members.length;
+                // Display member count and user role (only count active members)
+                const activeMembers = organization.members.filter(m => m.status === 'Active');
+                document.getElementById('member-count').textContent = activeMembers.length;
 
                 const userMembership = organization.members.find(m => m.user_id === currentUser.id);
                 if (userMembership) {
@@ -133,8 +134,8 @@
                     document.getElementById('user-role').textContent = 'Guest';
                 }
 
-                // Show admin link if user is admin
-                const isAdmin = userMembership && userMembership.role === 'admin';
+                // Show admin link if user is admin and active
+                const isAdmin = userMembership && userMembership.role === 'admin' && userMembership.status === 'Active';
                 if (isAdmin || currentUser.is_site_admin) {
                     const adminLink = document.getElementById('admin-link');
                     adminLink.href = `/org-admin.html?id=${organizationId}`;

@@ -248,7 +248,7 @@
 
         function checkIfAdmin(members) {
             const userMembership = members.find(m => m.user_id === currentUser.id);
-            return userMembership && userMembership.role === 'admin';
+            return userMembership && userMembership.role === 'admin' && userMembership.status === 'Active';
         }
 
         function renderMembers(members) {
@@ -267,6 +267,41 @@
                     label: 'Role',
                     visible: true,
                     sortable: true,
+                    width: 150,
+                    formatter: (cell) => {
+                        const member = cell.getData();
+
+                        // If member is removed or is current user, just show badge
+                        if (member.status === 'Removed' || member.user_id === currentUser.id) {
+                            const badge = document.createElement('span');
+                            badge.className = member.role === 'admin'
+                                ? 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800'
+                                : 'inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800';
+                            badge.textContent = member.role.charAt(0).toUpperCase() + member.role.slice(1);
+                            return badge;
+                        }
+
+                        // Show dropdown for other members
+                        const select = document.createElement('select');
+                        select.className = 'text-sm border border-gray-300 rounded px-2 py-1';
+                        select.innerHTML = `
+                            <option value="user" ${member.role === 'user' ? 'selected' : ''}>User</option>
+                            <option value="admin" ${member.role === 'admin' ? 'selected' : ''}>Admin</option>
+                        `;
+                        select.onchange = async (e) => {
+                            const newRole = e.target.value;
+                            if (newRole !== member.role) {
+                                await changeMemberRole(member.user_id, member.email, newRole);
+                            }
+                        };
+                        return select;
+                    }
+                },
+                {
+                    field: 'status',
+                    label: 'Status',
+                    visible: true,
+                    sortable: true,
                     width: 120,
                     formatter: 'badge'
                 },
@@ -283,15 +318,25 @@
                     label: 'Actions',
                     visible: true,
                     sortable: false,
-                    width: 100,
+                    width: 120,
                     formatter: (cell) => {
                         const member = cell.getData();
 
-                        // Don't allow removing yourself
+                        // Don't show actions for yourself
                         if (member.user_id === currentUser.id) {
                             return '';
                         }
 
+                        // Show Reactivate button for removed members
+                        if (member.status === 'Removed') {
+                            const button = document.createElement('button');
+                            button.className = 'text-green-600 hover:text-green-800 text-sm font-medium';
+                            button.textContent = 'Reactivate';
+                            button.onclick = () => reactivateMember(member.user_id, member.email);
+                            return button;
+                        }
+
+                        // Show Remove button for active members
                         const button = document.createElement('button');
                         button.className = 'text-red-600 hover:text-red-800 text-sm font-medium';
                         button.textContent = 'Remove';
@@ -461,7 +506,7 @@
         }
 
         async function removeMember(userId, userEmail) {
-            if (!confirm(`Are you sure you want to remove ${userEmail} from this organization? This action cannot be undone.`)) {
+            if (!confirm(`Are you sure you want to remove ${userEmail} from this organization?`)) {
                 return;
             }
 
@@ -701,6 +746,32 @@
                 showError(error.message || 'Failed to create project');
             }
         });
+
+        async function reactivateMember(userId, userEmail) {
+            if (!confirm(`Are you sure you want to reactivate ${userEmail} in this organization?`)) {
+                return;
+            }
+
+            try {
+                await api.reactivateMember(organizationId, userId);
+                showSuccess('Member reactivated successfully!');
+                await loadOrganization();
+            } catch (error) {
+                showError(error.message || 'Failed to reactivate member');
+            }
+        }
+
+        async function changeMemberRole(userId, userEmail, newRole) {
+            try {
+                await api.updateMemberRole(organizationId, userId, newRole);
+                showSuccess(`Updated ${userEmail}'s role to ${newRole}!`);
+                await loadOrganization();
+            } catch (error) {
+                showError(error.message || 'Failed to update member role');
+                // Reload to reset the dropdown to previous value
+                await loadOrganization();
+            }
+        }
 
         // Handle organization edit form
         document.getElementById('edit-org-form').addEventListener('submit', async (e) => {

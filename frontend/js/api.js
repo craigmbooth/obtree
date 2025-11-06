@@ -108,6 +108,19 @@ class ApiClient {
         });
     }
 
+    async reactivateMember(organizationId, userId) {
+        return this.request(`/api/organizations/${organizationId}/members/${userId}/reactivate`, {
+            method: 'POST'
+        });
+    }
+
+    async updateMemberRole(organizationId, userId, role) {
+        return this.request(`/api/organizations/${organizationId}/members/${userId}/role`, {
+            method: 'PATCH',
+            body: JSON.stringify({ role })
+        });
+    }
+
     async updateOrganization(organizationId, data) {
         return this.request(`/api/organizations/${organizationId}`, {
             method: 'PATCH',

@@ -40,6 +40,11 @@ class OrganizationMembershipBase(BaseModel):
     role: OrganizationRole
 
 
+class OrganizationMemberRoleUpdate(BaseModel):
+    """Schema for updating a member's role."""
+    role: OrganizationRole
+
+
 class OrganizationMemberResponse(BaseModel):
     """Schema for organization member response."""
     id: UUID
@@ -47,6 +52,8 @@ class OrganizationMemberResponse(BaseModel):
     email: str
     role: OrganizationRole
     joined_at: datetime
+    removed_at: Optional[datetime] = None
+    status: str
 
     class Config:
         from_attributes = True

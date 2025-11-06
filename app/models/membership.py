@@ -25,6 +25,7 @@ class OrganizationMembership(Base, TableConfigMixin):
     organization_id = Column(GUID, ForeignKey("organizations.id"), nullable=False)
     role = Column(Enum(OrganizationRole), nullable=False)
     joined_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    removed_at = Column(DateTime, nullable=True)
 
     # Relationships
     user = relationship("User", back_populates="organization_memberships")
@@ -69,6 +70,14 @@ class OrganizationMembership(Base, TableConfigMixin):
                 'sortable': True,
                 'width': 180,
                 'formatter': 'datetime'
+            },
+            {
+                'field': 'status',
+                'label': 'Status',
+                'visible': True,
+                'sortable': True,
+                'width': 120,
+                'formatter': 'badge'
             }
         ],
         'default_sort': {'field': 'joined_at', 'dir': 'desc'}

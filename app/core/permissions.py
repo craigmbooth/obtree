@@ -12,7 +12,8 @@ def is_org_admin(db: Session, user: User, organization_id: int) -> bool:
     membership = db.query(OrganizationMembership).filter(
         OrganizationMembership.user_id == user.id,
         OrganizationMembership.organization_id == organization_id,
-        OrganizationMembership.role == OrganizationRole.ADMIN
+        OrganizationMembership.role == OrganizationRole.ADMIN,
+        OrganizationMembership.removed_at.is_(None)
     ).first()
     return membership is not None
 
@@ -27,7 +28,8 @@ def is_org_member(db: Session, user: User, organization_id: int) -> bool:
 
     membership = db.query(OrganizationMembership).filter(
         OrganizationMembership.user_id == user.id,
-        OrganizationMembership.organization_id == organization_id
+        OrganizationMembership.organization_id == organization_id,
+        OrganizationMembership.removed_at.is_(None)
     ).first()
     return membership is not None
 
