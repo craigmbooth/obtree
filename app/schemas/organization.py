@@ -3,7 +3,7 @@ from typing import List, Optional
 from uuid import UUID
 from pydantic import BaseModel
 
-from app.models import OrganizationRole
+from app.models import OrganizationRole, MembershipStatus
 
 
 class OrganizationBase(BaseModel):
@@ -44,6 +44,7 @@ class OrganizationMemberResponse(BaseModel):
     user_id: UUID
     email: str
     role: OrganizationRole
+    status: MembershipStatus
     joined_at: datetime
 
     class Config:
