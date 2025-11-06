@@ -17,6 +17,11 @@ from app.schemas.invite import (
     InviteResponse,
     InviteValidateResponse,
 )
+from app.schemas.project import (
+    ProjectCreate,
+    ProjectUpdate,
+    ProjectResponse,
+)
 
 __all__ = [
     "UserCreate",
@@ -32,4 +37,7 @@ __all__ = [
     "InviteCreate",
     "InviteResponse",
     "InviteValidateResponse",
+    "ProjectCreate",
+    "ProjectUpdate",
+    "ProjectResponse",
 ]

@@ -1,0 +1,409 @@
+from typing import List
+from uuid import UUID
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
+
+from app.database import get_db
+from app.models import Organization, Project, ProjectStatus, User
+from app.schemas import (
+    ProjectCreate,
+    ProjectUpdate,
+    ProjectResponse,
+)
+from app.api.deps import get_current_user
+from app.core.permissions import is_org_member, can_manage_organization
+from app.logging_config import get_logger
+
+router = APIRouter()
+logger = get_logger(__name__)
+
+
+@router.post("/", response_model=ProjectResponse, status_code=status.HTTP_201_CREATED)
+def create_project(
+    organization_id: UUID,
+    project_data: ProjectCreate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Create a new project in an organization (admin only)."""
+    logger.info(
+        "project_create_started",
+        organization_id=organization_id,
+        title=project_data.title,
+        created_by=current_user.id
+    )
+
+    # Check if user can manage the organization
+    if not can_manage_organization(db, current_user, organization_id):
+        logger.warning(
+            "project_create_forbidden",
+            organization_id=organization_id,
+            user_id=current_user.id
+        )
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only organization admins can create projects"
+        )
+
+    # Verify organization exists
+    organization = db.query(Organization).filter(Organization.id == organization_id).first()
+    if not organization:
+        logger.warning("organization_not_found", organization_id=organization_id)
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Organization not found"
+        )
+
+    new_project = Project(
+        title=project_data.title,
+        description=project_data.description,
+        organization_id=organization_id,
+        created_by=current_user.id
+    )
+    db.add(new_project)
+    db.commit()
+    db.refresh(new_project)
+
+    logger.info(
+        "project_created",
+        project_id=new_project.id,
+        title=new_project.title,
+        organization_id=organization_id,
+        created_by=current_user.id
+    )
+
+    return new_project
+
+
+@router.get("/", response_model=List[ProjectResponse])
+def list_projects(
+    organization_id: UUID,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """List projects in an organization based on user role.
+
+    Regular users: only active projects
+    Org admins: active and archived projects
+    Site admins: all projects including deleted
+    """
+    logger.info("list_projects", organization_id=organization_id, user_id=current_user.id)
+
+    # Check if user is a member of the organization
+    if not is_org_member(db, current_user, organization_id):
+        logger.warning(
+            "list_projects_forbidden",
+            organization_id=organization_id,
+            user_id=current_user.id
+        )
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not a member of this organization"
+        )
+
+    # Filter projects based on user role
+    query = db.query(Project).filter(Project.organization_id == organization_id)
+
+    is_site_admin = current_user.is_site_admin
+    is_org_admin = can_manage_organization(db, current_user, organization_id)
+
+    if is_site_admin:
+        # Site admins see all projects
+        pass
+    elif is_org_admin:
+        # Org admins see active and archived projects
+        query = query.filter(Project.status.in_([ProjectStatus.ACTIVE, ProjectStatus.ARCHIVED]))
+    else:
+        # Regular users see only active projects
+        query = query.filter(Project.status == ProjectStatus.ACTIVE)
+
+    projects = query.all()
+
+    logger.info(
+        "projects_listed",
+        organization_id=organization_id,
+        project_count=len(projects)
+    )
+
+    return projects
+
+
+@router.get("/{project_id}", response_model=ProjectResponse)
+def get_project(
+    organization_id: UUID,
+    project_id: UUID,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get a specific project."""
+    logger.info(
+        "get_project",
+        organization_id=organization_id,
+        project_id=project_id,
+        user_id=current_user.id
+    )
+
+    # Check if user is a member of the organization
+    if not is_org_member(db, current_user, organization_id):
+        logger.warning(
+            "get_project_forbidden",
+            organization_id=organization_id,
+            user_id=current_user.id
+        )
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not a member of this organization"
+        )
+
+    project = db.query(Project).filter(
+        Project.id == project_id,
+        Project.organization_id == organization_id
+    ).first()
+
+    if not project:
+        logger.warning("project_not_found", project_id=project_id)
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Project not found"
+        )
+
+    logger.info("project_retrieved", project_id=project_id)
+    return project
+
+
+@router.patch("/{project_id}", response_model=ProjectResponse)
+def update_project(
+    organization_id: UUID,
+    project_id: UUID,
+    project_update: ProjectUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Update a project (admin only)."""
+    logger.info(
+        "update_project_started",
+        organization_id=organization_id,
+        project_id=project_id,
+        user_id=current_user.id
+    )
+
+    # Check if user can manage the organization
+    if not can_manage_organization(db, current_user, organization_id):
+        logger.warning(
+            "update_project_forbidden",
+            organization_id=organization_id,
+            user_id=current_user.id
+        )
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only organization admins can update projects"
+        )
+
+    project = db.query(Project).filter(
+        Project.id == project_id,
+        Project.organization_id == organization_id
+    ).first()
+
+    if not project:
+        logger.warning("project_not_found", project_id=project_id)
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Project not found"
+        )
+
+    # Update fields
+    update_data = project_update.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(project, field, value)
+
+    db.commit()
+    db.refresh(project)
+
+    logger.info("project_updated", project_id=project_id)
+    return project
+
+
+@router.delete("/{project_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_project(
+    organization_id: UUID,
+    project_id: UUID,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Soft delete a project (admin only) - sets status to deleted."""
+    logger.info(
+        "delete_project_started",
+        organization_id=organization_id,
+        project_id=project_id,
+        user_id=current_user.id
+    )
+
+    # Check if user can manage the organization
+    if not can_manage_organization(db, current_user, organization_id):
+        logger.warning(
+            "delete_project_forbidden",
+            organization_id=organization_id,
+            user_id=current_user.id
+        )
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only organization admins can delete projects"
+        )
+
+    project = db.query(Project).filter(
+        Project.id == project_id,
+        Project.organization_id == organization_id
+    ).first()
+
+    if not project:
+        logger.warning("project_not_found", project_id=project_id)
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Project not found"
+        )
+
+    # Soft delete - set status to deleted
+    project.status = ProjectStatus.DELETED
+    db.commit()
+
+    logger.info("project_deleted", project_id=project_id)
+
+
+@router.post("/{project_id}/archive", response_model=ProjectResponse)
+def archive_project(
+    organization_id: UUID,
+    project_id: UUID,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Archive a project (admin only)."""
+    logger.info(
+        "archive_project_started",
+        organization_id=organization_id,
+        project_id=project_id,
+        user_id=current_user.id
+    )
+
+    # Check if user can manage the organization
+    if not can_manage_organization(db, current_user, organization_id):
+        logger.warning(
+            "archive_project_forbidden",
+            organization_id=organization_id,
+            user_id=current_user.id
+        )
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only organization admins can archive projects"
+        )
+
+    project = db.query(Project).filter(
+        Project.id == project_id,
+        Project.organization_id == organization_id
+    ).first()
+
+    if not project:
+        logger.warning("project_not_found", project_id=project_id)
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Project not found"
+        )
+
+    project.status = ProjectStatus.ARCHIVED
+    db.commit()
+    db.refresh(project)
+
+    logger.info("project_archived", project_id=project_id)
+    return project
+
+
+@router.post("/{project_id}/unarchive", response_model=ProjectResponse)
+def unarchive_project(
+    organization_id: UUID,
+    project_id: UUID,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Unarchive a project (admin only)."""
+    logger.info(
+        "unarchive_project_started",
+        organization_id=organization_id,
+        project_id=project_id,
+        user_id=current_user.id
+    )
+
+    # Check if user can manage the organization
+    if not can_manage_organization(db, current_user, organization_id):
+        logger.warning(
+            "unarchive_project_forbidden",
+            organization_id=organization_id,
+            user_id=current_user.id
+        )
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only organization admins can unarchive projects"
+        )
+
+    project = db.query(Project).filter(
+        Project.id == project_id,
+        Project.organization_id == organization_id
+    ).first()
+
+    if not project:
+        logger.warning("project_not_found", project_id=project_id)
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Project not found"
+        )
+
+    project.status = ProjectStatus.ACTIVE
+    db.commit()
+    db.refresh(project)
+
+    logger.info("project_unarchived", project_id=project_id)
+    return project
+
+
+@router.post("/{project_id}/undelete", response_model=ProjectResponse)
+def undelete_project(
+    organization_id: UUID,
+    project_id: UUID,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Undelete a project (site admin only)."""
+    logger.info(
+        "undelete_project_started",
+        organization_id=organization_id,
+        project_id=project_id,
+        user_id=current_user.id
+    )
+
+    # Only site admins can undelete
+    if not current_user.is_site_admin:
+        logger.warning(
+            "undelete_project_forbidden",
+            user_id=current_user.id
+        )
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only site admins can undelete projects"
+        )
+
+    project = db.query(Project).filter(
+        Project.id == project_id,
+        Project.organization_id == organization_id
+    ).first()
+
+    if not project:
+        logger.warning("project_not_found", project_id=project_id)
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Project not found"
+        )
+
+    project.status = ProjectStatus.ACTIVE
+    db.commit()
+    db.refresh(project)
+
+    logger.info("project_undeleted", project_id=project_id)
+    return project

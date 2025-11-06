@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Organization - OBTree</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tabulator CSS and JS -->
+    <link href="https://unpkg.com/tabulator-tables@6.2.5/dist/css/tabulator.min.css" rel="stylesheet">
+    <link href="/css/table-custom.css" rel="stylesheet">
+    <script src="https://unpkg.com/tabulator-tables@6.2.5/dist/js/tabulator.min.js"></script>
 </head>
 <body class="bg-gray-100 min-h-screen">
     <!-- Navigation -->
@@ -41,7 +45,7 @@
             </div>
 
             <!-- Organization Stats/Info -->
-            <div class="bg-white rounded-lg shadow-md p-6">
+            <div class="bg-white rounded-lg shadow-md p-6 mb-6">
                 <h3 class="text-xl font-bold text-gray-800 mb-4">Organization Info</h3>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
@@ -54,6 +58,14 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Projects List -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h3 class="text-xl font-bold text-gray-800 mb-4">Projects</h3>
+                <div id="projects-table">
+                    <!-- Projects table will be initialized here -->
+                </div>
+            </div>
         </div>
     </div>
 
@@ -61,10 +73,13 @@
     <script src="/js/auth.js"></script>
     <script src="/js/utils.js"></script>
     <script src="/js/navigation.js"></script>
+    <script src="/js/table.js"></script>
+    <script src="/js/tableBuilder.js"></script>
     <script>
         let currentUser = null;
         let organizationId = null;
         let organization = null;
+        let projectsTable = null;
 
         async function init() {
             currentUser = await Auth.checkAuth();
@@ -132,9 +147,96 @@
                         orgAdminMenuLink.classList.remove('hidden');
                     }
                 }
+
+                // Load projects
+                await loadProjects();
             } catch (error) {
                 document.getElementById('loading').classList.add('hidden');
                 showError(error.message || 'Failed to load organization');
+            }
+        }
+
+        async function loadProjects() {
+            try {
+                const projects = await api.getProjects(organizationId);
+
+                // Define columns with clickable title and status badge
+                const columns = [
+                    {
+                        field: 'title',
+                        label: 'Project Title',
+                        visible: true,
+                        sortable: true,
+                        width: 300,
+                        formatter: (cell) => {
+                            const project = cell.getData();
+                            const container = document.createElement('div');
+                            container.className = 'flex items-center gap-2';
+
+                            // Create clickable link
+                            const link = document.createElement('a');
+                            link.href = `/project.html?org_id=${organizationId}&id=${project.id}`;
+                            link.className = 'text-blue-600 hover:underline font-medium';
+                            link.textContent = project.title;
+
+                            container.appendChild(link);
+
+                            // Add status badge if archived or deleted
+                            if (project.status === 'archived') {
+                                const badge = document.createElement('span');
+                                badge.className = 'text-xs px-2 py-1 bg-yellow-100 text-yellow-800 rounded';
+                                badge.textContent = 'Archived';
+                                container.appendChild(badge);
+                            } else if (project.status === 'deleted') {
+                                const badge = document.createElement('span');
+                                badge.className = 'text-xs px-2 py-1 bg-red-100 text-red-800 rounded';
+                                badge.textContent = 'Deleted';
+                                container.appendChild(badge);
+                            }
+
+                            return container;
+                        }
+                    },
+                    {
+                        field: 'description',
+                        label: 'Description',
+                        visible: true,
+                        sortable: false,
+                        width: 400,
+                        formatter: 'plaintext'
+                    },
+                    {
+                        field: 'created_at',
+                        label: 'Created',
+                        visible: true,
+                        sortable: true,
+                        width: 180,
+                        formatter: 'datetime'
+                    }
+                ];
+
+                const config = {
+                    visible_columns: columns,
+                    default_sort: { field: 'created_at', dir: 'desc' }
+                };
+
+                // Create table instance if it doesn't exist
+                if (!projectsTable) {
+                    projectsTable = new DataTable('#projects-table', {
+                        pageSize: 20,
+                        rowFormatter: (row) => {
+                            const data = row.getData();
+                            if (data.status === 'archived' || data.status === 'deleted') {
+                                row.getElement().style.opacity = '0.5';
+                            }
+                        }
+                    });
+                }
+
+                projectsTable.init(projects, config);
+            } catch (error) {
+                console.error('Failed to load projects:', error);
+                showError('Failed to load projects');
             }
         }
 

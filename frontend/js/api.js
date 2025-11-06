@@ -141,6 +141,56 @@ class ApiClient {
             method: 'DELETE'
         });
     }
+
+    // Project endpoints
+    async getProjects(organizationId) {
+        return this.request(`/api/organizations/${organizationId}/projects`);
+    }
+
+    async getProject(organizationId, projectId) {
+        return this.request(`/api/organizations/${organizationId}/projects/${projectId}`);
+    }
+
+    async createProject(organizationId, title, description = null) {
+        return this.request(`/api/organizations/${organizationId}/projects`, {
+            method: 'POST',
+            body: JSON.stringify({
+                title,
+                description
+            })
+        });
+    }
+
+    async updateProject(organizationId, projectId, data) {
+        return this.request(`/api/organizations/${organizationId}/projects/${projectId}`, {
+            method: 'PATCH',
+            body: JSON.stringify(data)
+        });
+    }
+
+    async deleteProject(organizationId, projectId) {
+        return this.request(`/api/organizations/${organizationId}/projects/${projectId}`, {
+            method: 'DELETE'
+        });
+    }
+
+    async archiveProject(organizationId, projectId) {
+        return this.request(`/api/organizations/${organizationId}/projects/${projectId}/archive`, {
+            method: 'POST'
+        });
+    }
+
+    async unarchiveProject(organizationId, projectId) {
+        return this.request(`/api/organizations/${organizationId}/projects/${projectId}/unarchive`, {
+            method: 'POST'
+        });
+    }
+
+    async undeleteProject(organizationId, projectId) {
+        return this.request(`/api/organizations/${organizationId}/projects/${projectId}/undelete`, {
+            method: 'POST'
+        });
+    }
 }
 
 const api = new ApiClient();
