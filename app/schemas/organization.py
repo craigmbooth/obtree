@@ -13,12 +13,19 @@ class OrganizationBase(BaseModel):
 
 class OrganizationCreate(OrganizationBase):
     """Schema for creating a new organization."""
-    pass
+    description: Optional[str] = None
+
+
+class OrganizationUpdate(BaseModel):
+    """Schema for updating an organization."""
+    name: Optional[str] = None
+    description: Optional[str] = None
 
 
 class OrganizationResponse(OrganizationBase):
     """Schema for organization response."""
     id: UUID
+    description: Optional[str] = None
     created_at: datetime
     created_by: UUID
 

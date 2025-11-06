@@ -131,3 +131,15 @@ def admin_page():
 def tables_demo_page():
     """Serve tables demo page."""
     return Path("frontend/tables-demo.html").read_text()
+
+
+@app.get("/profile.html", response_class=HTMLResponse)
+def profile_page():
+    """Serve profile page."""
+    return Path("frontend/profile.html").read_text()
+
+
+@app.get("/org-admin.html", response_class=HTMLResponse)
+def org_admin_page():
+    """Serve organization admin page."""
+    return Path("frontend/org-admin.html").read_text()

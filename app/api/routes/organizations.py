@@ -7,6 +7,7 @@ from app.database import get_db
 from app.models import Organization, OrganizationMembership, OrganizationRole, User
 from app.schemas import (
     OrganizationCreate,
+    OrganizationUpdate,
     OrganizationResponse,
     OrganizationDetailResponse,
     OrganizationMemberResponse,
@@ -134,6 +135,7 @@ def get_organization(
     return OrganizationDetailResponse(
         id=organization.id,
         name=organization.name,
+        description=organization.description,
         created_at=organization.created_at,
         created_by=organization.created_by,
         members=members
@@ -206,3 +208,55 @@ def remove_member(
     )
 
     return None
+
+
+@router.patch("/{organization_id}", response_model=OrganizationResponse)
+def update_organization(
+    organization_id: UUID,
+    org_update: OrganizationUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Update an organization (site admin or org admin only)."""
+    logger.info(
+        "update_organization_started",
+        organization_id=organization_id,
+        updated_by=current_user.id
+    )
+
+    # Check if organization exists
+    organization = db.query(Organization).filter(Organization.id == organization_id).first()
+    if not organization:
+        logger.warning("update_organization_not_found", organization_id=organization_id)
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Organization not found"
+        )
+
+    # Check if user can manage this organization
+    if not can_manage_organization(db, current_user, organization_id):
+        logger.warning(
+            "update_organization_forbidden",
+            organization_id=organization_id,
+            updated_by=current_user.id
+        )
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not enough permissions to update this organization"
+        )
+
+    # Update fields - only update if explicitly provided in request
+    update_data = org_update.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(organization, field, value)
+
+    db.commit()
+    db.refresh(organization)
+
+    logger.info(
+        "organization_updated",
+        organization_id=organization_id,
+        updated_by=current_user.id
+    )
+
+    return organization

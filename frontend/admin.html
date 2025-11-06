@@ -20,10 +20,19 @@
                     <a href="/" class="hover:underline">Home</a>
                 </div>
                 <div class="flex items-center space-x-4">
-                    <span id="user-email" class="text-sm"></span>
-                    <button onclick="Auth.logout()" class="bg-blue-700 hover:bg-blue-800 px-4 py-2 rounded">
-                        Logout
-                    </button>
+                    <!-- User dropdown -->
+                    <div class="relative">
+                        <button id="user-menu-button" class="flex items-center space-x-2 text-sm hover:text-gray-200 focus:outline-none">
+                            <span id="user-email"></span>
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                            </svg>
+                        </button>
+                        <div id="user-menu" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50">
+                            <a href="/profile.html" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Profile</a>
+                            <button onclick="Auth.logout()" class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Logout</button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -164,6 +173,21 @@
                 }, 1500);
             } catch (error) {
                 showError(error.message || 'Failed to create organization');
+            }
+        });
+
+        // Toggle user dropdown menu
+        document.getElementById('user-menu-button').addEventListener('click', (e) => {
+            e.stopPropagation();
+            const menu = document.getElementById('user-menu');
+            menu.classList.toggle('hidden');
+        });
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', () => {
+            const menu = document.getElementById('user-menu');
+            if (!menu.classList.contains('hidden')) {
+                menu.classList.add('hidden');
             }
         });
 

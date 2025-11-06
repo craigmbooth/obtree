@@ -7,6 +7,7 @@ from app.schemas.user import (
 )
 from app.schemas.organization import (
     OrganizationCreate,
+    OrganizationUpdate,
     OrganizationResponse,
     OrganizationDetailResponse,
     OrganizationMemberResponse,
@@ -24,6 +25,7 @@ __all__ = [
     "Token",
     "TokenData",
     "OrganizationCreate",
+    "OrganizationUpdate",
     "OrganizationResponse",
     "OrganizationDetailResponse",
     "OrganizationMemberResponse",

@@ -108,6 +108,13 @@ class ApiClient {
         });
     }
 
+    async updateOrganization(organizationId, data) {
+        return this.request(`/api/organizations/${organizationId}`, {
+            method: 'PATCH',
+            body: JSON.stringify(data)
+        });
+    }
+
     // Invite endpoints
     async createInvite(organizationId, role) {
         return this.request('/api/invites', {

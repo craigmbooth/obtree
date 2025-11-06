@@ -15,6 +15,7 @@ class Organization(Base, TableConfigMixin):
 
     id = Column(GUID, primary_key=True, default=uuid_lib.uuid4, index=True)
     name = Column(String, nullable=False)
+    description = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     created_by = Column(GUID, ForeignKey("users.id"), nullable=False)
 
