@@ -31,11 +31,29 @@ function formatDate(dateString) {
 }
 
 function copyToClipboard(text) {
-    navigator.clipboard.writeText(text).then(() => {
-        showSuccess('Copied to clipboard!');
-    }).catch(() => {
-        showError('Failed to copy to clipboard');
-    });
+    // Try modern Clipboard API first
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => {
+            showSuccess('Copied to clipboard!');
+        }).catch(() => {
+            showError('Failed to copy to clipboard');
+        });
+    } else {
+        // Fallback to older method
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        textarea.style.position = 'fixed';
+        textarea.style.opacity = '0';
+        document.body.appendChild(textarea);
+        textarea.select();
+        try {
+            document.execCommand('copy');
+            showSuccess('Copied to clipboard!');
+        } catch (err) {
+            showError('Failed to copy to clipboard');
+        }
+        document.body.removeChild(textarea);
+    }
 }
 
 function updateNavigation() {

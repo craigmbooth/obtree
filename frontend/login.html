@@ -44,7 +44,8 @@
     <script>
         // Redirect if already logged in
         if (Auth.isAuthenticated()) {
-            window.location.href = '/dashboard.html';
+            const user = Auth.getUser();
+            window.location.href = Auth.getHomePage(user);
         }
 
         document.getElementById('login-form').addEventListener('submit', async (e) => {
@@ -61,8 +62,8 @@
                 const user = await api.getCurrentUser();
                 Auth.setUser(user);
 
-                // Redirect to dashboard
-                window.location.href = '/dashboard.html';
+                // Redirect based on user type
+                window.location.href = Auth.getHomePage(user);
             } catch (error) {
                 showError(error.message || 'Login failed');
             }

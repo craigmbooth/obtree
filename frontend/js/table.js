@@ -61,12 +61,17 @@ class DataTable {
 
             boolean: (cell) => {
                 const value = cell.getValue();
+                const span = document.createElement('span');
                 if (value === true || value === 'true') {
-                    return '<span class="text-green-600 font-medium">Yes</span>';
+                    span.className = 'text-green-600 font-medium';
+                    span.textContent = 'Yes';
                 } else if (value === false || value === 'false') {
-                    return '<span class="text-gray-400">No</span>';
+                    span.className = 'text-gray-400';
+                    span.textContent = 'No';
+                } else {
+                    return '';
                 }
-                return '';
+                return span;
             },
 
             badge: (cell) => {
@@ -83,19 +88,31 @@ class DataTable {
                 };
 
                 const colorClass = colorMap[String(value).toLowerCase()] || 'bg-gray-100 text-gray-800';
-                return `<span class="px-2 py-1 rounded text-xs font-medium ${colorClass}">${value}</span>`;
+                const span = document.createElement('span');
+                span.className = `px-2 py-1 rounded text-xs font-medium ${colorClass}`;
+                span.textContent = value;
+                return span;
             },
 
             email: (cell) => {
                 const value = cell.getValue();
                 if (!value) return '';
-                return `<a href="mailto:${value}" class="text-blue-600 hover:underline">${value}</a>`;
+                const link = document.createElement('a');
+                link.href = `mailto:${value}`;
+                link.className = 'text-blue-600 hover:underline';
+                link.textContent = value;
+                return link;
             },
 
             link: (cell) => {
                 const value = cell.getValue();
                 if (!value) return '';
-                return `<a href="${value}" target="_blank" class="text-blue-600 hover:underline">Link</a>`;
+                const link = document.createElement('a');
+                link.href = value;
+                link.target = '_blank';
+                link.className = 'text-blue-600 hover:underline';
+                link.textContent = 'Link →';
+                return link;
             },
 
             money: (cell) => {
@@ -130,13 +147,22 @@ class DataTable {
         }
 
         // Add formatter
-        if (columnConfig.formatter && this.formatters[columnConfig.formatter]) {
-            column.formatter = columnConfig.formatter === 'plaintext' ? 'plaintext' : this.formatters[columnConfig.formatter];
+        if (columnConfig.formatter) {
+            // Check if formatter is a function (custom formatter)
+            if (typeof columnConfig.formatter === 'function') {
+                column.formatter = columnConfig.formatter;
+            }
+            // Otherwise, look it up in the predefined formatters
+            else if (this.formatters[columnConfig.formatter]) {
+                column.formatter = columnConfig.formatter === 'plaintext' ? 'plaintext' : this.formatters[columnConfig.formatter];
+            }
         }
 
         // Add header filter if enabled
         if (this.options.headerFilter && columnConfig.filterable !== false) {
-            column.headerFilter = this.getHeaderFilterType(columnConfig.formatter);
+            // Only add header filter if formatter is a string (not a custom function)
+            const formatterType = typeof columnConfig.formatter === 'string' ? columnConfig.formatter : 'input';
+            column.headerFilter = this.getHeaderFilterType(formatterType);
             column.headerFilterPlaceholder = `Filter ${columnConfig.label}...`;
         }
 

@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Site Admin - OBTree</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tabulator CSS and JS -->
+    <link href="https://unpkg.com/tabulator-tables@6.2.5/dist/css/tabulator.min.css" rel="stylesheet">
+    <link href="/css/table-custom.css" rel="stylesheet">
+    <script src="https://unpkg.com/tabulator-tables@6.2.5/dist/js/tabulator.min.js"></script>
 </head>
 <body class="bg-gray-100 min-h-screen">
     <!-- Navigation -->
@@ -13,8 +17,7 @@
             <div class="flex justify-between items-center">
                 <div class="flex items-center space-x-6">
                     <h1 class="text-2xl font-bold">OBTree</h1>
-                    <a href="/dashboard.html" class="hover:underline">Dashboard</a>
-                    <a href="/admin.html" class="hover:underline font-bold">Admin</a>
+                    <a href="/" class="hover:underline">Home</a>
                 </div>
                 <div class="flex items-center space-x-4">
                     <span id="user-email" class="text-sm"></span>
@@ -51,40 +54,21 @@
             </form>
         </div>
 
-        <!-- Quick Actions -->
-        <div class="bg-white rounded-lg shadow-md p-6">
-            <h3 class="text-xl font-bold text-gray-800 mb-4">Quick Actions</h3>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <a href="/dashboard.html"
-                    class="border-2 border-blue-200 rounded-lg p-4 hover:bg-blue-50 transition">
-                    <h4 class="font-semibold text-blue-700 mb-2">View All Organizations</h4>
-                    <p class="text-sm text-gray-600">See all organizations you manage</p>
-                </a>
-                <div class="border-2 border-gray-200 rounded-lg p-4">
-                    <h4 class="font-semibold text-gray-700 mb-2">System Status</h4>
-                    <p class="text-sm text-green-600">✓ All systems operational</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Instructions -->
-        <div class="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-6">
-            <h3 class="font-semibold text-blue-900 mb-2">Admin Instructions</h3>
-            <ol class="list-decimal list-inside space-y-2 text-sm text-blue-800">
-                <li>Create a new organization using the form above</li>
-                <li>Navigate to the organization detail page from your dashboard</li>
-                <li>Use the "Generate Invite" button to create invite codes</li>
-                <li>Share the invite link with users who need to join the organization</li>
-                <li>Users can sign up with the invite code to automatically join as a member or admin</li>
-            </ol>
+        <!-- Organizations Table -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h3 class="text-xl font-bold text-gray-800 mb-4">All Organizations</h3>
+            <div id="organizations-table"></div>
         </div>
     </div>
 
     <script src="/js/api.js"></script>
     <script src="/js/auth.js"></script>
     <script src="/js/utils.js"></script>
+    <script src="/js/table.js"></script>
+    <script src="/js/tableBuilder.js"></script>
     <script>
         let currentUser = null;
+        let organizationsTable = null;
 
         async function init() {
             currentUser = await Auth.checkAuth();
@@ -94,12 +78,67 @@
             if (!currentUser.is_site_admin) {
                 showError('This page requires site admin access');
                 setTimeout(() => {
-                    window.location.href = '/dashboard.html';
+                    window.location.href = '/';
                 }, 2000);
                 return;
             }
 
             updateNavigation();
+            await loadOrganizations();
+        }
+
+        async function loadOrganizations() {
+            try {
+                const organizations = await api.getOrganizations();
+
+                // Define columns with clickable name
+                const columns = [
+                    {
+                        field: 'name',
+                        label: 'Organization Name',
+                        visible: true,
+                        sortable: true,
+                        width: 300,
+                        formatter: (cell) => {
+                            const org = cell.getData();
+                            // Create DOM element instead of HTML string to bypass Tabulator sanitization
+                            const link = document.createElement('a');
+                            link.href = `/organization.html?id=${org.id}`;
+                            link.className = 'text-blue-600 hover:underline font-medium';
+                            link.textContent = org.name;
+                            return link;
+                        }
+                    },
+                    {
+                        field: 'created_at',
+                        label: 'Created',
+                        visible: true,
+                        sortable: true,
+                        width: 180,
+                        formatter: 'datetime'
+                    }
+                ];
+
+                const config = {
+                    visible_columns: columns,
+                    default_sort: { field: 'name', dir: 'asc' }
+                };
+
+                organizationsTable = new DataTable('#organizations-table', {
+                    pageSize: 20
+                });
+
+                organizationsTable.init(organizations, config);
+            } catch (error) {
+                console.error('Failed to load organizations:', error);
+                showError('Failed to load organizations');
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
         }
 
         document.getElementById('create-org-form').addEventListener('submit', async (e) => {
@@ -116,6 +155,10 @@
                 showSuccess('Organization created successfully!');
                 document.getElementById('org-name').value = '';
 
+                // Reload organizations table
+                await loadOrganizations();
+
+                // Optional: redirect to the new organization after a delay
                 setTimeout(() => {
                     window.location.href = `/organization.html?id=${org.id}`;
                 }, 1500);

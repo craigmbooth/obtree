@@ -60,7 +60,6 @@ obtree/
 │   │   └── tableBuilder.js  # Table builder utilities
 │   ├── login.html           # Login page
 │   ├── signup.html          # Signup page
-│   ├── dashboard.html       # User dashboard
 │   ├── organization.html    # Organization details (with tables)
 │   ├── admin.html           # Site admin page
 │   └── tables-demo.html     # Table component demo
@@ -111,7 +110,7 @@ make run
 ```
 
 The application will be available at:
-- **Web App**: `http://localhost:8000` (redirects to login or dashboard)
+- **Web App**: `http://localhost:8000` (redirects to login or home page)
 - **API Docs**: `http://localhost:8000/docs`
 - **API**: `http://localhost:8000/api/`
 
@@ -122,7 +121,7 @@ The application will be available at:
 1. After running the server, visit `http://localhost:8000`
 2. You'll be redirected to the login page
 3. Since you created a site admin with `make seed-admin`, login with those credentials
-4. You'll be taken to the dashboard
+4. You'll be taken to the admin page
 
 ### Site Admin Workflow
 
@@ -140,7 +139,7 @@ The application will be available at:
 2. Click the invite link or paste the invite code during signup
 3. The signup form will show which organization you're joining
 4. **Complete signup** with your email and password
-5. **Login** and access your organization dashboard
+5. **Login** and access your organization
 6. View organization details and members
 
 ### Organization Admin Workflow
@@ -154,7 +153,6 @@ The application will be available at:
 
 - **`/login.html`** - User login
 - **`/signup.html`** - User registration (with optional invite code)
-- **`/dashboard.html`** - List of user's organizations
 - **`/organization.html`** - Organization details, members, and invite management
 - **`/admin.html`** - Site admin panel (create organizations)
 - **`/tables-demo.html`** - Interactive demo of the table component system

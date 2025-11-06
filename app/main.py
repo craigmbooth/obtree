@@ -115,12 +115,6 @@ def signup_page():
     return Path("frontend/signup.html").read_text()
 
 
-@app.get("/dashboard.html", response_class=HTMLResponse)
-def dashboard_page():
-    """Serve dashboard page."""
-    return Path("frontend/dashboard.html").read_text()
-
-
 @app.get("/organization.html", response_class=HTMLResponse)
 def organization_page():
     """Serve organization page."""

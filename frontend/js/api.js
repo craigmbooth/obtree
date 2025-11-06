@@ -31,6 +31,12 @@ class ApiClient {
 
         try {
             const response = await fetch(url, config);
+
+            // Handle 204 No Content responses
+            if (response.status === 204) {
+                return null;
+            }
+
             const data = await response.json();
 
             if (!response.ok) {
@@ -96,6 +102,12 @@ class ApiClient {
         });
     }
 
+    async removeMember(organizationId, userId) {
+        return this.request(`/api/organizations/${organizationId}/members/${userId}`, {
+            method: 'DELETE'
+        });
+    }
+
     // Invite endpoints
     async createInvite(organizationId, role) {
         return this.request('/api/invites', {
@@ -115,6 +127,12 @@ class ApiClient {
         // This endpoint doesn't require auth
         const response = await fetch(`${this.baseUrl}/api/invites/validate/${uuid}`);
         return response.json();
+    }
+
+    async revokeInvite(uuid) {
+        return this.request(`/api/invites/${uuid}`, {
+            method: 'DELETE'
+        });
     }
 }
 

@@ -159,3 +159,48 @@ def validate_invite(invite_uuid: str, db: Session = Depends(get_db)):
         expires_at=invite.expires_at,
         message="Invite is valid"
     )
+
+
+@router.delete("/{invite_uuid}", status_code=status.HTTP_204_NO_CONTENT)
+def revoke_invite(
+    invite_uuid: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Revoke an invite (site admin or org admin only)."""
+    logger.info("revoke_invite_started", invite_uuid=invite_uuid, user_id=current_user.id)
+
+    # Find the invite
+    invite = db.query(Invite).filter(Invite.uuid == invite_uuid).first()
+    if not invite:
+        logger.warning("revoke_invite_not_found", invite_uuid=invite_uuid)
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Invite not found"
+        )
+
+    # Check if user can manage this organization
+    if not can_manage_organization(db, current_user, invite.organization_id):
+        logger.warning(
+            "revoke_invite_forbidden",
+            invite_uuid=invite_uuid,
+            organization_id=invite.organization_id,
+            user_id=current_user.id
+        )
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not enough permissions to revoke this invite"
+        )
+
+    # Revoke the invite by setting is_active to False
+    invite.is_active = False
+    db.commit()
+
+    logger.info(
+        "invite_revoked",
+        invite_uuid=invite_uuid,
+        organization_id=invite.organization_id,
+        revoked_by=current_user.id
+    )
+
+    return None

@@ -62,7 +62,21 @@ class Auth {
         const user = this.getUser();
         if (!user || !user.is_site_admin) {
             alert('This page requires site admin access');
-            window.location.href = '/dashboard.html';
+            window.location.href = this.getHomePage(user);
         }
+    }
+
+    static getHomePage(user) {
+        // Site admins go to admin page
+        if (user && user.is_site_admin) {
+            return '/admin.html';
+        }
+        // Regular users go to index which will redirect to their organization
+        return '/';
+    }
+
+    static async redirectToHome() {
+        const user = this.getUser();
+        window.location.href = this.getHomePage(user);
     }
 }

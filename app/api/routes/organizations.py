@@ -138,3 +138,71 @@ def get_organization(
         created_by=organization.created_by,
         members=members
     )
+
+
+@router.delete("/{organization_id}/members/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+def remove_member(
+    organization_id: UUID,
+    user_id: UUID,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Remove a member from an organization (site admin or org admin only)."""
+    logger.info(
+        "remove_member_started",
+        organization_id=organization_id,
+        user_id=user_id,
+        removed_by=current_user.id
+    )
+
+    # Check if organization exists
+    organization = db.query(Organization).filter(Organization.id == organization_id).first()
+    if not organization:
+        logger.warning("remove_member_org_not_found", organization_id=organization_id)
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Organization not found"
+        )
+
+    # Check if user can manage this organization
+    if not can_manage_organization(db, current_user, organization_id):
+        logger.warning(
+            "remove_member_forbidden",
+            organization_id=organization_id,
+            user_id=user_id,
+            removed_by=current_user.id
+        )
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not enough permissions to remove members from this organization"
+        )
+
+    # Find the membership
+    membership = db.query(OrganizationMembership).filter(
+        OrganizationMembership.organization_id == organization_id,
+        OrganizationMembership.user_id == user_id
+    ).first()
+
+    if not membership:
+        logger.warning(
+            "remove_member_not_found",
+            organization_id=organization_id,
+            user_id=user_id
+        )
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Member not found in this organization"
+        )
+
+    # Delete the membership
+    db.delete(membership)
+    db.commit()
+
+    logger.info(
+        "member_removed",
+        organization_id=organization_id,
+        user_id=user_id,
+        removed_by=current_user.id
+    )
+
+    return None

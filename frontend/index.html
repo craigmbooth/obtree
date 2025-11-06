@@ -7,14 +7,60 @@
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100">
+    <div class="flex items-center justify-center min-h-screen">
+        <div class="text-center">
+            <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            <p class="mt-4 text-gray-600">Loading...</p>
+        </div>
+    </div>
+
+    <script src="/js/api.js"></script>
     <script src="/js/auth.js"></script>
     <script>
-        // Redirect to dashboard if logged in, otherwise to login
-        if (Auth.isAuthenticated()) {
-            window.location.href = '/dashboard.html';
-        } else {
-            window.location.href = '/login.html';
+        async function redirect() {
+            if (!Auth.isAuthenticated()) {
+                window.location.href = '/login.html';
+                return;
+            }
+
+            try {
+                const user = await api.getCurrentUser();
+                Auth.setUser(user);
+
+                // Site admins go to admin page
+                if (user.is_site_admin) {
+                    window.location.href = '/admin.html';
+                    return;
+                }
+
+                // Regular users - fetch their organizations and redirect to first one
+                const organizations = await api.getOrganizations();
+
+                if (organizations.length > 0) {
+                    // Redirect to first organization
+                    window.location.href = `/organization.html?id=${organizations[0].id}`;
+                } else {
+                    // No organizations - show message
+                    document.body.innerHTML = `
+                        <div class="flex items-center justify-center min-h-screen">
+                            <div class="bg-white p-8 rounded-lg shadow-md text-center">
+                                <h1 class="text-2xl font-bold text-gray-800 mb-4">No Organizations</h1>
+                                <p class="text-gray-600 mb-4">You are not a member of any organizations yet.</p>
+                                <p class="text-sm text-gray-500">Please contact an administrator for an invite code.</p>
+                                <button onclick="Auth.logout()" class="mt-6 bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700">
+                                    Logout
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('Redirect failed:', error);
+                Auth.logout();
+            }
         }
+
+        redirect();
     </script>
 </body>
 </html>
