@@ -79,6 +79,8 @@ obtree/
 - Python 3.10+
 - Poetry
 
+**Note:** SQLite is used for local development and requires no additional setup. PostgreSQL is only needed for production deployments.
+
 ### Installation
 
 1. Clone the repository and navigate to the project directory
@@ -91,7 +93,7 @@ make install
 3. Copy the example environment file and configure it:
 ```bash
 cp .env.example .env
-# Edit .env with your settings
+# Edit .env with your settings (SQLite is already configured for development)
 ```
 
 4. Create the database tables:
@@ -560,6 +562,8 @@ make reset         # Reset database (WARNING: deletes all data)
 Edit `.env` file to configure:
 
 - `DATABASE_URL` - Database connection string
+  - Development: `sqlite:///./obtree.db` (default, no setup required)
+  - Production: `postgresql://user:password@localhost:5432/obtree_db`
 - `SECRET_KEY` - Secret key for JWT tokens (use a secure random key in production)
 - `ALGORITHM` - JWT algorithm (default: HS256)
 - `ACCESS_TOKEN_EXPIRE_MINUTES` - Token expiration time
@@ -584,8 +588,8 @@ poetry run pytest
 ## Production Deployment
 
 1. Update `.env` with production settings:
-   - Use PostgreSQL instead of SQLite
-   - Set strong `SECRET_KEY`
+   - Change `DATABASE_URL` to PostgreSQL: `postgresql://user:password@localhost:5432/obtree_db`
+   - Set strong `SECRET_KEY` (generate with: `openssl rand -hex 32`)
    - Set `DEBUG=False`
    - Configure proper CORS origins in `app/main.py`
 
