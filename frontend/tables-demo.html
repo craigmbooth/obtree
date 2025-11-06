@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Table Component Demo - OBTree</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tabulator CSS and JS -->
+    <link href="https://unpkg.com/tabulator-tables@6.2.5/dist/css/tabulator.min.css" rel="stylesheet">
+    <link href="/css/table-custom.css" rel="stylesheet">
+    <script src="https://unpkg.com/tabulator-tables@6.2.5/dist/js/tabulator.min.js"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <!-- Navigation -->
+    <nav class="bg-blue-600 text-white shadow-lg">
+        <div class="container mx-auto px-4 py-4">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center space-x-6">
+                    <h1 class="text-2xl font-bold">OBTree</h1>
+                    <a href="/dashboard.html" class="hover:underline">Dashboard</a>
+                    <a href="/admin.html" id="site-admin-link" class="hover:underline hidden">Admin</a>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span id="user-email" class="text-sm"></span>
+                    <button onclick="Auth.logout()" class="bg-blue-700 hover:bg-blue-800 px-4 py-2 rounded">
+                        Logout
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mx-auto px-4 py-8">
+        <div class="mb-6">
+            <a href="/dashboard.html" class="text-blue-600 hover:underline">&larr; Back to Dashboard</a>
+        </div>
+
+        <h1 class="text-3xl font-bold text-gray-800 mb-8">Table Component Demo</h1>
+
+        <!-- Demo 1: Simple Table with Manual Configuration -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h2 class="text-xl font-bold text-gray-800 mb-4">1. Simple Table (Manual Configuration)</h2>
+            <p class="text-gray-600 mb-4">A basic table with custom column definitions and sample data.</p>
+            <div id="simple-table"></div>
+        </div>
+
+        <!-- Demo 2: Table with All Formatter Types -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h2 class="text-xl font-bold text-gray-800 mb-4">2. All Formatter Types</h2>
+            <p class="text-gray-600 mb-4">Demonstrates all available formatters: plaintext, datetime, date, boolean, badge, email, link, and money.</p>
+            <div id="formatters-table"></div>
+        </div>
+
+        <!-- Demo 3: Users Table (From Backend Config) -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h2 class="text-xl font-bold text-gray-800 mb-4">3. Users Table (Backend Configuration)</h2>
+            <p class="text-gray-600 mb-4">Table configuration loaded from the backend User model's __table_config__.</p>
+            <div id="users-table-container">
+                <div class="text-center py-8 text-gray-500">Click "Load Users" to fetch from backend</div>
+            </div>
+            <button onclick="loadUsersTable()" class="mt-4 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                Load Users Table
+            </button>
+        </div>
+
+        <!-- Demo 4: Organizations Table -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h2 class="text-xl font-bold text-gray-800 mb-4">4. Organizations Table (Backend Configuration)</h2>
+            <p class="text-gray-600 mb-4">Table showing organizations with configuration from backend.</p>
+            <div id="orgs-table-container">
+                <div class="text-center py-8 text-gray-500">Click "Load Organizations" to fetch from backend</div>
+            </div>
+            <button onclick="loadOrganizationsTable()" class="mt-4 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                Load Organizations Table
+            </button>
+        </div>
+
+        <!-- Demo 5: Table with Custom Actions -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h2 class="text-xl font-bold text-gray-800 mb-4">5. Table with Custom Action Buttons</h2>
+            <p class="text-gray-600 mb-4">Shows how to add custom action buttons to each row.</p>
+            <div id="actions-table"></div>
+        </div>
+
+        <!-- Code Examples -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-xl font-bold text-gray-800 mb-4">Code Examples</h2>
+
+            <h3 class="font-bold text-gray-700 mt-4 mb-2">1. Simple Manual Table:</h3>
+            <pre class="bg-gray-100 p-4 rounded overflow-x-auto text-sm"><code>const columns = [
+    { field: 'name', label: 'Name', visible: true, sortable: true, formatter: 'plaintext' },
+    { field: 'email', label: 'Email', visible: true, sortable: true, formatter: 'email' }
+];
+
+const data = [
+    { name: 'John Doe', email: 'john@example.com' },
+    { name: 'Jane Smith', email: 'jane@example.com' }
+];
+
+const table = buildTableManual('#my-table', data, columns);</code></pre>
+
+            <h3 class="font-bold text-gray-700 mt-6 mb-2">2. Table from Backend Configuration:</h3>
+            <pre class="bg-gray-100 p-4 rounded overflow-x-auto text-sm"><code>// Fetch table config and data from backend
+const table = await buildTableFromConfig(
+    '#users-table',      // Container selector
+    '/api/users',        // Data endpoint
+    'User'               // Model name
+);</code></pre>
+
+            <h3 class="font-bold text-gray-700 mt-6 mb-2">3. Adding Backend Config to Models:</h3>
+            <pre class="bg-gray-100 p-4 rounded overflow-x-auto text-sm"><code>class MyModel(Base, TableConfigMixin):
+    __table_config__ = {
+        'columns': [
+            {
+                'field': 'id',
+                'label': 'ID',
+                'visible': False,  # Hidden column
+                'sortable': True,
+                'formatter': 'plaintext'
+            },
+            {
+                'field': 'email',
+                'label': 'Email',
+                'visible': True,
+                'sortable': True,
+                'width': 250,
+                'formatter': 'email'
+            }
+        ],
+        'default_sort': {'field': 'created_at', 'dir': 'desc'}
+    }</code></pre>
+        </div>
+    </div>
+
+    <script src="/js/api.js"></script>
+    <script src="/js/auth.js"></script>
+    <script src="/js/utils.js"></script>
+    <script src="/js/table.js"></script>
+    <script src="/js/tableBuilder.js"></script>
+    <script>
+        let currentUser = null;
+
+        async function init() {
+            currentUser = await Auth.checkAuth();
+            if (!currentUser) return;
+
+            updateNavigation();
+
+            // Initialize demo tables
+            initSimpleTable();
+            initFormattersTable();
+            initActionsTable();
+        }
+
+        function initSimpleTable() {
+            const columns = [
+                {
+                    field: 'name',
+                    label: 'Name',
+                    visible: true,
+                    sortable: true,
+                    width: 200,
+                    formatter: 'plaintext'
+                },
+                {
+                    field: 'role',
+                    label: 'Role',
+                    visible: true,
+                    sortable: true,
+                    width: 120,
+                    formatter: 'badge'
+                },
+                {
+                    field: 'email',
+                    label: 'Email',
+                    visible: true,
+                    sortable: true,
+                    width: 250,
+                    formatter: 'email'
+                }
+            ];
+
+            const data = [
+                { name: 'Alice Johnson', role: 'admin', email: 'alice@example.com' },
+                { name: 'Bob Smith', role: 'user', email: 'bob@example.com' },
+                { name: 'Charlie Brown', role: 'user', email: 'charlie@example.com' },
+                { name: 'Diana Prince', role: 'admin', email: 'diana@example.com' }
+            ];
+
+            buildTableManual('#simple-table', data, columns, { pageSize: 10 });
+        }
+
+        function initFormattersTable() {
+            const columns = [
+                {
+                    field: 'text',
+                    label: 'Plain Text',
+                    visible: true,
+                    sortable: true,
+                    formatter: 'plaintext'
+                },
+                {
+                    field: 'datetime',
+                    label: 'DateTime',
+                    visible: true,
+                    sortable: true,
+                    formatter: 'datetime'
+                },
+                {
+                    field: 'date',
+                    label: 'Date Only',
+                    visible: true,
+                    sortable: true,
+                    formatter: 'date'
+                },
+                {
+                    field: 'active',
+                    label: 'Boolean',
+                    visible: true,
+                    sortable: true,
+                    formatter: 'boolean'
+                },
+                {
+                    field: 'status',
+                    label: 'Badge',
+                    visible: true,
+                    sortable: true,
+                    formatter: 'badge'
+                },
+                {
+                    field: 'price',
+                    label: 'Money',
+                    visible: true,
+                    sortable: true,
+                    formatter: 'money'
+                }
+            ];
+
+            const data = [
+                {
+                    text: 'Sample text 1',
+                    datetime: new Date().toISOString(),
+                    date: new Date().toISOString(),
+                    active: true,
+                    status: 'active',
+                    price: 1234.56
+                },
+                {
+                    text: 'Sample text 2',
+                    datetime: new Date(Date.now() - 86400000).toISOString(),
+                    date: new Date(Date.now() - 86400000).toISOString(),
+                    active: false,
+                    status: 'pending',
+                    price: 9876.54
+                },
+                {
+                    text: 'Sample text 3',
+                    datetime: new Date(Date.now() - 172800000).toISOString(),
+                    date: new Date(Date.now() - 172800000).toISOString(),
+                    active: true,
+                    status: 'admin',
+                    price: 555.00
+                }
+            ];
+
+            buildTableManual('#formatters-table', data, columns, { pageSize: 10 });
+        }
+
+        function initActionsTable() {
+            const columns = [
+                {
+                    field: 'id',
+                    label: 'ID',
+                    visible: true,
+                    sortable: true,
+                    width: 80,
+                    formatter: 'plaintext'
+                },
+                {
+                    field: 'name',
+                    label: 'Name',
+                    visible: true,
+                    sortable: true,
+                    width: 200,
+                    formatter: 'plaintext'
+                },
+                {
+                    field: 'actions',
+                    label: 'Actions',
+                    visible: true,
+                    sortable: false,
+                    width: 180,
+                    formatter: (cell) => {
+                        const row = cell.getData();
+                        return `
+                            <div class="flex gap-2">
+                                <button onclick="editItem(${row.id})" class="text-blue-600 hover:text-blue-800 text-sm font-medium">Edit</button>
+                                <button onclick="deleteItem(${row.id})" class="text-red-600 hover:text-red-800 text-sm font-medium">Delete</button>
+                                <button onclick="viewItem(${row.id})" class="text-green-600 hover:text-green-800 text-sm font-medium">View</button>
+                            </div>
+                        `;
+                    }
+                }
+            ];
+
+            const data = [
+                { id: 1, name: 'Item One' },
+                { id: 2, name: 'Item Two' },
+                { id: 3, name: 'Item Three' }
+            ];
+
+            buildTableManual('#actions-table', data, columns, { pageSize: 10 });
+        }
+
+        async function loadUsersTable() {
+            try {
+                const container = document.getElementById('users-table-container');
+                container.innerHTML = '<div class="text-center py-8 text-gray-500">Loading users...</div>';
+
+                // Check if user is site admin
+                if (!currentUser.is_site_admin) {
+                    container.innerHTML = '<div class="text-center py-8 text-yellow-600">Only site admins can view all users</div>';
+                    return;
+                }
+
+                // Fetch users from backend
+                const response = await fetch('/api/auth/users', {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to fetch users');
+                }
+
+                const users = await response.json();
+
+                // Get table config
+                const configResponse = await fetch('/api/table-config/User', {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+
+                if (!configResponse.ok) {
+                    throw new Error('Failed to fetch table config');
+                }
+
+                const tableConfig = await configResponse.json();
+
+                // Clear container
+                container.innerHTML = '';
+
+                // Initialize table
+                const table = new DataTable('#users-table-container', { pageSize: 10 });
+                table.init(users, tableConfig);
+
+            } catch (error) {
+                console.error('Error loading users table:', error);
+                const container = document.getElementById('users-table-container');
+                container.innerHTML = `<div class="text-center py-8 text-red-500">Failed to load: ${error.message}</div>`;
+            }
+        }
+
+        async function loadOrganizationsTable() {
+            try {
+                const container = document.getElementById('orgs-table-container');
+                container.innerHTML = '<div class="text-center py-8 text-gray-500">Loading organizations...</div>';
+
+                // This uses the existing /api/organizations endpoint
+                const response = await fetch('/api/organizations', {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to fetch organizations');
+                }
+
+                const organizations = await response.json();
+
+                // Get table config
+                const configResponse = await fetch('/api/table-config/Organization', {
+                    headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+
+                if (!configResponse.ok) {
+                    throw new Error('Failed to fetch table config');
+                }
+
+                const tableConfig = await configResponse.json();
+
+                // Clear container
+                container.innerHTML = '';
+
+                // Initialize table
+                const table = new DataTable('#orgs-table-container', { pageSize: 10 });
+                table.init(organizations, tableConfig);
+
+            } catch (error) {
+                console.error('Error loading organizations table:', error);
+                const container = document.getElementById('orgs-table-container');
+                container.innerHTML = `<div class="text-center py-8 text-red-500">Failed to load: ${error.message}</div>`;
+            }
+        }
+
+        // Action button handlers
+        function editItem(id) {
+            alert('Edit item ' + id);
+        }
+
+        function deleteItem(id) {
+            if (confirm('Delete item ' + id + '?')) {
+                alert('Deleted item ' + id);
+            }
+        }
+
+        function viewItem(id) {
+            alert('View item ' + id);
+        }
+
+        init();
+    </script>
+</body>
+</html>

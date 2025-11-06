@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - OBTree</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <!-- Navigation -->
+    <nav class="bg-blue-600 text-white shadow-lg">
+        <div class="container mx-auto px-4 py-4">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center space-x-6">
+                    <h1 class="text-2xl font-bold">OBTree</h1>
+                    <a href="/dashboard.html" class="hover:underline">Dashboard</a>
+                    <a href="/admin.html" id="site-admin-link" class="hover:underline hidden">Admin</a>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span id="user-email" class="text-sm"></span>
+                    <button onclick="Auth.logout()" class="bg-blue-700 hover:bg-blue-800 px-4 py-2 rounded">
+                        Logout
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mx-auto px-4 py-8">
+        <div class="mb-6">
+            <h2 class="text-3xl font-bold text-gray-800">My Organizations</h2>
+            <p class="text-gray-600 mt-2">Organizations you are a member of</p>
+        </div>
+
+        <div id="error-message" class="hidden bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4"></div>
+
+        <!-- Loading state -->
+        <div id="loading" class="text-center py-12">
+            <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            <p class="mt-4 text-gray-600">Loading organizations...</p>
+        </div>
+
+        <!-- Organizations grid -->
+        <div id="organizations-container" class="hidden grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Organizations will be inserted here -->
+        </div>
+
+        <!-- Empty state -->
+        <div id="empty-state" class="hidden text-center py-12">
+            <svg class="mx-auto h-24 w-24 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+            </svg>
+            <h3 class="mt-4 text-xl font-semibold text-gray-700">No Organizations Yet</h3>
+            <p class="mt-2 text-gray-500">You are not a member of any organizations.</p>
+            <p class="mt-2 text-gray-500">Ask an admin for an invite code to join an organization.</p>
+        </div>
+    </div>
+
+    <script src="/js/api.js"></script>
+    <script src="/js/auth.js"></script>
+    <script src="/js/utils.js"></script>
+    <script>
+        let currentUser = null;
+
+        async function init() {
+            currentUser = await Auth.checkAuth();
+            if (!currentUser) return;
+
+            updateNavigation();
+            await loadOrganizations();
+        }
+
+        async function loadOrganizations() {
+            try {
+                const organizations = await api.getOrganizations();
+
+                document.getElementById('loading').classList.add('hidden');
+
+                if (organizations.length === 0) {
+                    document.getElementById('empty-state').classList.remove('hidden');
+                } else {
+                    document.getElementById('organizations-container').classList.remove('hidden');
+                    renderOrganizations(organizations);
+                }
+            } catch (error) {
+                document.getElementById('loading').classList.add('hidden');
+                showError(error.message || 'Failed to load organizations');
+            }
+        }
+
+        function renderOrganizations(organizations) {
+            const container = document.getElementById('organizations-container');
+            container.innerHTML = '';
+
+            organizations.forEach(org => {
+                const card = document.createElement('div');
+                card.className = 'bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow cursor-pointer';
+                card.onclick = () => window.location.href = `/organization.html?id=${org.id}`;
+
+                card.innerHTML = `
+                    <h3 class="text-xl font-bold text-gray-800 mb-2">${escapeHtml(org.name)}</h3>
+                    <p class="text-sm text-gray-500">Created: ${formatDate(org.created_at)}</p>
+                    <div class="mt-4">
+                        <span class="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">
+                            Member
+                        </span>
+                    </div>
+                `;
+
+                container.appendChild(card);
+            });
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        init();
+    </script>
+</body>
+</html>

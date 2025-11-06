@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Organization - OBTree</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tabulator CSS and JS -->
+    <link href="https://unpkg.com/tabulator-tables@6.2.5/dist/css/tabulator.min.css" rel="stylesheet">
+    <link href="/css/table-custom.css" rel="stylesheet">
+    <script src="https://unpkg.com/tabulator-tables@6.2.5/dist/js/tabulator.min.js"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <!-- Navigation -->
+    <nav class="bg-blue-600 text-white shadow-lg">
+        <div class="container mx-auto px-4 py-4">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center space-x-6">
+                    <h1 class="text-2xl font-bold">OBTree</h1>
+                    <a href="/dashboard.html" class="hover:underline">Dashboard</a>
+                    <a href="/admin.html" id="site-admin-link" class="hover:underline hidden">Admin</a>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <span id="user-email" class="text-sm"></span>
+                    <button onclick="Auth.logout()" class="bg-blue-700 hover:bg-blue-800 px-4 py-2 rounded">
+                        Logout
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mx-auto px-4 py-8">
+        <div class="mb-6">
+            <a href="/dashboard.html" class="text-blue-600 hover:underline">&larr; Back to Dashboard</a>
+        </div>
+
+        <div id="error-message" class="hidden bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4"></div>
+        <div id="success-message" class="hidden bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4"></div>
+
+        <!-- Loading state -->
+        <div id="loading" class="text-center py-12">
+            <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            <p class="mt-4 text-gray-600">Loading organization...</p>
+        </div>
+
+        <!-- Organization content -->
+        <div id="organization-content" class="hidden">
+            <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+                <h2 id="org-name" class="text-3xl font-bold text-gray-800"></h2>
+                <p id="org-created" class="text-gray-600 mt-2"></p>
+            </div>
+
+            <!-- Admin controls -->
+            <div id="admin-controls" class="hidden bg-white rounded-lg shadow-md p-6 mb-6">
+                <h3 class="text-xl font-bold text-gray-800 mb-4">Admin Controls</h3>
+                <div class="space-y-4">
+                    <div>
+                        <label for="invite-role" class="block text-sm font-medium text-gray-700 mb-2">Create Invite</label>
+                        <div class="flex space-x-2">
+                            <select id="invite-role" class="flex-1 px-3 py-2 border border-gray-300 rounded-md">
+                                <option value="user">User</option>
+                                <option value="admin">Admin</option>
+                            </select>
+                            <button onclick="createInvite()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                                Generate Invite
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Active invites -->
+                    <div id="invites-section" class="hidden mt-6">
+                        <h4 class="font-semibold text-gray-700 mb-2">Active Invites</h4>
+                        <div id="invites-table">
+                            <!-- Invites table will be initialized here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Members table -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h3 class="text-xl font-bold text-gray-800 mb-4">Members</h3>
+                <div id="members-table">
+                    <!-- Members table will be initialized here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/api.js"></script>
+    <script src="/js/auth.js"></script>
+    <script src="/js/utils.js"></script>
+    <script src="/js/table.js"></script>
+    <script src="/js/tableBuilder.js"></script>
+    <script>
+        let currentUser = null;
+        let organizationId = null;
+        let organization = null;
+        let membersTable = null;
+        let invitesTable = null;
+
+        async function init() {
+            currentUser = await Auth.checkAuth();
+            if (!currentUser) return;
+
+            updateNavigation();
+
+            const params = new URLSearchParams(window.location.search);
+            organizationId = params.get('id');
+
+            if (!organizationId) {
+                showError('No organization ID provided');
+                return;
+            }
+
+            await loadOrganization();
+        }
+
+        async function loadOrganization() {
+            try {
+                organization = await api.getOrganization(organizationId);
+
+                document.getElementById('loading').classList.add('hidden');
+                document.getElementById('organization-content').classList.remove('hidden');
+
+                document.getElementById('org-name').textContent = organization.name;
+                document.getElementById('org-created').textContent = `Created: ${formatDate(organization.created_at)}`;
+
+                renderMembers(organization.members);
+
+                // Check if user is admin
+                const isAdmin = checkIfAdmin(organization.members);
+                if (isAdmin || currentUser.is_site_admin) {
+                    document.getElementById('admin-controls').classList.remove('hidden');
+                    await loadInvites();
+                }
+            } catch (error) {
+                document.getElementById('loading').classList.add('hidden');
+                showError(error.message || 'Failed to load organization');
+            }
+        }
+
+        function checkIfAdmin(members) {
+            const userMembership = members.find(m => m.user_id === currentUser.id);
+            return userMembership && userMembership.role === 'admin';
+        }
+
+        function renderMembers(members) {
+            // Define custom columns for members table
+            const columns = [
+                {
+                    field: 'email',
+                    label: 'Email',
+                    visible: true,
+                    sortable: true,
+                    width: 300,
+                    formatter: 'email'
+                },
+                {
+                    field: 'role',
+                    label: 'Role',
+                    visible: true,
+                    sortable: true,
+                    width: 120,
+                    formatter: 'badge'
+                },
+                {
+                    field: 'joined_at',
+                    label: 'Joined',
+                    visible: true,
+                    sortable: true,
+                    width: 180,
+                    formatter: 'datetime'
+                }
+            ];
+
+            const config = {
+                visible_columns: columns,
+                default_sort: { field: 'joined_at', dir: 'desc' }
+            };
+
+            // Create table instance if it doesn't exist
+            if (!membersTable) {
+                membersTable = new DataTable('#members-table', {
+                    pageSize: 10
+                });
+            }
+
+            membersTable.init(members, config);
+        }
+
+        async function loadInvites() {
+            try {
+                const invites = await api.getOrganizationInvites(organizationId);
+
+                if (invites.length > 0) {
+                    document.getElementById('invites-section').classList.remove('hidden');
+                    renderInvites(invites);
+                }
+            } catch (error) {
+                console.error('Failed to load invites:', error);
+            }
+        }
+
+        function renderInvites(invites) {
+            // Define custom columns for invites table with action button
+            const columns = [
+                {
+                    field: 'uuid',
+                    label: 'Invite Code',
+                    visible: true,
+                    sortable: false,
+                    width: 280,
+                    formatter: 'plaintext'
+                },
+                {
+                    field: 'role',
+                    label: 'Role',
+                    visible: true,
+                    sortable: true,
+                    width: 100,
+                    formatter: 'badge'
+                },
+                {
+                    field: 'expires_at',
+                    label: 'Expires',
+                    visible: true,
+                    sortable: true,
+                    width: 180,
+                    formatter: 'datetime'
+                },
+                {
+                    field: 'is_active',
+                    label: 'Active',
+                    visible: true,
+                    sortable: true,
+                    width: 100,
+                    formatter: 'boolean'
+                },
+                {
+                    field: 'actions',
+                    label: 'Actions',
+                    visible: true,
+                    sortable: false,
+                    width: 120,
+                    formatter: (cell) => {
+                        const invite = cell.getData();
+                        const inviteUrl = `${window.location.origin}/signup.html?invite=${invite.uuid}`;
+                        return `<button onclick="copyToClipboard('${inviteUrl}')" class="text-blue-600 hover:text-blue-800 text-sm font-medium">Copy Link</button>`;
+                    }
+                }
+            ];
+
+            const config = {
+                visible_columns: columns,
+                default_sort: { field: 'expires_at', dir: 'desc' }
+            };
+
+            // Create table instance if it doesn't exist
+            if (!invitesTable) {
+                invitesTable = new DataTable('#invites-table', {
+                    pageSize: 10
+                });
+            }
+
+            invitesTable.init(invites, config);
+        }
+
+        async function createInvite() {
+            const role = document.getElementById('invite-role').value;
+
+            try {
+                const invite = await api.createInvite(organizationId, role);
+                showSuccess('Invite created successfully!');
+                await loadInvites();
+            } catch (error) {
+                showError(error.message || 'Failed to create invite');
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        init();
+    </script>
+</body>
+</html>
