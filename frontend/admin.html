@@ -12,31 +12,7 @@
 </head>
 <body class="bg-gray-100 min-h-screen">
     <!-- Navigation -->
-    <nav class="bg-blue-600 text-white shadow-lg">
-        <div class="container mx-auto px-4 py-4">
-            <div class="flex justify-between items-center">
-                <div class="flex items-center space-x-6">
-                    <h1 class="text-2xl font-bold">OBTree</h1>
-                    <a href="/" class="hover:underline">Home</a>
-                </div>
-                <div class="flex items-center space-x-4">
-                    <!-- User dropdown -->
-                    <div class="relative">
-                        <button id="user-menu-button" class="flex items-center space-x-2 text-sm hover:text-gray-200 focus:outline-none">
-                            <span id="user-email"></span>
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                            </svg>
-                        </button>
-                        <div id="user-menu" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50">
-                            <a href="/profile.html" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Profile</a>
-                            <button onclick="Auth.logout()" class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Logout</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </nav>
+    <div id="navigation"></div>
 
     <div class="container mx-auto px-4 py-8">
         <div class="mb-6">
@@ -73,6 +49,7 @@
     <script src="/js/api.js"></script>
     <script src="/js/auth.js"></script>
     <script src="/js/utils.js"></script>
+    <script src="/js/navigation.js"></script>
     <script src="/js/table.js"></script>
     <script src="/js/tableBuilder.js"></script>
     <script>
@@ -92,7 +69,10 @@
                 return;
             }
 
-            updateNavigation();
+            // Render navigation
+            document.getElementById('navigation').innerHTML = navigation.render();
+            navigation.init(currentUser);
+
             await loadOrganizations();
         }
 
@@ -117,6 +97,22 @@
                             link.textContent = org.name;
                             return link;
                         }
+                    },
+                    {
+                        field: 'user_count',
+                        label: 'Users',
+                        visible: true,
+                        sortable: true,
+                        width: 100,
+                        formatter: 'plaintext'
+                    },
+                    {
+                        field: 'admin_count',
+                        label: 'Admins',
+                        visible: true,
+                        sortable: true,
+                        width: 100,
+                        formatter: 'plaintext'
                     },
                     {
                         field: 'created_at',
@@ -173,21 +169,6 @@
                 }, 1500);
             } catch (error) {
                 showError(error.message || 'Failed to create organization');
-            }
-        });
-
-        // Toggle user dropdown menu
-        document.getElementById('user-menu-button').addEventListener('click', (e) => {
-            e.stopPropagation();
-            const menu = document.getElementById('user-menu');
-            menu.classList.toggle('hidden');
-        });
-
-        // Close dropdown when clicking outside
-        document.addEventListener('click', () => {
-            const menu = document.getElementById('user-menu');
-            if (!menu.classList.contains('hidden')) {
-                menu.classList.add('hidden');
             }
         });
 

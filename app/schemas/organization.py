@@ -28,6 +28,8 @@ class OrganizationResponse(OrganizationBase):
     description: Optional[str] = None
     created_at: datetime
     created_by: UUID
+    user_count: Optional[int] = None
+    admin_count: Optional[int] = None
 
     class Config:
         from_attributes = True

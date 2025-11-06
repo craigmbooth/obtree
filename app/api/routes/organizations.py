@@ -70,13 +70,45 @@ def list_organizations(
         org_ids = [m.organization_id for m in memberships]
         organizations = db.query(Organization).filter(Organization.id.in_(org_ids)).all()
 
+    # Calculate member counts for each organization
+    result = []
+    for org in organizations:
+        memberships = db.query(OrganizationMembership).filter(
+            OrganizationMembership.organization_id == org.id
+        ).all()
+
+        # Count total members (excluding site admins)
+        member_user_ids = [m.user_id for m in memberships]
+        non_site_admin_users = db.query(User).filter(
+            User.id.in_(member_user_ids),
+            User.is_site_admin == False
+        ).all()
+
+        user_count = len(non_site_admin_users)
+
+        # Count admins (excluding site admins)
+        admin_count = sum(
+            1 for m in memberships
+            if m.role == OrganizationRole.ADMIN and any(u.id == m.user_id for u in non_site_admin_users)
+        )
+
+        result.append(OrganizationResponse(
+            id=org.id,
+            name=org.name,
+            description=org.description,
+            created_at=org.created_at,
+            created_by=org.created_by,
+            user_count=user_count,
+            admin_count=admin_count
+        ))
+
     logger.info(
         "organizations_listed",
         user_id=current_user.id,
-        organization_count=len(organizations)
+        organization_count=len(result)
     )
 
-    return organizations
+    return result
 
 
 @router.get("/{organization_id}", response_model=OrganizationDetailResponse)
