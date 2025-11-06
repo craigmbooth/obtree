@@ -75,11 +75,31 @@
             </button>
         </div>
 
-        <!-- Demo 5: Table with Custom Actions -->
+        <!-- Demo 5: Table with Global Search -->
         <div class="bg-white rounded-lg shadow-md p-6 mb-8">
-            <h2 class="text-xl font-bold text-gray-800 mb-4">5. Table with Custom Action Buttons</h2>
-            <p class="text-gray-600 mb-4">Shows how to add custom action buttons to each row.</p>
-            <div id="actions-table"></div>
+            <h2 class="text-xl font-bold text-gray-800 mb-4">5. Table with Global Search</h2>
+            <p class="text-gray-600 mb-4">Search across all columns with a single input field.</p>
+            <div id="search-table-wrapper">
+                <!-- Search input will be added here programmatically -->
+                <div id="search-table"></div>
+            </div>
+        </div>
+
+        <!-- Demo 6: Table with Header Filters -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h2 class="text-xl font-bold text-gray-800 mb-4">6. Table with Header Filters</h2>
+            <p class="text-gray-600 mb-4">Filter individual columns using inputs in the table header.</p>
+            <div id="header-filter-table"></div>
+        </div>
+
+        <!-- Demo 7: Table with Custom Filter Controls -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+            <h2 class="text-xl font-bold text-gray-800 mb-4">7. Table with Custom Filter Controls</h2>
+            <p class="text-gray-600 mb-4">Use custom filter dropdowns and inputs above the table.</p>
+            <div id="custom-filter-wrapper">
+                <!-- Custom filters will be added here -->
+                <div id="custom-filter-table"></div>
+            </div>
         </div>
 
         <!-- Code Examples -->
@@ -149,7 +169,9 @@ const table = await buildTableFromConfig(
             // Initialize demo tables
             initSimpleTable();
             initFormattersTable();
-            initActionsTable();
+            initSearchTable();
+            initHeaderFilterTable();
+            initCustomFilterTable();
         }
 
         function initSimpleTable() {
@@ -266,50 +288,203 @@ const table = await buildTableFromConfig(
             buildTableManual('#formatters-table', data, columns, { pageSize: 10 });
         }
 
-        function initActionsTable() {
+        function initSearchTable() {
             const columns = [
                 {
-                    field: 'id',
-                    label: 'ID',
-                    visible: true,
-                    sortable: true,
-                    width: 80,
-                    formatter: 'plaintext'
-                },
-                {
                     field: 'name',
-                    label: 'Name',
+                    label: 'Product Name',
                     visible: true,
                     sortable: true,
                     width: 200,
                     formatter: 'plaintext'
                 },
                 {
-                    field: 'actions',
-                    label: 'Actions',
+                    field: 'category',
+                    label: 'Category',
                     visible: true,
-                    sortable: false,
-                    width: 180,
-                    formatter: (cell) => {
-                        const row = cell.getData();
-                        return `
-                            <div class="flex gap-2">
-                                <button onclick="editItem(${row.id})" class="text-blue-600 hover:text-blue-800 text-sm font-medium">Edit</button>
-                                <button onclick="deleteItem(${row.id})" class="text-red-600 hover:text-red-800 text-sm font-medium">Delete</button>
-                                <button onclick="viewItem(${row.id})" class="text-green-600 hover:text-green-800 text-sm font-medium">View</button>
-                            </div>
-                        `;
-                    }
+                    sortable: true,
+                    width: 150,
+                    formatter: 'badge'
+                },
+                {
+                    field: 'price',
+                    label: 'Price',
+                    visible: true,
+                    sortable: true,
+                    width: 100,
+                    formatter: 'money'
+                },
+                {
+                    field: 'inStock',
+                    label: 'In Stock',
+                    visible: true,
+                    sortable: true,
+                    width: 100,
+                    formatter: 'boolean'
                 }
             ];
 
             const data = [
-                { id: 1, name: 'Item One' },
-                { id: 2, name: 'Item Two' },
-                { id: 3, name: 'Item Three' }
+                { name: 'Laptop Pro 15', category: 'Electronics', price: 1299.99, inStock: true },
+                { name: 'Wireless Mouse', category: 'Electronics', price: 29.99, inStock: true },
+                { name: 'Office Chair', category: 'Furniture', price: 249.99, inStock: false },
+                { name: 'Standing Desk', category: 'Furniture', price: 599.99, inStock: true },
+                { name: 'Monitor 27"', category: 'Electronics', price: 349.99, inStock: true },
+                { name: 'Keyboard Mechanical', category: 'Electronics', price: 129.99, inStock: false },
+                { name: 'Desk Lamp LED', category: 'Furniture', price: 45.99, inStock: true },
+                { name: 'Notebook Set', category: 'Stationery', price: 12.99, inStock: true },
+                { name: 'Pen Collection', category: 'Stationery', price: 8.99, inStock: true },
+                { name: 'Bookshelf', category: 'Furniture', price: 179.99, inStock: false }
             ];
 
-            buildTableManual('#actions-table', data, columns, { pageSize: 10 });
+            const table = buildTableManual('#search-table', data, columns, { pageSize: 10 });
+
+            // Add search input
+            addSearchToTable('#search-table', table, {
+                placeholder: 'Search products...'
+            });
+        }
+
+        function initHeaderFilterTable() {
+            const columns = [
+                {
+                    field: 'employee',
+                    label: 'Employee',
+                    visible: true,
+                    sortable: true,
+                    width: 200,
+                    formatter: 'plaintext',
+                    filterable: true
+                },
+                {
+                    field: 'department',
+                    label: 'Department',
+                    visible: true,
+                    sortable: true,
+                    width: 150,
+                    formatter: 'badge',
+                    filterable: true
+                },
+                {
+                    field: 'email',
+                    label: 'Email',
+                    visible: true,
+                    sortable: true,
+                    width: 250,
+                    formatter: 'email',
+                    filterable: true
+                },
+                {
+                    field: 'active',
+                    label: 'Active',
+                    visible: true,
+                    sortable: true,
+                    width: 100,
+                    formatter: 'boolean',
+                    filterable: true
+                }
+            ];
+
+            const data = [
+                { employee: 'Alice Johnson', department: 'Engineering', email: 'alice@company.com', active: true },
+                { employee: 'Bob Smith', department: 'Sales', email: 'bob@company.com', active: true },
+                { employee: 'Carol Williams', department: 'Engineering', email: 'carol@company.com', active: false },
+                { employee: 'David Brown', department: 'Marketing', email: 'david@company.com', active: true },
+                { employee: 'Eve Davis', department: 'Sales', email: 'eve@company.com', active: true },
+                { employee: 'Frank Miller', department: 'Engineering', email: 'frank@company.com', active: true },
+                { employee: 'Grace Wilson', department: 'Marketing', email: 'grace@company.com', active: false },
+                { employee: 'Henry Taylor', department: 'Sales', email: 'henry@company.com', active: true }
+            ];
+
+            buildTableManual('#header-filter-table', data, columns, {
+                pageSize: 10,
+                headerFilter: true  // Enable header filters
+            });
+        }
+
+        function initCustomFilterTable() {
+            const columns = [
+                {
+                    field: 'project',
+                    label: 'Project',
+                    visible: true,
+                    sortable: true,
+                    width: 200,
+                    formatter: 'plaintext'
+                },
+                {
+                    field: 'status',
+                    label: 'Status',
+                    visible: true,
+                    sortable: true,
+                    width: 120,
+                    formatter: 'badge'
+                },
+                {
+                    field: 'priority',
+                    label: 'Priority',
+                    visible: true,
+                    sortable: true,
+                    width: 100,
+                    formatter: 'badge'
+                },
+                {
+                    field: 'budget',
+                    label: 'Budget',
+                    visible: true,
+                    sortable: true,
+                    width: 120,
+                    formatter: 'money'
+                }
+            ];
+
+            const data = [
+                { project: 'Website Redesign', status: 'active', priority: 'high', budget: 50000 },
+                { project: 'Mobile App', status: 'active', priority: 'high', budget: 75000 },
+                { project: 'Database Migration', status: 'pending', priority: 'medium', budget: 30000 },
+                { project: 'API Integration', status: 'active', priority: 'low', budget: 15000 },
+                { project: 'Security Audit', status: 'inactive', priority: 'high', budget: 25000 },
+                { project: 'Performance Testing', status: 'pending', priority: 'medium', budget: 20000 },
+                { project: 'Documentation Update', status: 'active', priority: 'low', budget: 5000 },
+                { project: 'Cloud Migration', status: 'pending', priority: 'high', budget: 100000 }
+            ];
+
+            const table = buildTableManual('#custom-filter-table', data, columns, { pageSize: 10 });
+
+            // Create custom filter controls
+            const filters = [
+                {
+                    field: 'status',
+                    label: 'Status',
+                    type: 'select',
+                    options: [
+                        { value: 'active', label: 'Active' },
+                        { value: 'pending', label: 'Pending' },
+                        { value: 'inactive', label: 'Inactive' }
+                    ]
+                },
+                {
+                    field: 'priority',
+                    label: 'Priority',
+                    type: 'select',
+                    options: [
+                        { value: 'high', label: 'High' },
+                        { value: 'medium', label: 'Medium' },
+                        { value: 'low', label: 'Low' }
+                    ]
+                },
+                {
+                    field: 'project',
+                    label: 'Project Name',
+                    type: 'text',
+                    placeholder: 'Search projects...',
+                    filterType: 'like'
+                }
+            ];
+
+            const filterControls = createFilterControls(table, filters);
+            const wrapper = document.getElementById('custom-filter-wrapper');
+            wrapper.insertBefore(filterControls, wrapper.firstChild);
         }
 
         async function loadUsersTable() {
@@ -406,21 +581,6 @@ const table = await buildTableFromConfig(
                 const container = document.getElementById('orgs-table-container');
                 container.innerHTML = `<div class="text-center py-8 text-red-500">Failed to load: ${error.message}</div>`;
             }
-        }
-
-        // Action button handlers
-        function editItem(id) {
-            alert('Edit item ' + id);
-        }
-
-        function deleteItem(id) {
-            if (confirm('Delete item ' + id + '?')) {
-                alert('Deleted item ' + id);
-            }
-        }
-
-        function viewItem(id) {
-            alert('View item ' + id);
         }
 
         init();

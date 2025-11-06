@@ -134,7 +134,30 @@ class DataTable {
             column.formatter = columnConfig.formatter === 'plaintext' ? 'plaintext' : this.formatters[columnConfig.formatter];
         }
 
+        // Add header filter if enabled
+        if (this.options.headerFilter && columnConfig.filterable !== false) {
+            column.headerFilter = this.getHeaderFilterType(columnConfig.formatter);
+            column.headerFilterPlaceholder = `Filter ${columnConfig.label}...`;
+        }
+
         return column;
+    }
+
+    /**
+     * Get appropriate header filter type based on formatter
+     * @param {string} formatter - The formatter type
+     * @returns {string} Header filter type
+     */
+    getHeaderFilterType(formatter) {
+        const filterMap = {
+            'boolean': 'tickCross',
+            'date': 'input',
+            'datetime': 'input',
+            'badge': 'input',
+            'email': 'input',
+            'money': 'number',
+        };
+        return filterMap[formatter] || 'input';
     }
 
     /**
@@ -221,6 +244,82 @@ class DataTable {
         if (this.table) {
             this.table.clearData();
         }
+    }
+
+    /**
+     * Set a filter on the table
+     * @param {string} field - Field name to filter
+     * @param {string} type - Filter type (like, =, >, <, etc.)
+     * @param {*} value - Value to filter by
+     */
+    setFilter(field, type, value) {
+        if (this.table) {
+            this.table.setFilter(field, type, value);
+        }
+    }
+
+    /**
+     * Add a filter to existing filters
+     * @param {string} field - Field name to filter
+     * @param {string} type - Filter type (like, =, >, <, etc.)
+     * @param {*} value - Value to filter by
+     */
+    addFilter(field, type, value) {
+        if (this.table) {
+            this.table.addFilter(field, type, value);
+        }
+    }
+
+    /**
+     * Clear all filters
+     */
+    clearFilter() {
+        if (this.table) {
+            this.table.clearFilter();
+        }
+    }
+
+    /**
+     * Search across all columns
+     * @param {string} searchTerm - Term to search for
+     */
+    search(searchTerm) {
+        if (this.table) {
+            if (!searchTerm || searchTerm.trim() === '') {
+                this.table.clearFilter();
+                return;
+            }
+
+            // Get all columns
+            const columns = this.table.getColumns();
+            const filters = [];
+
+            // Create OR filter across all searchable columns
+            columns.forEach(column => {
+                const field = column.getField();
+                if (field && field !== 'actions') { // Skip action columns
+                    filters.push({
+                        field: field,
+                        type: 'like',
+                        value: searchTerm
+                    });
+                }
+            });
+
+            // Apply filters with OR logic
+            this.table.setFilter([filters]);
+        }
+    }
+
+    /**
+     * Get current filters
+     * @returns {Array} Current filters
+     */
+    getFilters() {
+        if (this.table) {
+            return this.table.getFilters();
+        }
+        return [];
     }
 
     /**

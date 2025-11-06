@@ -144,12 +144,150 @@ function createActionColumn(label = 'Actions', formatter) {
     };
 }
 
+/**
+ * Create a search input element for a table
+ * @param {DataTable} dataTable - The DataTable instance to attach search to
+ * @param {Object} options - Configuration options
+ * @returns {HTMLElement} Search input element
+ */
+function createSearchInput(dataTable, options = {}) {
+    const container = document.createElement('div');
+    container.className = options.containerClass || 'mb-4';
+
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.placeholder = options.placeholder || 'Search...';
+    input.className = options.inputClass || 'w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent';
+
+    // Debounce search for better performance
+    let debounceTimer;
+    input.addEventListener('input', (e) => {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => {
+            dataTable.search(e.target.value);
+        }, options.debounce || 300);
+    });
+
+    container.appendChild(input);
+    return container;
+}
+
+/**
+ * Add a search input above a table
+ * @param {string|HTMLElement} tableContainer - Table container element or selector
+ * @param {DataTable} dataTable - The DataTable instance
+ * @param {Object} options - Configuration options
+ * @returns {HTMLElement} The search input element
+ */
+function addSearchToTable(tableContainer, dataTable, options = {}) {
+    const container = typeof tableContainer === 'string'
+        ? document.querySelector(tableContainer)
+        : tableContainer;
+
+    if (!container) {
+        console.error('Table container not found');
+        return null;
+    }
+
+    const searchInput = createSearchInput(dataTable, options);
+    container.parentElement.insertBefore(searchInput, container);
+
+    return searchInput;
+}
+
+/**
+ * Create filter controls for specific columns
+ * @param {DataTable} dataTable - The DataTable instance
+ * @param {Array} filters - Array of filter definitions
+ * @returns {HTMLElement} Container with filter controls
+ */
+function createFilterControls(dataTable, filters) {
+    const container = document.createElement('div');
+    container.className = 'flex gap-4 mb-4 flex-wrap';
+
+    filters.forEach(filter => {
+        const filterDiv = document.createElement('div');
+        filterDiv.className = 'flex flex-col';
+
+        const label = document.createElement('label');
+        label.className = 'text-sm font-medium text-gray-700 mb-1';
+        label.textContent = filter.label;
+
+        let input;
+        if (filter.type === 'select') {
+            input = document.createElement('select');
+            input.className = 'px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500';
+
+            // Add default option
+            const defaultOption = document.createElement('option');
+            defaultOption.value = '';
+            defaultOption.textContent = 'All';
+            input.appendChild(defaultOption);
+
+            // Add filter options
+            filter.options.forEach(opt => {
+                const option = document.createElement('option');
+                option.value = opt.value;
+                option.textContent = opt.label;
+                input.appendChild(option);
+            });
+
+            input.addEventListener('change', (e) => {
+                if (e.target.value === '') {
+                    dataTable.clearFilter();
+                } else {
+                    dataTable.setFilter(filter.field, '=', e.target.value);
+                }
+            });
+        } else {
+            input = document.createElement('input');
+            input.type = filter.type || 'text';
+            input.placeholder = filter.placeholder || '';
+            input.className = 'px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500';
+
+            let debounceTimer;
+            input.addEventListener('input', (e) => {
+                clearTimeout(debounceTimer);
+                debounceTimer = setTimeout(() => {
+                    if (e.target.value === '') {
+                        dataTable.clearFilter();
+                    } else {
+                        const filterType = filter.filterType || 'like';
+                        dataTable.setFilter(filter.field, filterType, e.target.value);
+                    }
+                }, 300);
+            });
+        }
+
+        filterDiv.appendChild(label);
+        filterDiv.appendChild(input);
+        container.appendChild(filterDiv);
+    });
+
+    // Add clear button
+    const clearButton = document.createElement('button');
+    clearButton.className = 'self-end px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-md transition';
+    clearButton.textContent = 'Clear Filters';
+    clearButton.addEventListener('click', () => {
+        dataTable.clearFilter();
+        container.querySelectorAll('input, select').forEach(input => {
+            input.value = '';
+        });
+    });
+    container.appendChild(clearButton);
+
+    return container;
+}
+
 // Export functions for use in other modules
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = {
         buildTableFromConfig,
         buildTableManual,
         refreshTable,
-        createActionColumn
+        createActionColumn,
+        createSearchInput,
+        addSearchToTable,
+        createFilterControls
     };
 }

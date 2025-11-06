@@ -218,7 +218,7 @@ OBTree includes a flexible, reusable table component system built on [Tabulator]
 - **Modern TailwindCSS styling**: Custom CSS that perfectly matches your site's design
 - **Built-in formatters**: datetime, date, boolean, badge, email, link, money, and more
 - **Pagination & sorting**: Client-side pagination and column sorting out of the box
-- **Search & filtering**: Built-in search and column filtering capabilities
+- **Powerful filtering**: Global search, header filters, and custom filter controls
 - **Responsive design**: Works seamlessly with TailwindCSS and mobile devices
 - **Customizable**: Easy to add custom formatters and action columns
 
@@ -375,6 +375,120 @@ const columns = [
 ];
 ```
 
+### Filtering and Search
+
+The table system supports three types of filtering:
+
+#### 1. Global Search (Search Across All Columns)
+
+Add a search input that searches across all columns:
+
+```javascript
+const table = buildTableManual('#my-table', data, columns);
+
+// Add search input above the table
+addSearchToTable('#my-table', table, {
+    placeholder: 'Search...'
+});
+
+// Or create custom search input
+const searchInput = createSearchInput(table, {
+    placeholder: 'Type to search...',
+    debounce: 300  // Milliseconds to wait before searching
+});
+document.getElementById('my-container').appendChild(searchInput);
+```
+
+#### 2. Header Filters (Filter Individual Columns)
+
+Enable filters in the table header for each column:
+
+```javascript
+const table = new DataTable('#my-table', {
+    headerFilter: true  // Enable header filters
+});
+
+table.init(data, config);
+```
+
+For backend configurations, columns will automatically get appropriate filter types based on their formatter:
+- `boolean` → Checkbox filter
+- `date`/`datetime` → Text input
+- `money` → Number input
+- Others → Text input
+
+To disable filtering for specific columns, add `filterable: false`:
+
+```python
+{
+    'field': 'actions',
+    'label': 'Actions',
+    'visible': True,
+    'sortable': False,
+    'filterable': False  # No filter for this column
+}
+```
+
+#### 3. Custom Filter Controls
+
+Create custom filter dropdowns and inputs above your table:
+
+```javascript
+const table = buildTableManual('#my-table', data, columns);
+
+const filters = [
+    {
+        field: 'status',
+        label: 'Status',
+        type: 'select',
+        options: [
+            { value: 'active', label: 'Active' },
+            { value: 'pending', label: 'Pending' }
+        ]
+    },
+    {
+        field: 'name',
+        label: 'Name',
+        type: 'text',
+        placeholder: 'Search by name...',
+        filterType: 'like'  // Use 'like' for partial matches
+    }
+];
+
+const filterControls = createFilterControls(table, filters);
+document.getElementById('my-container').appendChild(filterControls);
+```
+
+#### Manual Filtering
+
+You can also programmatically control filters:
+
+```javascript
+// Set a single filter (replaces all existing filters)
+table.setFilter('status', '=', 'active');
+
+// Add a filter to existing filters
+table.addFilter('role', '=', 'admin');
+
+// Clear all filters
+table.clearFilter();
+
+// Global search
+table.search('search term');
+
+// Get current filters
+const currentFilters = table.getFilters();
+```
+
+**Filter types:**
+- `=` - Exact match
+- `!=` - Not equal
+- `like` - Partial match (case insensitive)
+- `<` - Less than
+- `>` - Greater than
+- `<=` - Less than or equal
+- `>=` - Greater than or equal
+
 ### Demo Page
 
 Visit `/tables-demo.html` to see live examples of:
@@ -382,6 +496,9 @@ Visit `/tables-demo.html` to see live examples of:
 - Tables using all available formatters
 - Tables loaded from backend configurations
 - Tables with custom action buttons
+- Tables with global search
+- Tables with header filters
+- Tables with custom filter controls
 - Code examples and best practices
 
 ### Files
