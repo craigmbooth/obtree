@@ -19,7 +19,10 @@ class Navigation {
                 <div class="container mx-auto px-4 py-4">
                     <div class="flex justify-between items-center">
                         <div class="flex items-center space-x-6">
-                            <a href="/" class="text-2xl font-bold hover:underline">OBTree</a>
+                            <a href="/" class="flex items-center space-x-3 hover:opacity-90 transition-opacity">
+                                <img src="/assets/images/redbud.png" alt="RedBuds App Logo" class="h-10 w-10">
+                                <span class="text-2xl font-bold">RedBuds App</span>
+                            </a>
                             <a href="/admin.html" id="site-admin-link" class="hover:underline hidden">Admin</a>
                             ${showOrgDropdown ? `
                             <!-- Organization dropdown for non-admins -->

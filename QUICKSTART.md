@@ -1,6 +1,6 @@
 # Quick Start Guide
 
-Get up and running with OBTree in 5 minutes!
+Get up and running with RedBuds App in 5 minutes!
 
 ## Setup
 
@@ -111,4 +111,4 @@ make help         # See all available commands
 - Check out the code in `app/` and `frontend/` directories
 - Deploy to production (see README.md for production tips)
 
-Enjoy using OBTree! 🌳
+Enjoy using RedBuds App! 🌳

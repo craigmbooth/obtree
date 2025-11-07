@@ -96,6 +96,7 @@ def health_check():
 # Mount static assets (js, css, images, etc.) at /static
 app.mount("/js", StaticFiles(directory="frontend/js"), name="js")
 app.mount("/css", StaticFiles(directory="frontend/css"), name="css")
+app.mount("/assets", StaticFiles(directory="frontend/assets"), name="assets")
 
 
 # Serve HTML pages directly as routes

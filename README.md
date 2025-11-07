@@ -1,4 +1,4 @@
-# OBTree - User Management WebApp
+# RedBuds App - User Management WebApp
 
 A full-stack web application with comprehensive user management, organization hierarchy, and invite-based registration system.
 
@@ -209,7 +209,7 @@ Once the server is running, visit:
 
 ## Table Component System
 
-OBTree includes a flexible, reusable table component system built on [Tabulator](http://tabulator.info/) that makes it easy to display database objects with pagination, sorting, and filtering.
+RedBuds App includes a flexible, reusable table component system built on [Tabulator](http://tabulator.info/) that makes it easy to display database objects with pagination, sorting, and filtering.
 
 ### Features
 

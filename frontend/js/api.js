@@ -1,4 +1,4 @@
-// API Client for OBTree backend
+// API Client for RedBuds App backend
 const API_BASE_URL = 'http://localhost:8000';
 
 class ApiClient {

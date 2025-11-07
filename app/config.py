@@ -13,7 +13,7 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
 
     # Application
-    APP_NAME: str = "OBTree"
+    APP_NAME: str = "RedBuds App"
     DEBUG: bool = False
 
     # Invite Settings

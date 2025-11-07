@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Organization Admin - OBTree</title>
+    <title>Manage Organization - RedBuds App</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Tabulator CSS and JS -->
     <link href="https://unpkg.com/tabulator-tables@6.2.5/dist/css/tabulator.min.css" rel="stylesheet">
@@ -33,56 +33,37 @@
             </div>
 
             <div class="bg-white rounded-lg shadow-md p-6 mb-6">
-                <h2 id="org-name" class="text-3xl font-bold text-gray-800 mb-4"></h2>
+                <h2 class="text-3xl font-bold text-gray-800 mb-4">Manage Organization</h2>
 
-                <!-- Edit Organization Details -->
-                <form id="edit-org-form" class="space-y-4">
-                    <div>
-                        <label for="org-name-input" class="block text-sm font-medium text-gray-700">Organization Name</label>
-                        <input type="text" id="org-name-input" required
-                            class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-                    </div>
-                    <div>
-                        <label for="org-description-input" class="block text-sm font-medium text-gray-700">Description</label>
-                        <textarea id="org-description-input" rows="3"
-                            class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                            placeholder="Enter a description for your organization..."></textarea>
-                    </div>
-                    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-                        Save Changes
-                    </button>
-                </form>
-            </div>
-
-            <!-- Projects Management -->
-            <div class="bg-white rounded-lg shadow-md p-6 mb-6">
-                <h3 class="text-xl font-bold text-gray-800 mb-4">Projects</h3>
-
-                <!-- Create Project Form -->
-                <form id="create-project-form" class="space-y-3 mb-6">
-                    <div>
-                        <label for="project-title" class="block text-sm font-medium text-gray-700">Project Title</label>
-                        <input type="text" id="project-title" required
-                            class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-                    </div>
-                    <div>
-                        <label for="project-description" class="block text-sm font-medium text-gray-700">Description (optional)</label>
-                        <textarea id="project-description" rows="2"
-                            class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                            placeholder="Enter project description..."></textarea>
-                    </div>
-                    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-                        Create Project
-                    </button>
-                </form>
-
-                <!-- Projects List -->
-                <div id="projects-section">
-                    <h4 class="font-semibold text-gray-700 mb-2">Existing Projects</h4>
-                    <div id="projects-table">
-                        <!-- Projects table will be initialized here -->
+                <!-- Organization Name Display -->
+                <div id="org-name-display" class="mb-4">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Organization Name</label>
+                            <p id="org-name-text" class="text-lg font-semibold text-gray-900"></p>
+                        </div>
+                        <button id="edit-org-name-btn" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                            Edit
+                        </button>
                     </div>
                 </div>
+
+                <!-- Edit Organization Name Form -->
+                <form id="edit-org-form" class="hidden mb-4">
+                    <div>
+                        <label for="org-name-input" class="block text-sm font-medium text-gray-700 mb-2">Organization Name</label>
+                        <div class="flex gap-2">
+                            <input type="text" id="org-name-input" required
+                                class="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                            <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                                Save
+                            </button>
+                            <button type="button" id="cancel-org-name-btn" class="bg-gray-300 text-gray-800 px-4 py-2 rounded hover:bg-gray-400">
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                </form>
             </div>
 
             <!-- Create Invites -->
@@ -159,24 +140,6 @@
         </div>
     </div>
 
-    <!-- Delete Confirmation Modal -->
-    <div id="delete-confirm-modal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50" onclick="if(event.target === this) closeDeleteModal()">
-        <div class="relative top-20 mx-auto p-5 border w-auto max-w-md shadow-lg rounded-md bg-white">
-            <div class="mt-3">
-                <h3 class="text-lg font-medium text-gray-900 mb-4">Confirm Delete</h3>
-                <p class="text-sm text-gray-600 mb-6">Are you sure you want to delete this project? This action cannot be undone by organization admins.</p>
-                <div class="flex justify-end gap-3">
-                    <button onclick="closeDeleteModal()" class="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300">
-                        Cancel
-                    </button>
-                    <button id="confirm-delete-btn" onclick="confirmDelete()" class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">
-                        Delete
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
     <script src="/js/api.js"></script>
     <script src="/js/auth.js"></script>
     <script src="/js/utils.js"></script>
@@ -189,7 +152,6 @@
         let organization = null;
         let membersTable = null;
         let invitesTable = null;
-        let projectsTable = null;
 
         async function init() {
             currentUser = await Auth.checkAuth();
@@ -222,9 +184,8 @@
                 document.getElementById('loading').classList.add('hidden');
                 document.getElementById('organization-content').classList.remove('hidden');
 
-                document.getElementById('org-name').textContent = `${organization.name} - Admin`;
+                document.getElementById('org-name-text').textContent = organization.name;
                 document.getElementById('org-name-input').value = organization.name;
-                document.getElementById('org-description-input').value = organization.description || '';
 
                 renderMembers(organization.members);
 
@@ -239,7 +200,6 @@
                 }
 
                 await loadInvites();
-                await loadProjects();
             } catch (error) {
                 document.getElementById('loading').classList.add('hidden');
                 showError(error.message || 'Failed to load organization');
@@ -252,6 +212,16 @@
         }
 
         function renderMembers(members) {
+            // Sort members: active first, then removed, alphabetically within each group
+            members.sort((a, b) => {
+                // First sort by status (Active first)
+                if (a.status === 'Active' && b.status !== 'Active') return -1;
+                if (a.status !== 'Active' && b.status === 'Active') return 1;
+
+                // Then sort alphabetically by email
+                return a.email.localeCompare(b.email);
+            });
+
             // Define custom columns for members table
             const columns = [
                 {
@@ -260,7 +230,7 @@
                     visible: true,
                     sortable: true,
                     width: 300,
-                    formatter: 'email'
+                    formatter: 'plaintext'
                 },
                 {
                     field: 'role',
@@ -347,8 +317,7 @@
             ];
 
             const config = {
-                visible_columns: columns,
-                default_sort: { field: 'joined_at', dir: 'desc' }
+                visible_columns: columns
             };
 
             // Create table instance if it doesn't exist
@@ -519,234 +488,6 @@
             }
         }
 
-        // Project management functions
-        async function loadProjects() {
-            try {
-                const projects = await api.getProjects(organizationId);
-                renderProjects(projects);
-            } catch (error) {
-                console.error('Failed to load projects:', error);
-                showError('Failed to load projects');
-            }
-        }
-
-        function renderProjects(projects) {
-            // Define columns with clickable title, status badge, and action buttons
-            const columns = [
-                {
-                    field: 'title',
-                    label: 'Project Title',
-                    visible: true,
-                    sortable: true,
-                    width: 300,
-                    formatter: (cell) => {
-                        const project = cell.getData();
-                        const container = document.createElement('div');
-                        container.className = 'flex items-center gap-2';
-
-                        // Create clickable link
-                        const link = document.createElement('a');
-                        link.href = `/project.html?org_id=${organizationId}&id=${project.id}`;
-                        link.className = 'text-blue-600 hover:underline font-medium';
-                        link.textContent = project.title;
-
-                        container.appendChild(link);
-
-                        // Add status badge
-                        if (project.status === 'archived') {
-                            const badge = document.createElement('span');
-                            badge.className = 'text-xs px-2 py-1 bg-yellow-100 text-yellow-800 rounded';
-                            badge.textContent = 'Archived';
-                            container.appendChild(badge);
-                        } else if (project.status === 'deleted') {
-                            const badge = document.createElement('span');
-                            badge.className = 'text-xs px-2 py-1 bg-red-100 text-red-800 rounded';
-                            badge.textContent = 'Deleted';
-                            container.appendChild(badge);
-                        }
-
-                        return container;
-                    }
-                },
-                {
-                    field: 'description',
-                    label: 'Description',
-                    visible: true,
-                    sortable: false,
-                    width: 400,
-                    formatter: 'plaintext'
-                },
-                {
-                    field: 'created_at',
-                    label: 'Created',
-                    visible: true,
-                    sortable: true,
-                    width: 180,
-                    formatter: 'datetime'
-                },
-                {
-                    field: 'actions',
-                    label: 'Actions',
-                    visible: true,
-                    sortable: false,
-                    width: 200,
-                    formatter: (cell) => {
-                        const project = cell.getData();
-                        const isActive = project.status === 'active';
-                        const isArchived = project.status === 'archived';
-                        const isDeleted = project.status === 'deleted';
-
-                        const container = document.createElement('div');
-                        container.className = 'flex gap-2';
-
-                        if (isActive) {
-                            // Archive button
-                            const archiveBtn = document.createElement('button');
-                            archiveBtn.className = 'text-yellow-600 hover:text-yellow-800 text-sm font-medium';
-                            archiveBtn.textContent = 'Archive';
-                            archiveBtn.onclick = () => archiveProject(project.id);
-                            container.appendChild(archiveBtn);
-
-                            // Delete button
-                            const deleteBtn = document.createElement('button');
-                            deleteBtn.className = 'text-red-600 hover:text-red-800 text-sm font-medium';
-                            deleteBtn.textContent = 'Delete';
-                            deleteBtn.onclick = () => showDeleteModal(project.id);
-                            container.appendChild(deleteBtn);
-                        } else if (isArchived) {
-                            // Unarchive button
-                            const unarchiveBtn = document.createElement('button');
-                            unarchiveBtn.className = 'text-green-600 hover:text-green-800 text-sm font-medium';
-                            unarchiveBtn.textContent = 'Unarchive';
-                            unarchiveBtn.onclick = () => unarchiveProject(project.id);
-                            container.appendChild(unarchiveBtn);
-
-                            // Delete button
-                            const deleteBtn = document.createElement('button');
-                            deleteBtn.className = 'text-red-600 hover:text-red-800 text-sm font-medium';
-                            deleteBtn.textContent = 'Delete';
-                            deleteBtn.onclick = () => showDeleteModal(project.id);
-                            container.appendChild(deleteBtn);
-                        } else if (isDeleted && currentUser.is_site_admin) {
-                            // Undelete button
-                            const undeleteBtn = document.createElement('button');
-                            undeleteBtn.className = 'text-blue-600 hover:text-blue-800 text-sm font-medium';
-                            undeleteBtn.textContent = 'Undelete';
-                            undeleteBtn.onclick = () => undeleteProject(project.id);
-                            container.appendChild(undeleteBtn);
-                        }
-
-                        return container;
-                    }
-                }
-            ];
-
-            const config = {
-                visible_columns: columns,
-                default_sort: { field: 'created_at', dir: 'desc' }
-            };
-
-            // Create table instance if it doesn't exist
-            if (!projectsTable) {
-                projectsTable = new DataTable('#projects-table', {
-                    pageSize: 20,
-                    rowFormatter: (row) => {
-                        const data = row.getData();
-                        if (data.status === 'archived' || data.status === 'deleted') {
-                            row.getElement().style.opacity = '0.5';
-                        }
-                    }
-                });
-            }
-
-            projectsTable.init(projects, config);
-        }
-
-        let deleteProjectId = null;
-
-        function showDeleteModal(projectId) {
-            deleteProjectId = projectId;
-            document.getElementById('delete-confirm-modal').classList.remove('hidden');
-        }
-
-        function closeDeleteModal() {
-            deleteProjectId = null;
-            document.getElementById('delete-confirm-modal').classList.add('hidden');
-        }
-
-        async function confirmDelete() {
-            if (!deleteProjectId) return;
-
-            try {
-                await api.deleteProject(organizationId, deleteProjectId);
-                showSuccess('Project deleted successfully!');
-                closeDeleteModal();
-                await loadProjects();
-            } catch (error) {
-                showError(error.message || 'Failed to delete project');
-                closeDeleteModal();
-            }
-        }
-
-        async function archiveProject(projectId) {
-            try {
-                await api.archiveProject(organizationId, projectId);
-                showSuccess('Project archived successfully!');
-                await loadProjects();
-            } catch (error) {
-                showError(error.message || 'Failed to archive project');
-            }
-        }
-
-        async function unarchiveProject(projectId) {
-            try {
-                await api.unarchiveProject(organizationId, projectId);
-                showSuccess('Project unarchived successfully!');
-                await loadProjects();
-            } catch (error) {
-                showError(error.message || 'Failed to unarchive project');
-            }
-        }
-
-        async function undeleteProject(projectId) {
-            try {
-                await api.undeleteProject(organizationId, projectId);
-                showSuccess('Project undeleted successfully!');
-                await loadProjects();
-            } catch (error) {
-                showError(error.message || 'Failed to undelete project');
-            }
-        }
-
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-
-        // Handle project creation form
-        document.getElementById('create-project-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-
-            const title = document.getElementById('project-title').value.trim();
-            const description = document.getElementById('project-description').value.trim();
-
-            if (!title) {
-                showError('Project title is required');
-                return;
-            }
-
-            try {
-                await api.createProject(organizationId, title, description || null);
-                showSuccess('Project created successfully!');
-                document.getElementById('project-title').value = '';
-                document.getElementById('project-description').value = '';
-                await loadProjects();
-            } catch (error) {
-                showError(error.message || 'Failed to create project');
-            }
-        });
-
         async function reactivateMember(userId, userEmail) {
             if (!confirm(`Are you sure you want to reactivate ${userEmail} in this organization?`)) {
                 return;
@@ -773,12 +514,28 @@
             }
         }
 
-        // Handle organization edit form
+        // Toggle organization name edit mode
+        function showOrgNameEdit() {
+            document.getElementById('org-name-display').classList.add('hidden');
+            document.getElementById('edit-org-form').classList.remove('hidden');
+            document.getElementById('org-name-input').focus();
+        }
+
+        function hideOrgNameEdit() {
+            document.getElementById('org-name-display').classList.remove('hidden');
+            document.getElementById('edit-org-form').classList.add('hidden');
+            // Reset input to current value in case of cancel
+            document.getElementById('org-name-input').value = organization.name;
+        }
+
+        // Handle organization name edit form
+        document.getElementById('edit-org-name-btn').addEventListener('click', showOrgNameEdit);
+        document.getElementById('cancel-org-name-btn').addEventListener('click', hideOrgNameEdit);
+
         document.getElementById('edit-org-form').addEventListener('submit', async (e) => {
             e.preventDefault();
 
             const name = document.getElementById('org-name-input').value.trim();
-            const description = document.getElementById('org-description-input').value.trim();
 
             if (!name) {
                 showError('Organization name is required');
@@ -786,11 +543,11 @@
             }
 
             try {
-                await api.updateOrganization(organizationId, { name, description });
-                showSuccess('Organization updated successfully!');
+                await api.updateOrganization(organizationId, { name });
+                showSuccess('Organization name updated successfully!');
                 organization.name = name;
-                organization.description = description;
-                document.getElementById('org-name').textContent = `${name} - Admin`;
+                document.getElementById('org-name-text').textContent = name;
+                hideOrgNameEdit();
             } catch (error) {
                 showError(error.message || 'Failed to update organization');
             }
@@ -803,9 +560,9 @@
                 if (!inviteModal.classList.contains('hidden')) {
                     closeInviteModal();
                 }
-                const deleteModal = document.getElementById('delete-confirm-modal');
-                if (!deleteModal.classList.contains('hidden')) {
-                    closeDeleteModal();
+                const editForm = document.getElementById('edit-org-form');
+                if (!editForm.classList.contains('hidden')) {
+                    hideOrgNameEdit();
                 }
             }
         });

@@ -1,4 +1,4 @@
-.PHONY: help install run migrate seed-admin shell upgrade downgrade reset db-create
+.PHONY: help install run migrate seed-admin seed shell upgrade downgrade reset db-create
 
 help:
 	@echo "Available commands:"
@@ -8,6 +8,7 @@ help:
 	@echo "  make upgrade      - Run pending migrations"
 	@echo "  make downgrade    - Rollback last migration"
 	@echo "  make seed-admin   - Create a site admin user"
+	@echo "  make seed         - Seed database with sample data (WARNING: clears existing data)"
 	@echo "  make shell        - Open a poetry shell"
 	@echo "  make db-create    - Create database tables (upgrade to latest migration)"
 	@echo "  make reset        - Reset database (WARNING: deletes all data)"
@@ -33,6 +34,9 @@ downgrade:
 
 seed-admin:
 	poetry run python scripts/seed_admin.py
+
+seed:
+	poetry run python scripts/seed.py
 
 shell:
 	poetry shell
