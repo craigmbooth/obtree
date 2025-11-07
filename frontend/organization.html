@@ -317,10 +317,10 @@
             // Render navigation
             document.getElementById('navigation').innerHTML = navigation.render({ showOrgDropdown: true });
             navigation.init(currentUser, {
-            document.getElementById('footer').innerHTML = navigation.renderFooter();
                 showOrgDropdown: true,
                 orgDropdownId: organizationId
             });
+            document.getElementById('footer').innerHTML = navigation.renderFooter();
 
             await loadOrganization();
         }

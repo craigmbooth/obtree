@@ -169,9 +169,9 @@
             // Render navigation
             document.getElementById('navigation').innerHTML = navigation.render();
             navigation.init(currentUser, {
-            document.getElementById('footer').innerHTML = navigation.renderFooter();
                 orgPageLink: `/organization.html?id=${organizationId}`
             });
+            document.getElementById('footer').innerHTML = navigation.renderFooter();
 
             // Set back link
             document.getElementById('back-to-org').href = `/organization.html?id=${organizationId}`;

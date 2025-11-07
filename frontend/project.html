@@ -195,10 +195,10 @@
             // Render navigation
             document.getElementById('navigation').innerHTML = navigation.render({ showOrgDropdown: true });
             navigation.init(currentUser, {
-            document.getElementById('footer').innerHTML = navigation.renderFooter();
                 showOrgDropdown: true,
                 orgDropdownId: organizationId
             });
+            document.getElementById('footer').innerHTML = navigation.renderFooter();
 
             // Set back link
             document.getElementById('back-to-org').href = `/organization.html?id=${organizationId}`;
