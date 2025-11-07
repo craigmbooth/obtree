@@ -23,6 +23,11 @@ from app.schemas.project import (
     ProjectUpdate,
     ProjectResponse,
 )
+from app.schemas.species import (
+    SpeciesCreate,
+    SpeciesUpdate,
+    SpeciesResponse,
+)
 
 __all__ = [
     "UserCreate",
@@ -42,4 +47,7 @@ __all__ = [
     "ProjectCreate",
     "ProjectUpdate",
     "ProjectResponse",
+    "SpeciesCreate",
+    "SpeciesUpdate",
+    "SpeciesResponse",
 ]

@@ -3,6 +3,7 @@ from app.models.organization import Organization
 from app.models.membership import OrganizationMembership, OrganizationRole
 from app.models.invite import Invite
 from app.models.project import Project, ProjectStatus
+from app.models.species import Species, SpeciesStatus
 
 __all__ = [
     "User",
@@ -12,4 +13,6 @@ __all__ = [
     "Invite",
     "Project",
     "ProjectStatus",
+    "Species",
+    "SpeciesStatus",
 ]

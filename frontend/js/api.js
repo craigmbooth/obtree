@@ -204,6 +204,35 @@ class ApiClient {
             method: 'POST'
         });
     }
+
+    // Species endpoints
+    async getSpecies(organizationId) {
+        return this.request(`/api/organizations/${organizationId}/species`);
+    }
+
+    async getSpeciesById(organizationId, speciesId) {
+        return this.request(`/api/organizations/${organizationId}/species/${speciesId}`);
+    }
+
+    async createSpecies(organizationId, data) {
+        return this.request(`/api/organizations/${organizationId}/species`, {
+            method: 'POST',
+            body: JSON.stringify(data)
+        });
+    }
+
+    async updateSpecies(organizationId, speciesId, data) {
+        return this.request(`/api/organizations/${organizationId}/species/${speciesId}`, {
+            method: 'PATCH',
+            body: JSON.stringify(data)
+        });
+    }
+
+    async deleteSpecies(organizationId, speciesId) {
+        return this.request(`/api/organizations/${organizationId}/species/${speciesId}`, {
+            method: 'DELETE'
+        });
+    }
 }
 
 const api = new ApiClient();

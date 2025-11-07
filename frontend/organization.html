@@ -60,12 +60,86 @@
             </div>
 
             <!-- Projects List -->
-            <div class="bg-white rounded-lg shadow-md p-6">
+            <div class="bg-white rounded-lg shadow-md p-6 mb-6">
                 <h3 class="text-xl font-bold text-gray-800 mb-4">Projects</h3>
                 <div id="projects-table">
                     <!-- Projects table will be initialized here -->
                 </div>
             </div>
+
+            <!-- Species List -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-bold text-gray-800">Species</h3>
+                    <button id="add-species-btn" class="hidden bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+                        Add Species
+                    </button>
+                </div>
+                <div id="species-table">
+                    <!-- Species table will be initialized here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create/Edit Species Modal -->
+    <div id="species-modal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div class="flex justify-between items-center mb-4">
+                <h3 id="species-modal-title" class="text-lg font-bold text-gray-900">Add Species</h3>
+                <button id="close-species-modal" class="text-gray-400 hover:text-gray-600">
+                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            <form id="species-form">
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="genus">
+                        Genus *
+                    </label>
+                    <input type="text" id="genus" required
+                        class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="species_name">
+                        Species *
+                    </label>
+                    <input type="text" id="species_name" required
+                        class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="variety">
+                        Variety
+                    </label>
+                    <input type="text" id="variety"
+                        class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="common_name">
+                        Common Name
+                    </label>
+                    <input type="text" id="common_name"
+                        class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="description">
+                        Description
+                    </label>
+                    <textarea id="description" rows="3"
+                        class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"></textarea>
+                </div>
+                <div class="flex justify-end gap-2">
+                    <button type="button" id="cancel-species-btn"
+                        class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded">
+                        Cancel
+                    </button>
+                    <button type="submit"
+                        class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
+                        Save
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -80,6 +154,9 @@
         let organizationId = null;
         let organization = null;
         let projectsTable = null;
+        let speciesTable = null;
+        let editingSpeciesId = null;
+        let isAdmin = false;
 
         async function init() {
             currentUser = await Auth.checkAuth();
@@ -135,8 +212,8 @@
                 }
 
                 // Show admin link if user is admin and active
-                const isAdmin = userMembership && userMembership.role === 'admin' && userMembership.status === 'Active';
-                if (isAdmin || currentUser.is_site_admin) {
+                isAdmin = (userMembership && userMembership.role === 'admin' && userMembership.status === 'Active') || currentUser.is_site_admin;
+                if (isAdmin) {
                     const adminLink = document.getElementById('admin-link');
                     adminLink.href = `/org-admin.html?id=${organizationId}`;
                     adminLink.classList.remove('hidden');
@@ -149,8 +226,9 @@
                     }
                 }
 
-                // Load projects
+                // Load projects and species
                 await loadProjects();
+                await loadSpecies();
             } catch (error) {
                 document.getElementById('loading').classList.add('hidden');
                 showError(error.message || 'Failed to load organization');
@@ -240,6 +318,189 @@
                 showError('Failed to load projects');
             }
         }
+
+        async function loadSpecies() {
+            try {
+                const species = await api.getSpecies(organizationId);
+
+                // Define columns
+                const columns = [
+                    {
+                        field: 'genus',
+                        label: 'Genus',
+                        visible: true,
+                        sortable: true,
+                        width: 150,
+                        formatter: 'plaintext'
+                    },
+                    {
+                        field: 'species_name',
+                        label: 'Species',
+                        visible: true,
+                        sortable: true,
+                        width: 150,
+                        formatter: 'plaintext'
+                    },
+                    {
+                        field: 'variety',
+                        label: 'Variety',
+                        visible: true,
+                        sortable: true,
+                        width: 150,
+                        formatter: 'plaintext'
+                    },
+                    {
+                        field: 'common_name',
+                        label: 'Common Name',
+                        visible: true,
+                        sortable: true,
+                        width: 200,
+                        formatter: 'plaintext'
+                    },
+                    {
+                        field: 'description',
+                        label: 'Description',
+                        visible: true,
+                        sortable: false,
+                        width: 300,
+                        formatter: 'plaintext'
+                    },
+                    {
+                        field: 'created_at',
+                        label: 'Created',
+                        visible: true,
+                        sortable: true,
+                        width: 180,
+                        formatter: 'datetime'
+                    }
+                ];
+
+                // Add actions column if user is admin
+                if (isAdmin) {
+                    columns.push({
+                        field: 'actions',
+                        label: 'Actions',
+                        visible: true,
+                        sortable: false,
+                        width: 120,
+                        formatter: (cell) => {
+                            const speciesData = cell.getData();
+                            const container = document.createElement('div');
+                            container.className = 'flex gap-2';
+
+                            const editBtn = document.createElement('button');
+                            editBtn.textContent = 'Edit';
+                            editBtn.className = 'text-blue-600 hover:underline text-sm';
+                            editBtn.onclick = () => openSpeciesModal(speciesData);
+
+                            const deleteBtn = document.createElement('button');
+                            deleteBtn.textContent = 'Delete';
+                            deleteBtn.className = 'text-red-600 hover:underline text-sm';
+                            deleteBtn.onclick = () => deleteSpecies(speciesData.id);
+
+                            container.appendChild(editBtn);
+                            container.appendChild(deleteBtn);
+
+                            return container;
+                        }
+                    });
+
+                    // Show add button
+                    document.getElementById('add-species-btn').classList.remove('hidden');
+                }
+
+                const config = {
+                    visible_columns: columns,
+                    default_sort: { field: 'genus', dir: 'asc' }
+                };
+
+                // Create table instance if it doesn't exist
+                if (!speciesTable) {
+                    speciesTable = new DataTable('#species-table', {
+                        pageSize: 20
+                    });
+                }
+
+                speciesTable.init(species, config);
+            } catch (error) {
+                console.error('Failed to load species:', error);
+                showError('Failed to load species');
+            }
+        }
+
+        function openSpeciesModal(speciesData = null) {
+            editingSpeciesId = speciesData ? speciesData.id : null;
+            const modal = document.getElementById('species-modal');
+            const form = document.getElementById('species-form');
+            const title = document.getElementById('species-modal-title');
+
+            if (speciesData) {
+                title.textContent = 'Edit Species';
+                document.getElementById('genus').value = speciesData.genus || '';
+                document.getElementById('species_name').value = speciesData.species_name || '';
+                document.getElementById('variety').value = speciesData.variety || '';
+                document.getElementById('common_name').value = speciesData.common_name || '';
+                document.getElementById('description').value = speciesData.description || '';
+            } else {
+                title.textContent = 'Add Species';
+                form.reset();
+            }
+
+            modal.classList.remove('hidden');
+        }
+
+        function closeSpeciesModal() {
+            document.getElementById('species-modal').classList.add('hidden');
+            document.getElementById('species-form').reset();
+            editingSpeciesId = null;
+        }
+
+        async function handleSpeciesFormSubmit(e) {
+            e.preventDefault();
+
+            const data = {
+                genus: document.getElementById('genus').value,
+                species_name: document.getElementById('species_name').value,
+                variety: document.getElementById('variety').value || null,
+                common_name: document.getElementById('common_name').value || null,
+                description: document.getElementById('description').value || null
+            };
+
+            try {
+                if (editingSpeciesId) {
+                    await api.updateSpecies(organizationId, editingSpeciesId, data);
+                    showSuccess('Species updated successfully');
+                } else {
+                    await api.createSpecies(organizationId, data);
+                    showSuccess('Species created successfully');
+                }
+
+                closeSpeciesModal();
+                await loadSpecies();
+            } catch (error) {
+                showError(error.message || 'Failed to save species');
+            }
+        }
+
+        async function deleteSpecies(speciesId) {
+            if (!confirm('Are you sure you want to delete this species?')) {
+                return;
+            }
+
+            try {
+                await api.deleteSpecies(organizationId, speciesId);
+                showSuccess('Species deleted successfully');
+                await loadSpecies();
+            } catch (error) {
+                showError(error.message || 'Failed to delete species');
+            }
+        }
+
+        // Event listeners
+        document.getElementById('add-species-btn').addEventListener('click', () => openSpeciesModal());
+        document.getElementById('close-species-modal').addEventListener('click', closeSpeciesModal);
+        document.getElementById('cancel-species-btn').addEventListener('click', closeSpeciesModal);
+        document.getElementById('species-form').addEventListener('submit', handleSpeciesFormSubmit);
 
         init();
     </script>
