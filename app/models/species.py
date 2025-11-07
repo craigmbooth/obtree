@@ -35,6 +35,7 @@ class Species(Base, TableConfigMixin):
     # Relationships
     organization = relationship("Organization", back_populates="species")
     creator = relationship("User")
+    accessions = relationship("Accession", back_populates="species")
 
     # Table configuration for frontend display
     __table_config__ = {

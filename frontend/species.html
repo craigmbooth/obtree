@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Species - RedBuds App</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tabulator CSS and JS -->
+    <link href="https://unpkg.com/tabulator-tables@6.2.5/dist/css/tabulator.min.css" rel="stylesheet">
+    <link href="/css/table-custom.css" rel="stylesheet">
+    <script src="https://unpkg.com/tabulator-tables@6.2.5/dist/js/tabulator.min.js"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <!-- Navigation -->
+    <div id="navigation"></div>
+
+    <div class="container mx-auto px-4 py-8">
+
+        <div id="error-message" class="hidden bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4"></div>
+        <div id="success-message" class="hidden bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4"></div>
+
+        <!-- Loading state -->
+        <div id="loading" class="text-center py-12">
+            <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
+            <p class="mt-4 text-gray-600">Loading species...</p>
+        </div>
+
+        <!-- Species content -->
+        <div id="species-content" class="hidden">
+            <!-- Header with link back to org page -->
+            <div class="mb-6">
+                <a href="#" id="back-to-org" class="text-blue-600 hover:underline">← Back to Organization</a>
+            </div>
+
+            <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+                <h2 class="text-3xl font-bold text-gray-800 mb-2">
+                    <span id="species-genus"></span>
+                    <span id="species-name"></span>
+                    <span id="species-variety" class="text-gray-600"></span>
+                </h2>
+                <p id="species-common-name" class="text-xl text-gray-600 mb-4"></p>
+
+                <div id="species-description-container" class="mt-4">
+                    <h3 class="text-lg font-semibold text-gray-700 mb-2">Description</h3>
+                    <p id="species-description" class="text-gray-600">No description provided.</p>
+                </div>
+
+                <div class="mt-4 pt-4 border-t border-gray-200">
+                    <p class="text-sm text-gray-500">
+                        Created: <span id="species-created"></span>
+                    </p>
+                </div>
+            </div>
+
+            <!-- Accessions List (Read-only) -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-bold text-gray-800">Accessions</h3>
+                </div>
+                <div id="accessions-table">
+                    <!-- Accessions table will be initialized here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/api.js"></script>
+    <script src="/js/auth.js"></script>
+    <script src="/js/utils.js"></script>
+    <script src="/js/navigation.js"></script>
+    <script src="/js/table.js"></script>
+    <script src="/js/tableBuilder.js"></script>
+    <script>
+        let currentUser = null;
+        let organizationId = null;
+        let speciesId = null;
+        let species = null;
+        let accessionsTable = null;
+
+        async function init() {
+            currentUser = await Auth.checkAuth();
+            if (!currentUser) return;
+
+            const params = new URLSearchParams(window.location.search);
+            organizationId = params.get('org_id');
+            speciesId = params.get('id');
+
+            if (!organizationId || !speciesId) {
+                showError('Missing organization or species ID');
+                return;
+            }
+
+            // Render navigation
+            document.getElementById('navigation').innerHTML = navigation.render({ showOrgDropdown: true });
+            navigation.init(currentUser, {
+                showOrgDropdown: true,
+                orgDropdownId: organizationId
+            });
+
+            // Set back link
+            document.getElementById('back-to-org').href = `/organization.html?id=${organizationId}`;
+
+            await loadSpecies();
+        }
+
+        async function loadSpecies() {
+            try {
+                // Load species details
+                species = await api.getSpeciesById(organizationId, speciesId);
+
+                document.getElementById('loading').classList.add('hidden');
+                document.getElementById('species-content').classList.remove('hidden');
+
+                // Display species information
+                document.getElementById('species-genus').textContent = species.genus;
+                document.getElementById('species-name').textContent = ' ' + species.species_name;
+
+                if (species.variety) {
+                    document.getElementById('species-variety').textContent = ' var. ' + species.variety;
+                }
+
+                if (species.common_name) {
+                    document.getElementById('species-common-name').textContent = species.common_name;
+                } else {
+                    document.getElementById('species-common-name').classList.add('hidden');
+                }
+
+                // Display description
+                const description = species.description;
+                if (description && description.trim()) {
+                    document.getElementById('species-description').textContent = description;
+                } else {
+                    document.getElementById('species-description').textContent = 'No description provided.';
+                }
+
+                document.getElementById('species-created').textContent = formatDate(species.created_at);
+
+                // Load accessions
+                await loadAccessions();
+            } catch (error) {
+                document.getElementById('loading').classList.add('hidden');
+                showError(error.message || 'Failed to load species');
+            }
+        }
+
+        async function loadAccessions() {
+            try {
+                const accessions = await api.getAccessions(organizationId, speciesId);
+
+                // Define columns (read-only, no actions)
+                const columns = [
+                    {
+                        field: 'accession',
+                        label: 'Accession ID',
+                        visible: true,
+                        sortable: true,
+                        width: 200,
+                        formatter: (cell) => {
+                            const data = cell.getData();
+                            const link = document.createElement('a');
+                            link.href = `/accession.html?org_id=${organizationId}&species_id=${speciesId}&id=${data.id}`;
+                            link.className = 'text-blue-600 hover:underline font-medium';
+                            link.textContent = data.accession;
+                            return link;
+                        }
+                    },
+                    {
+                        field: 'project_title',
+                        label: 'Project',
+                        visible: true,
+                        sortable: true,
+                        width: 150,
+                        formatter: (cell) => {
+                            const data = cell.getData();
+                            return data.project_title || '-';
+                        }
+                    },
+                    {
+                        field: 'description',
+                        label: 'Description',
+                        visible: true,
+                        sortable: false,
+                        width: 400,
+                        formatter: 'plaintext'
+                    },
+                    {
+                        field: 'created_at',
+                        label: 'Created',
+                        visible: true,
+                        sortable: true,
+                        width: 180,
+                        formatter: 'datetime'
+                    }
+                ];
+
+                const config = {
+                    visible_columns: columns,
+                    default_sort: { field: 'accession', dir: 'asc' }
+                };
+
+                // Create table instance if it doesn't exist
+                if (!accessionsTable) {
+                    accessionsTable = new DataTable('#accessions-table', {
+                        pageSize: 20
+                    });
+                }
+
+                accessionsTable.init(accessions, config);
+            } catch (error) {
+                console.error('Failed to load accessions:', error);
+                showError('Failed to load accessions');
+            }
+        }
+
+        init();
+    </script>
+</body>
+</html>

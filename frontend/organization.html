@@ -69,7 +69,7 @@
             </div>
 
             <!-- Species List -->
-            <div class="bg-white rounded-lg shadow-md p-6">
+            <div class="bg-white rounded-lg shadow-md p-6 mb-6">
                 <div class="flex justify-between items-center mb-4">
                     <h3 class="text-xl font-bold text-gray-800">Species</h3>
                     <button id="add-species-btn" class="hidden bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
@@ -78,6 +78,19 @@
                 </div>
                 <div id="species-table">
                     <!-- Species table will be initialized here -->
+                </div>
+            </div>
+
+            <!-- Accessions List -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-bold text-gray-800">Accessions</h3>
+                    <button id="add-accession-btn" class="hidden bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+                        Add Accession
+                    </button>
+                </div>
+                <div id="accessions-table">
+                    <!-- Accessions table will be initialized here -->
                 </div>
             </div>
         </div>
@@ -202,6 +215,64 @@
         </div>
     </div>
 
+    <!-- Create/Edit Accession Modal -->
+    <div id="accession-modal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div class="flex justify-between items-center mb-4">
+                <h3 id="accession-modal-title" class="text-lg font-bold text-gray-900">Add Accession</h3>
+                <button id="close-accession-modal" class="text-gray-400 hover:text-gray-600">
+                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            <form id="accession-form">
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="accession-species">
+                        Species *
+                    </label>
+                    <select id="accession-species" required
+                        class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                        <option value="">Select a species...</option>
+                    </select>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="accession-project">
+                        Project (Optional)
+                    </label>
+                    <select id="accession-project"
+                        class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                        <option value="">None</option>
+                    </select>
+                </div>
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="accession-id">
+                        Accession ID *
+                    </label>
+                    <input type="text" id="accession-id" required
+                        class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                </div>
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2" for="accession-description">
+                        Description
+                    </label>
+                    <textarea id="accession-description" rows="3"
+                        class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"></textarea>
+                </div>
+                <div class="flex justify-end gap-2">
+                    <button type="button" id="cancel-accession-btn"
+                        class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded">
+                        Cancel
+                    </button>
+                    <button type="submit"
+                        class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
+                        Save
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script src="/js/api.js"></script>
     <script src="/js/auth.js"></script>
     <script src="/js/utils.js"></script>
@@ -214,8 +285,12 @@
         let organization = null;
         let projectsTable = null;
         let speciesTable = null;
+        let accessionsTable = null;
         let editingSpeciesId = null;
+        let editingAccessionId = null;
         let isAdmin = false;
+        let allSpecies = [];
+        let allProjects = [];
 
         async function init() {
             currentUser = await Auth.checkAuth();
@@ -285,9 +360,10 @@
                     }
                 }
 
-                // Load projects and species
+                // Load projects, species, and accessions
                 await loadProjects();
                 await loadSpecies();
+                await loadAccessions();
             } catch (error) {
                 document.getElementById('loading').classList.add('hidden');
                 showError(error.message || 'Failed to load organization');
@@ -296,11 +372,11 @@
 
         async function loadProjects() {
             try {
-                const projects = await api.getProjects(organizationId);
+                allProjects = await api.getProjects(organizationId);
 
                 // Sort projects: active first, then archived, then deleted, alphabetically within each group
                 const statusOrder = { 'active': 0, 'archived': 1, 'deleted': 2 };
-                projects.sort((a, b) => {
+                allProjects.sort((a, b) => {
                     // First sort by status
                     const statusDiff = statusOrder[a.status] - statusOrder[b.status];
                     if (statusDiff !== 0) return statusDiff;
@@ -445,7 +521,7 @@
                     });
                 }
 
-                projectsTable.init(projects, config);
+                projectsTable.init(allProjects, config);
             } catch (error) {
                 console.error('Failed to load projects:', error);
                 showError('Failed to load projects');
@@ -454,7 +530,7 @@
 
         async function loadSpecies() {
             try {
-                const species = await api.getSpecies(organizationId);
+                allSpecies = await api.getSpecies(organizationId);
 
                 // Define columns
                 const columns = [
@@ -464,7 +540,14 @@
                         visible: true,
                         sortable: true,
                         width: 150,
-                        formatter: 'plaintext'
+                        formatter: (cell) => {
+                            const speciesData = cell.getData();
+                            const link = document.createElement('a');
+                            link.href = `/species.html?org_id=${organizationId}&id=${speciesData.id}`;
+                            link.className = 'text-blue-600 hover:underline font-medium';
+                            link.textContent = speciesData.genus;
+                            return link;
+                        }
                     },
                     {
                         field: 'species_name',
@@ -554,7 +637,7 @@
                     });
                 }
 
-                speciesTable.init(species, config);
+                speciesTable.init(allSpecies, config);
             } catch (error) {
                 console.error('Failed to load species:', error);
                 showError('Failed to load species');
@@ -720,6 +803,239 @@
             }
         }
 
+        // Accession functions
+        async function loadAccessions() {
+            try {
+                const accessions = await api.getAllAccessions(organizationId);
+
+                // Show add button for admins
+                if (isAdmin) {
+                    document.getElementById('add-accession-btn').classList.remove('hidden');
+                }
+
+                // Define columns
+                const columns = [
+                    {
+                        field: 'accession',
+                        label: 'Accession',
+                        visible: true,
+                        sortable: true,
+                        width: 150,
+                        formatter: (cell) => {
+                            const data = cell.getData();
+                            const link = document.createElement('a');
+                            link.href = `/accession.html?org_id=${organizationId}&species_id=${data.species_id}&id=${data.id}`;
+                            link.className = 'text-blue-600 hover:underline font-medium';
+                            link.textContent = data.accession;
+                            return link;
+                        }
+                    },
+                    {
+                        field: 'species_genus',
+                        label: 'Species',
+                        visible: true,
+                        sortable: true,
+                        width: 200,
+                        formatter: (cell) => {
+                            const data = cell.getData();
+                            let text = `${data.species_genus} ${data.species_name}`;
+                            if (data.species_variety) {
+                                text += ` var. ${data.species_variety}`;
+                            }
+                            return text;
+                        }
+                    },
+                    {
+                        field: 'project_title',
+                        label: 'Project',
+                        visible: true,
+                        sortable: true,
+                        width: 150,
+                        formatter: (cell) => {
+                            const data = cell.getData();
+                            return data.project_title || '-';
+                        }
+                    },
+                    {
+                        field: 'description',
+                        label: 'Description',
+                        visible: true,
+                        sortable: false,
+                        width: 300,
+                        formatter: 'plaintext'
+                    },
+                    {
+                        field: 'created_at',
+                        label: 'Created',
+                        visible: true,
+                        sortable: true,
+                        width: 180,
+                        formatter: 'datetime'
+                    }
+                ];
+
+                // Add actions column if user is admin
+                if (isAdmin) {
+                    columns.push({
+                        field: 'actions',
+                        label: 'Actions',
+                        visible: true,
+                        sortable: false,
+                        width: 120,
+                        formatter: (cell) => {
+                            const accessionData = cell.getData();
+                            const container = document.createElement('div');
+                            container.className = 'flex gap-2';
+
+                            const editBtn = document.createElement('button');
+                            editBtn.textContent = 'Edit';
+                            editBtn.className = 'text-blue-600 hover:underline text-sm';
+                            editBtn.onclick = () => openAccessionModal(accessionData);
+
+                            const deleteBtn = document.createElement('button');
+                            deleteBtn.textContent = 'Delete';
+                            deleteBtn.className = 'text-red-600 hover:underline text-sm';
+                            deleteBtn.onclick = () => deleteAccession(accessionData.id);
+
+                            container.appendChild(editBtn);
+                            container.appendChild(deleteBtn);
+
+                            return container;
+                        }
+                    });
+                }
+
+                const config = {
+                    visible_columns: columns,
+                    default_sort: { field: 'accession', dir: 'asc' }
+                };
+
+                // Create table instance if it doesn't exist
+                if (!accessionsTable) {
+                    accessionsTable = new DataTable('#accessions-table', {
+                        pageSize: 20
+                    });
+                }
+
+                accessionsTable.init(accessions, config);
+            } catch (error) {
+                console.error('Failed to load accessions:', error);
+                showError('Failed to load accessions');
+            }
+        }
+
+        function openAccessionModal(accessionData = null) {
+            editingAccessionId = accessionData ? accessionData.id : null;
+            const modal = document.getElementById('accession-modal');
+            const form = document.getElementById('accession-form');
+            const title = document.getElementById('accession-modal-title');
+
+            // Populate species dropdown
+            const speciesSelect = document.getElementById('accession-species');
+            speciesSelect.innerHTML = '<option value="">Select a species...</option>';
+            allSpecies.forEach(species => {
+                const option = document.createElement('option');
+                option.value = species.id;
+                option.textContent = `${species.genus} ${species.species_name}${species.variety ? ' var. ' + species.variety : ''}`;
+                speciesSelect.appendChild(option);
+            });
+
+            // Populate projects dropdown (only active projects)
+            const projectSelect = document.getElementById('accession-project');
+            projectSelect.innerHTML = '<option value="">None</option>';
+            const activeProjects = allProjects.filter(p => p.status === 'active');
+            activeProjects.forEach(project => {
+                const option = document.createElement('option');
+                option.value = project.id;
+                option.textContent = project.title;
+                projectSelect.appendChild(option);
+            });
+
+            if (accessionData) {
+                title.textContent = 'Edit Accession';
+                document.getElementById('accession-species').value = accessionData.species_id || '';
+                document.getElementById('accession-project').value = accessionData.project_id || '';
+                document.getElementById('accession-id').value = accessionData.accession || '';
+                document.getElementById('accession-description').value = accessionData.description || '';
+            } else {
+                title.textContent = 'Add Accession';
+                form.reset();
+                // Re-populate dropdowns after reset
+                speciesSelect.innerHTML = '<option value="">Select a species...</option>';
+                allSpecies.forEach(species => {
+                    const option = document.createElement('option');
+                    option.value = species.id;
+                    option.textContent = `${species.genus} ${species.species_name}${species.variety ? ' var. ' + species.variety : ''}`;
+                    speciesSelect.appendChild(option);
+                });
+                projectSelect.innerHTML = '<option value="">None</option>';
+                activeProjects.forEach(project => {
+                    const option = document.createElement('option');
+                    option.value = project.id;
+                    option.textContent = project.title;
+                    projectSelect.appendChild(option);
+                });
+            }
+
+            modal.classList.remove('hidden');
+        }
+
+        function closeAccessionModal() {
+            document.getElementById('accession-modal').classList.add('hidden');
+            document.getElementById('accession-form').reset();
+            editingAccessionId = null;
+        }
+
+        async function handleAccessionFormSubmit(e) {
+            e.preventDefault();
+
+            const speciesId = document.getElementById('accession-species').value;
+            const projectId = document.getElementById('accession-project').value;
+            const accessionIdValue = document.getElementById('accession-id').value;
+            const description = document.getElementById('accession-description').value;
+
+            if (!speciesId) {
+                showError('Please select a species');
+                return;
+            }
+
+            const data = {
+                species_id: speciesId,
+                accession: accessionIdValue,
+                description: description || null,
+                project_id: projectId || null
+            };
+
+            try {
+                if (editingAccessionId) {
+                    await api.updateOrgAccession(organizationId, editingAccessionId, data);
+                    showSuccess('Accession updated successfully');
+                } else {
+                    await api.createOrgAccession(organizationId, data);
+                    showSuccess('Accession created successfully');
+                }
+
+                closeAccessionModal();
+                await loadAccessions();
+            } catch (error) {
+                showError(error.message || 'Failed to save accession');
+            }
+        }
+
+        async function deleteAccession(accessionId) {
+            if (!confirm('Are you sure you want to delete this accession?')) {
+                return;
+            }
+
+            try {
+                await api.deleteOrgAccession(organizationId, accessionId);
+                showSuccess('Accession deleted successfully');
+                await loadAccessions();
+            } catch (error) {
+                showError(error.message || 'Failed to delete accession');
+            }
+        }
+
         // Event listeners
         document.getElementById('add-species-btn').addEventListener('click', () => openSpeciesModal());
         document.getElementById('close-species-modal').addEventListener('click', closeSpeciesModal);
@@ -730,6 +1046,11 @@
         document.getElementById('close-project-modal').addEventListener('click', closeProjectModal);
         document.getElementById('cancel-project-btn').addEventListener('click', closeProjectModal);
         document.getElementById('project-form').addEventListener('submit', handleProjectFormSubmit);
+
+        document.getElementById('add-accession-btn').addEventListener('click', () => openAccessionModal());
+        document.getElementById('close-accession-modal').addEventListener('click', closeAccessionModal);
+        document.getElementById('cancel-accession-btn').addEventListener('click', closeAccessionModal);
+        document.getElementById('accession-form').addEventListener('submit', handleAccessionFormSubmit);
 
         init();
     </script>

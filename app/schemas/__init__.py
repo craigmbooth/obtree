@@ -28,6 +28,12 @@ from app.schemas.species import (
     SpeciesUpdate,
     SpeciesResponse,
 )
+from app.schemas.accession import (
+    AccessionCreate,
+    AccessionUpdate,
+    AccessionResponse,
+    AccessionWithSpeciesResponse,
+)
 
 __all__ = [
     "UserCreate",
@@ -50,4 +56,8 @@ __all__ = [
     "SpeciesCreate",
     "SpeciesUpdate",
     "SpeciesResponse",
+    "AccessionCreate",
+    "AccessionUpdate",
+    "AccessionResponse",
+    "AccessionWithSpeciesResponse",
 ]

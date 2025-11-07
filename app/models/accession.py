@@ -1,7 +1,6 @@
 from datetime import datetime
-import enum
 import uuid as uuid_lib
-from sqlalchemy import Column, DateTime, String, ForeignKey, Text, Enum
+from sqlalchemy import Column, DateTime, ForeignKey, String, Table, Text
 from sqlalchemy.orm import relationship
 
 from app.database import Base
@@ -9,30 +8,33 @@ from app.models.types import GUID
 from app.models.mixins import TableConfigMixin
 
 
-class ProjectStatus(str, enum.Enum):
-    """Status of a project."""
-    ACTIVE = "active"
-    ARCHIVED = "archived"
-    DELETED = "deleted"
+# Association table for many-to-many relationship between projects and accessions
+projects_accessions = Table(
+    'projects_accessions',
+    Base.metadata,
+    Column('project_id', GUID, ForeignKey('projects.id'), primary_key=True),
+    Column('accession_id', GUID, ForeignKey('accessions.id'), primary_key=True),
+    Column('created_at', DateTime, default=datetime.utcnow, nullable=False),
+    Column('updated_at', DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+)
 
 
-class Project(Base, TableConfigMixin):
-    """Project model - projects belong to organizations."""
+class Accession(Base, TableConfigMixin):
+    """Accession model - accessions belong to species and can be associated with projects."""
 
-    __tablename__ = "projects"
+    __tablename__ = "accessions"
 
     id = Column(GUID, primary_key=True, default=uuid_lib.uuid4, index=True)
-    title = Column(String, nullable=False)
+    accession = Column(String, nullable=False)
     description = Column(Text, nullable=True)
-    organization_id = Column(GUID, ForeignKey("organizations.id"), nullable=False)
-    status = Column(Enum(ProjectStatus), nullable=False, default=ProjectStatus.ACTIVE)
+    species_id = Column(GUID, ForeignKey("species.id"), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     created_by = Column(GUID, ForeignKey("users.id"), nullable=False)
 
     # Relationships
-    organization = relationship("Organization", back_populates="projects")
+    species = relationship("Species", back_populates="accessions")
     creator = relationship("User")
-    accessions = relationship("Accession", secondary="projects_accessions", back_populates="projects")
+    projects = relationship("Project", secondary=projects_accessions, back_populates="accessions")
 
     # Table configuration for frontend display
     __table_config__ = {
@@ -45,11 +47,11 @@ class Project(Base, TableConfigMixin):
                 'formatter': 'plaintext'
             },
             {
-                'field': 'title',
-                'label': 'Project Title',
+                'field': 'accession',
+                'label': 'Accession',
                 'visible': True,
                 'sortable': True,
-                'width': 300,
+                'width': 200,
                 'formatter': 'plaintext'
             },
             {
@@ -69,5 +71,5 @@ class Project(Base, TableConfigMixin):
                 'formatter': 'datetime'
             }
         ],
-        'default_sort': {'field': 'created_at', 'dir': 'desc'}
+        'default_sort': {'field': 'accession', 'dir': 'asc'}
     }

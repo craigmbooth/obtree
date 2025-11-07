@@ -4,6 +4,7 @@ from app.models.membership import OrganizationMembership, OrganizationRole
 from app.models.invite import Invite
 from app.models.project import Project, ProjectStatus
 from app.models.species import Species, SpeciesStatus
+from app.models.accession import Accession, projects_accessions
 
 __all__ = [
     "User",
@@ -15,4 +16,6 @@ __all__ = [
     "ProjectStatus",
     "Species",
     "SpeciesStatus",
+    "Accession",
+    "projects_accessions",
 ]

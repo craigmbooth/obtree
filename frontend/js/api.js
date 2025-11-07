@@ -233,6 +233,60 @@ class ApiClient {
             method: 'DELETE'
         });
     }
+
+    // Accession endpoints (organization-level)
+    async getAllAccessions(organizationId) {
+        return this.request(`/api/organizations/${organizationId}/accessions`);
+    }
+
+    async createOrgAccession(organizationId, data) {
+        return this.request(`/api/organizations/${organizationId}/accessions`, {
+            method: 'POST',
+            body: JSON.stringify(data)
+        });
+    }
+
+    async updateOrgAccession(organizationId, accessionId, data) {
+        return this.request(`/api/organizations/${organizationId}/accessions/${accessionId}`, {
+            method: 'PATCH',
+            body: JSON.stringify(data)
+        });
+    }
+
+    async deleteOrgAccession(organizationId, accessionId) {
+        return this.request(`/api/organizations/${organizationId}/accessions/${accessionId}`, {
+            method: 'DELETE'
+        });
+    }
+
+    // Accession endpoints (species-level - kept for backwards compatibility)
+    async getAccessions(organizationId, speciesId) {
+        return this.request(`/api/organizations/${organizationId}/species/${speciesId}/accessions`);
+    }
+
+    async getAccession(organizationId, speciesId, accessionId) {
+        return this.request(`/api/organizations/${organizationId}/species/${speciesId}/accessions/${accessionId}`);
+    }
+
+    async createAccession(organizationId, speciesId, data) {
+        return this.request(`/api/organizations/${organizationId}/species/${speciesId}/accessions`, {
+            method: 'POST',
+            body: JSON.stringify(data)
+        });
+    }
+
+    async updateAccession(organizationId, speciesId, accessionId, data) {
+        return this.request(`/api/organizations/${organizationId}/species/${speciesId}/accessions/${accessionId}`, {
+            method: 'PATCH',
+            body: JSON.stringify(data)
+        });
+    }
+
+    async deleteAccession(organizationId, speciesId, accessionId) {
+        return this.request(`/api/organizations/${organizationId}/species/${speciesId}/accessions/${accessionId}`, {
+            method: 'DELETE'
+        });
+    }
 }
 
 const api = new ApiClient();
