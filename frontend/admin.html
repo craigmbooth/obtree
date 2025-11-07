@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <link rel="icon" type="image/png" href="/assets/images/favicon.png">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Site Admin - RedBuds App</title>
@@ -44,7 +45,16 @@
             <h3 class="text-xl font-bold text-gray-800 mb-4">All Organizations</h3>
             <div id="organizations-table"></div>
         </div>
+
+        <!-- All Users Table -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h3 class="text-xl font-bold text-gray-800 mb-4">All Users</h3>
+            <div id="users-table"></div>
+        </div>
     </div>
+
+    <!-- Footer -->
+    <div id="footer"></div>
 
     <script src="/js/api.js"></script>
     <script src="/js/auth.js"></script>
@@ -55,6 +65,7 @@
     <script>
         let currentUser = null;
         let organizationsTable = null;
+        let usersTable = null;
 
         async function init() {
             currentUser = await Auth.checkAuth();
@@ -69,11 +80,13 @@
                 return;
             }
 
-            // Render navigation
+            // Render navigation and footer
             document.getElementById('navigation').innerHTML = navigation.render();
             navigation.init(currentUser);
+            document.getElementById('footer').innerHTML = navigation.renderFooter();
 
             await loadOrganizations();
+            await loadAllUsers();
         }
 
         async function loadOrganizations() {
@@ -137,6 +150,64 @@
             } catch (error) {
                 console.error('Failed to load organizations:', error);
                 showError('Failed to load organizations');
+            }
+        }
+
+        async function loadAllUsers() {
+            try {
+                const users = await api.getAllUsers();
+
+                // Define columns
+                const columns = [
+                    {
+                        field: 'email',
+                        label: 'Email',
+                        visible: true,
+                        sortable: true,
+                        width: 300,
+                        formatter: 'plaintext'
+                    },
+                    {
+                        field: 'is_site_admin',
+                        label: 'Site Admin',
+                        visible: true,
+                        sortable: true,
+                        width: 120,
+                        formatter: (cell) => {
+                            return cell.getValue() ? 'Yes' : 'No';
+                        }
+                    },
+                    {
+                        field: 'organization_count',
+                        label: 'Organizations',
+                        visible: true,
+                        sortable: true,
+                        width: 130,
+                        formatter: 'plaintext'
+                    },
+                    {
+                        field: 'created_at',
+                        label: 'Joined',
+                        visible: true,
+                        sortable: true,
+                        width: 180,
+                        formatter: 'datetime'
+                    }
+                ];
+
+                const config = {
+                    visible_columns: columns,
+                    default_sort: { field: 'created_at', dir: 'desc' }
+                };
+
+                usersTable = new DataTable('#users-table', {
+                    pageSize: 20
+                });
+
+                usersTable.init(users, config);
+            } catch (error) {
+                console.error('Failed to load users:', error);
+                showError('Failed to load users');
             }
         }
 

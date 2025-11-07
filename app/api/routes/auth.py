@@ -144,14 +144,29 @@ def list_users(
     """
     List all users in the system (site admin only).
 
-    Returns user data formatted for table display using the User model's table configuration.
+    Returns user data with organization counts.
     """
     logger.info("list_users_requested", admin_user_id=current_user.id)
 
     users = db.query(User).all()
 
-    # Use the model's to_table_dict method to return only visible fields
-    users_data = [user.to_table_dict() for user in users]
+    # Build user data with organization counts
+    users_data = []
+    for user in users:
+        # Count active organization memberships (where removed_at is NULL)
+        org_count = db.query(OrganizationMembership).filter(
+            OrganizationMembership.user_id == user.id,
+            OrganizationMembership.removed_at == None
+        ).count()
+
+        users_data.append({
+            'id': user.id,
+            'email': user.email,
+            'is_site_admin': user.is_site_admin,
+            'organization_count': org_count,
+            'created_at': user.created_at,
+            'updated_at': user.updated_at
+        })
 
     logger.info("list_users_completed", user_count=len(users_data))
     return users_data

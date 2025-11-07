@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <link rel="icon" type="image/png" href="/assets/images/favicon.png">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Organization - RedBuds App</title>
@@ -316,6 +317,7 @@
             // Render navigation
             document.getElementById('navigation').innerHTML = navigation.render({ showOrgDropdown: true });
             navigation.init(currentUser, {
+            document.getElementById('footer').innerHTML = navigation.renderFooter();
                 showOrgDropdown: true,
                 orgDropdownId: organizationId
             });
@@ -1186,5 +1188,8 @@
 
         init();
     </script>
+    <!-- Footer -->
+    <div id="footer"></div>
+
 </body>
 </html>

@@ -86,6 +86,10 @@ class ApiClient {
         return this.request('/api/auth/me');
     }
 
+    async getAllUsers() {
+        return this.request('/api/auth/users');
+    }
+
     // Organization endpoints
     async getOrganizations() {
         return this.request('/api/organizations');

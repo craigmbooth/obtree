@@ -161,6 +161,20 @@ class Navigation {
             console.error('Failed to load organizations for dropdown:', error);
         }
     }
+
+    /**
+     * Render footer HTML
+     * @returns {string} Footer HTML
+     */
+    renderFooter() {
+        return `
+            <footer class="bg-gray-800 text-gray-300 py-6 mt-12">
+                <div class="container mx-auto px-4 text-center">
+                    <p class="text-sm">Built by Craig and Susie</p>
+                </div>
+            </footer>
+        `;
+    }
 }
 
 // Create global navigation instance
