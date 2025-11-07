@@ -59,6 +59,12 @@
                     <p id="accession-description" class="text-gray-600">No description provided.</p>
                 </div>
 
+                <!-- Custom Fields Section -->
+                <div id="custom-fields-section" class="hidden mt-6 pt-6 border-t border-gray-200">
+                    <h3 class="text-lg font-semibold text-gray-700 mb-3">Custom Fields</h3>
+                    <div id="custom-fields-display" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+                </div>
+
                 <div class="mt-6 pt-6 border-t border-gray-200">
                     <p class="text-sm text-gray-500">
                         Created: <span id="accession-created"></span>
@@ -150,10 +156,35 @@
 
                 // Display created date
                 document.getElementById('accession-created').textContent = formatDate(accession.created_at);
+
+                // Display custom field values if available
+                if (accession.field_values && accession.field_values.length > 0) {
+                    displayCustomFields(accession.field_values);
+                }
             } catch (error) {
                 document.getElementById('loading').classList.add('hidden');
                 showError(error.message || 'Failed to load accession');
             }
+        }
+
+        function displayCustomFields(fieldValues) {
+            const section = document.getElementById('custom-fields-section');
+            const display = document.getElementById('custom-fields-display');
+
+            // Show section even if some fields are empty (they exist in project)
+            section.classList.remove('hidden');
+            display.innerHTML = fieldValues.map(fieldValue => {
+                const hasValue = fieldValue.value !== null && fieldValue.value !== undefined && fieldValue.value !== '';
+                const value = hasValue ? fieldValue.value : 'Not set';
+                const valueClass = hasValue ? 'text-gray-600' : 'text-gray-400 italic';
+
+                return `
+                    <div>
+                        <h4 class="text-sm font-semibold text-gray-700 mb-1">${fieldValue.field_name}</h4>
+                        <p class="${valueClass}">${value}</p>
+                    </div>
+                `;
+            }).join('');
         }
 
         init();

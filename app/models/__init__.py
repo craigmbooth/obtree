@@ -5,6 +5,8 @@ from app.models.invite import Invite
 from app.models.project import Project, ProjectStatus
 from app.models.species import Species, SpeciesStatus
 from app.models.accession import Accession, projects_accessions
+from app.models.project_accession_field import ProjectAccessionField, FieldType
+from app.models.accession_field_value import AccessionFieldValue
 
 __all__ = [
     "User",
@@ -18,4 +20,7 @@ __all__ = [
     "SpeciesStatus",
     "Accession",
     "projects_accessions",
+    "ProjectAccessionField",
+    "FieldType",
+    "AccessionFieldValue",
 ]

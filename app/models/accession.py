@@ -35,6 +35,7 @@ class Accession(Base, TableConfigMixin):
     species = relationship("Species", back_populates="accessions")
     creator = relationship("User")
     projects = relationship("Project", secondary=projects_accessions, back_populates="accessions")
+    field_values = relationship("AccessionFieldValue", back_populates="accession", cascade="all, delete-orphan")
 
     # Table configuration for frontend display
     __table_config__ = {

@@ -259,6 +259,13 @@
                     <textarea id="accession-description" rows="3"
                         class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"></textarea>
                 </div>
+
+                <!-- Custom Fields Container -->
+                <div id="custom-fields-container" class="hidden mb-4">
+                    <h4 class="text-sm font-bold text-gray-700 mb-3 border-t pt-3">Custom Fields</h4>
+                    <div id="custom-fields-list"></div>
+                </div>
+
                 <div class="flex justify-end gap-2">
                     <button type="button" id="cancel-accession-btn"
                         class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded">
@@ -291,6 +298,8 @@
         let isAdmin = false;
         let allSpecies = [];
         let allProjects = [];
+        let projectFields = [];
+        let currentAccessionFieldValues = [];
 
         async function init() {
             currentUser = await Auth.checkAuth();
@@ -924,8 +933,106 @@
             }
         }
 
-        function openAccessionModal(accessionData = null) {
+        async function loadProjectFields(projectId) {
+            if (!projectId) {
+                projectFields = [];
+                document.getElementById('custom-fields-container').classList.add('hidden');
+                return;
+            }
+
+            try {
+                projectFields = await api.getProjectFields(organizationId, projectId);
+                renderCustomFields();
+            } catch (error) {
+                console.error('Failed to load project fields:', error);
+                projectFields = [];
+            }
+        }
+
+        function renderCustomFields() {
+            const container = document.getElementById('custom-fields-container');
+            const fieldsList = document.getElementById('custom-fields-list');
+
+            if (projectFields.length === 0) {
+                container.classList.add('hidden');
+                fieldsList.innerHTML = '';
+                return;
+            }
+
+            container.classList.remove('hidden');
+            fieldsList.innerHTML = projectFields.map(field => {
+                const fieldId = `custom-field-${field.id}`;
+                const requiredMark = field.is_required ? ' *' : '';
+                let inputHtml = '';
+
+                if (field.field_type === 'string') {
+                    const attrs = [];
+                    if (field.min_length) attrs.push(`minlength="${field.min_length}"`);
+                    if (field.max_length) attrs.push(`maxlength="${field.max_length}"`);
+                    if (field.regex_pattern) attrs.push(`pattern="${field.regex_pattern}"`);
+                    if (field.is_required) attrs.push('required');
+
+                    inputHtml = `<input type="text" id="${fieldId}" data-field-id="${field.id}" data-field-type="string"
+                        class="custom-field-input shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                        ${attrs.join(' ')}>`;
+                } else if (field.field_type === 'number') {
+                    const attrs = [];
+                    if (field.min_value !== null && field.min_value !== undefined) attrs.push(`min="${field.min_value}"`);
+                    if (field.max_value !== null && field.max_value !== undefined) attrs.push(`max="${field.max_value}"`);
+                    if (field.is_required) attrs.push('required');
+
+                    inputHtml = `<input type="number" step="any" id="${fieldId}" data-field-id="${field.id}" data-field-type="number"
+                        class="custom-field-input shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                        ${attrs.join(' ')}>`;
+                }
+
+                return `
+                    <div class="mb-3">
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="${fieldId}">
+                            ${field.field_name}${requiredMark}
+                        </label>
+                        ${inputHtml}
+                    </div>
+                `;
+            }).join('');
+
+            // Populate existing values if editing
+            if (currentAccessionFieldValues.length > 0) {
+                currentAccessionFieldValues.forEach(fieldValue => {
+                    const input = document.querySelector(`[data-field-id="${fieldValue.field_id}"]`);
+                    if (input) {
+                        input.value = fieldValue.value || '';
+                    }
+                });
+            }
+        }
+
+        function collectFieldValues() {
+            const fieldInputs = document.querySelectorAll('.custom-field-input');
+            const fieldValues = [];
+
+            fieldInputs.forEach(input => {
+                const fieldId = input.dataset.fieldId;
+                const fieldType = input.dataset.fieldType;
+                let value = input.value;
+
+                if (value) {
+                    if (fieldType === 'number') {
+                        value = parseFloat(value);
+                    }
+                    fieldValues.push({
+                        field_id: fieldId,
+                        value: value
+                    });
+                }
+            });
+
+            return fieldValues;
+        }
+
+        async function openAccessionModal(accessionData = null) {
             editingAccessionId = accessionData ? accessionData.id : null;
+            currentAccessionFieldValues = [];
             const modal = document.getElementById('accession-modal');
             const form = document.getElementById('accession-form');
             const title = document.getElementById('accession-modal-title');
@@ -957,6 +1064,16 @@
                 document.getElementById('accession-project').value = accessionData.project_id || '';
                 document.getElementById('accession-id').value = accessionData.accession || '';
                 document.getElementById('accession-description').value = accessionData.description || '';
+
+                // Load field values if editing
+                if (accessionData.field_values) {
+                    currentAccessionFieldValues = accessionData.field_values;
+                }
+
+                // Load custom fields if project is set
+                if (accessionData.project_id) {
+                    await loadProjectFields(accessionData.project_id);
+                }
             } else {
                 title.textContent = 'Add Accession';
                 form.reset();
@@ -1006,6 +1123,14 @@
                 project_id: projectId || null
             };
 
+            // Collect custom field values if project is selected
+            if (projectId && projectFields.length > 0) {
+                const fieldValues = collectFieldValues();
+                if (fieldValues.length > 0) {
+                    data.field_values = fieldValues;
+                }
+            }
+
             try {
                 if (editingAccessionId) {
                     await api.updateOrgAccession(organizationId, editingAccessionId, data);
@@ -1051,6 +1176,13 @@
         document.getElementById('close-accession-modal').addEventListener('click', closeAccessionModal);
         document.getElementById('cancel-accession-btn').addEventListener('click', closeAccessionModal);
         document.getElementById('accession-form').addEventListener('submit', handleAccessionFormSubmit);
+
+        // Project dropdown change handler to load custom fields
+        document.getElementById('accession-project').addEventListener('change', async (e) => {
+            const projectId = e.target.value;
+            currentAccessionFieldValues = []; // Clear existing values when switching projects
+            await loadProjectFields(projectId);
+        });
 
         init();
     </script>

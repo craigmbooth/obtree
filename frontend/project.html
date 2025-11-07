@@ -36,6 +36,132 @@
                     <p id="project-description" class="text-gray-600">No description provided.</p>
                 </div>
             </div>
+
+            <!-- Custom Fields Section -->
+            <div class="bg-white rounded-lg shadow-md p-6 mt-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-semibold text-gray-800">Custom Fields</h3>
+                    <button id="add-field-btn" class="hidden bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                        Add Field
+                    </button>
+                </div>
+
+                <div id="fields-loading" class="text-center py-8">
+                    <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                    <p class="mt-2 text-gray-600">Loading fields...</p>
+                </div>
+
+                <div id="fields-content" class="hidden">
+                    <div id="fields-empty" class="text-center py-8 text-gray-600 hidden">
+                        No custom fields defined yet.
+                    </div>
+
+                    <table id="fields-table" class="min-w-full divide-y divide-gray-200 hidden">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Field Name</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Required</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Validation</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="fields-tbody" class="bg-white divide-y divide-gray-200">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Field Modal -->
+    <div id="field-modal" class="hidden fixed z-10 inset-0 overflow-y-auto">
+        <div class="flex items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"></div>
+            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                    <h3 id="modal-title" class="text-lg font-medium text-gray-900 mb-4">Add Custom Field</h3>
+                    <form id="field-form">
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Field Name *</label>
+                            <input type="text" id="field-name" required
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Field Type *</label>
+                            <select id="field-type" required
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <option value="string">String</option>
+                                <option value="number">Number</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="flex items-center">
+                                <input type="checkbox" id="field-required" class="mr-2">
+                                <span class="text-sm font-medium text-gray-700">Required Field</span>
+                            </label>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Display Order</label>
+                            <input type="number" id="field-order" value="0"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+
+                        <!-- String validation -->
+                        <div id="string-validation" class="mb-4">
+                            <h4 class="text-sm font-medium text-gray-700 mb-2">String Validation</h4>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-xs text-gray-600 mb-1">Min Length</label>
+                                    <input type="number" id="field-min-length"
+                                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                </div>
+                                <div>
+                                    <label class="block text-xs text-gray-600 mb-1">Max Length</label>
+                                    <input type="number" id="field-max-length"
+                                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                </div>
+                            </div>
+                            <div class="mt-2">
+                                <label class="block text-xs text-gray-600 mb-1">Regex Pattern</label>
+                                <input type="text" id="field-regex"
+                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            </div>
+                        </div>
+
+                        <!-- Number validation -->
+                        <div id="number-validation" class="mb-4 hidden">
+                            <h4 class="text-sm font-medium text-gray-700 mb-2">Number Validation</h4>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-xs text-gray-600 mb-1">Min Value</label>
+                                    <input type="number" step="any" id="field-min-value"
+                                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                </div>
+                                <div>
+                                    <label class="block text-xs text-gray-600 mb-1">Max Value</label>
+                                    <input type="number" step="any" id="field-max-value"
+                                        class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                    <button type="button" id="save-field-btn"
+                        class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm">
+                        Save
+                    </button>
+                    <button type="button" id="cancel-field-btn"
+                        class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none sm:mt-0 sm:w-auto sm:text-sm">
+                        Cancel
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -48,6 +174,9 @@
         let organizationId = null;
         let projectId = null;
         let project = null;
+        let fields = [];
+        let editingFieldId = null;
+        let canManage = false;
 
         async function init() {
             currentUser = await Auth.checkAuth();
@@ -73,6 +202,8 @@
             document.getElementById('back-to-org').href = `/organization.html?id=${organizationId}`;
 
             await loadProject();
+            await loadFields();
+            setupFieldHandlers();
         }
 
         async function loadProject() {
@@ -91,9 +222,201 @@
                 } else {
                     document.getElementById('project-description').textContent = 'No description provided.';
                 }
+
+                // Check if user can manage
+                canManage = currentUser.is_site_admin ||
+                    (currentUser.organization_memberships &&
+                     currentUser.organization_memberships.some(m =>
+                        m.organization_id === organizationId && m.role === 'admin'));
+
+                if (canManage) {
+                    document.getElementById('add-field-btn').classList.remove('hidden');
+                }
             } catch (error) {
                 document.getElementById('loading').classList.add('hidden');
                 showError(error.message || 'Failed to load project');
+            }
+        }
+
+        async function loadFields() {
+            try {
+                fields = await api.getProjectFields(organizationId, projectId);
+                renderFields();
+            } catch (error) {
+                showError('Failed to load custom fields: ' + error.message);
+            } finally {
+                document.getElementById('fields-loading').classList.add('hidden');
+                document.getElementById('fields-content').classList.remove('hidden');
+            }
+        }
+
+        function renderFields() {
+            const tbody = document.getElementById('fields-tbody');
+            const emptyDiv = document.getElementById('fields-empty');
+            const table = document.getElementById('fields-table');
+
+            if (fields.length === 0) {
+                emptyDiv.classList.remove('hidden');
+                table.classList.add('hidden');
+                return;
+            }
+
+            emptyDiv.classList.add('hidden');
+            table.classList.remove('hidden');
+
+            tbody.innerHTML = fields.map(field => {
+                const validationRules = [];
+                if (field.field_type === 'string') {
+                    if (field.min_length) validationRules.push(`Min: ${field.min_length}`);
+                    if (field.max_length) validationRules.push(`Max: ${field.max_length}`);
+                    if (field.regex_pattern) validationRules.push(`Pattern: ${field.regex_pattern}`);
+                } else if (field.field_type === 'number') {
+                    if (field.min_value) validationRules.push(`Min: ${field.min_value}`);
+                    if (field.max_value) validationRules.push(`Max: ${field.max_value}`);
+                }
+
+                const actionsHtml = canManage ? `
+                    <button onclick="openEditFieldModal('${field.id}')" class="text-blue-600 hover:underline mr-2">Edit</button>
+                    <button onclick="deleteField('${field.id}')" class="text-red-600 hover:underline">Delete</button>
+                ` : '<span class="text-gray-400">View only</span>';
+
+                return `
+                    <tr>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${field.field_name}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">${field.field_type}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">${field.is_required ? 'Yes' : 'No'}</td>
+                        <td class="px-6 py-4 text-sm text-gray-600">${validationRules.length ? validationRules.join(', ') : 'None'}</td>
+                        <td class="px-6 py-4 whitespace-nowrap">
+                            ${field.is_locked ?
+                                '<span class="px-2 py-1 text-xs font-semibold rounded-full bg-gray-200 text-gray-800">Locked</span>' :
+                                '<span class="px-2 py-1 text-xs font-semibold rounded-full bg-green-200 text-green-800">Editable</span>'
+                            }
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm">${actionsHtml}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function setupFieldHandlers() {
+            // Field type change handler
+            document.getElementById('field-type').addEventListener('change', (e) => {
+                const stringValidation = document.getElementById('string-validation');
+                const numberValidation = document.getElementById('number-validation');
+
+                if (e.target.value === 'string') {
+                    stringValidation.classList.remove('hidden');
+                    numberValidation.classList.add('hidden');
+                } else {
+                    stringValidation.classList.add('hidden');
+                    numberValidation.classList.remove('hidden');
+                }
+            });
+
+            // Add field button
+            document.getElementById('add-field-btn').addEventListener('click', openAddFieldModal);
+
+            // Cancel button
+            document.getElementById('cancel-field-btn').addEventListener('click', closeFieldModal);
+
+            // Save button
+            document.getElementById('save-field-btn').addEventListener('click', saveField);
+        }
+
+        function openAddFieldModal() {
+            editingFieldId = null;
+            document.getElementById('modal-title').textContent = 'Add Custom Field';
+            document.getElementById('field-form').reset();
+            document.getElementById('string-validation').classList.remove('hidden');
+            document.getElementById('number-validation').classList.add('hidden');
+            document.getElementById('field-modal').classList.remove('hidden');
+        }
+
+        function openEditFieldModal(fieldId) {
+            const field = fields.find(f => f.id === fieldId);
+            if (!field) return;
+
+            editingFieldId = fieldId;
+            document.getElementById('modal-title').textContent = 'Edit Custom Field';
+
+            document.getElementById('field-name').value = field.field_name;
+            document.getElementById('field-type').value = field.field_type;
+            document.getElementById('field-required').checked = field.is_required;
+            document.getElementById('field-order').value = field.display_order || 0;
+
+            if (field.field_type === 'string') {
+                document.getElementById('string-validation').classList.remove('hidden');
+                document.getElementById('number-validation').classList.add('hidden');
+                document.getElementById('field-min-length').value = field.min_length || '';
+                document.getElementById('field-max-length').value = field.max_length || '';
+                document.getElementById('field-regex').value = field.regex_pattern || '';
+            } else {
+                document.getElementById('string-validation').classList.add('hidden');
+                document.getElementById('number-validation').classList.remove('hidden');
+                document.getElementById('field-min-value').value = field.min_value || '';
+                document.getElementById('field-max-value').value = field.max_value || '';
+            }
+
+            document.getElementById('field-modal').classList.remove('hidden');
+        }
+
+        function closeFieldModal() {
+            document.getElementById('field-modal').classList.add('hidden');
+            document.getElementById('field-form').reset();
+            editingFieldId = null;
+        }
+
+        async function saveField() {
+            const fieldData = {
+                field_name: document.getElementById('field-name').value,
+                field_type: document.getElementById('field-type').value,
+                is_required: document.getElementById('field-required').checked,
+                display_order: parseInt(document.getElementById('field-order').value) || 0
+            };
+
+            if (fieldData.field_type === 'string') {
+                const minLength = document.getElementById('field-min-length').value;
+                const maxLength = document.getElementById('field-max-length').value;
+                const regex = document.getElementById('field-regex').value;
+
+                if (minLength) fieldData.min_length = parseInt(minLength);
+                if (maxLength) fieldData.max_length = parseInt(maxLength);
+                if (regex) fieldData.regex_pattern = regex;
+            } else {
+                const minValue = document.getElementById('field-min-value').value;
+                const maxValue = document.getElementById('field-max-value').value;
+
+                if (minValue) fieldData.min_value = parseFloat(minValue);
+                if (maxValue) fieldData.max_value = parseFloat(maxValue);
+            }
+
+            try {
+                if (editingFieldId) {
+                    await api.updateProjectField(organizationId, projectId, editingFieldId, fieldData);
+                    showSuccess('Field updated successfully');
+                } else {
+                    await api.createProjectField(organizationId, projectId, fieldData);
+                    showSuccess('Field created successfully');
+                }
+
+                closeFieldModal();
+                await loadFields();
+            } catch (error) {
+                showError('Failed to save field: ' + error.message);
+            }
+        }
+
+        async function deleteField(fieldId) {
+            if (!confirm('Are you sure you want to delete this field? Field values will be preserved.')) {
+                return;
+            }
+
+            try {
+                await api.deleteProjectField(organizationId, projectId, fieldId);
+                showSuccess('Field deleted successfully');
+                await loadFields();
+            } catch (error) {
+                showError('Failed to delete field: ' + error.message);
             }
         }
 

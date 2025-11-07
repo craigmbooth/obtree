@@ -205,6 +205,32 @@ class ApiClient {
         });
     }
 
+    // Project Field endpoints
+    async getProjectFields(organizationId, projectId, includeDeleted = false) {
+        const params = includeDeleted ? '?include_deleted=true' : '';
+        return this.request(`/api/organizations/${organizationId}/projects/${projectId}/fields${params}`);
+    }
+
+    async createProjectField(organizationId, projectId, data) {
+        return this.request(`/api/organizations/${organizationId}/projects/${projectId}/fields`, {
+            method: 'POST',
+            body: JSON.stringify(data)
+        });
+    }
+
+    async updateProjectField(organizationId, projectId, fieldId, data) {
+        return this.request(`/api/organizations/${organizationId}/projects/${projectId}/fields/${fieldId}`, {
+            method: 'PATCH',
+            body: JSON.stringify(data)
+        });
+    }
+
+    async deleteProjectField(organizationId, projectId, fieldId) {
+        return this.request(`/api/organizations/${organizationId}/projects/${projectId}/fields/${fieldId}`, {
+            method: 'DELETE'
+        });
+    }
+
     // Species endpoints
     async getSpecies(organizationId) {
         return this.request(`/api/organizations/${organizationId}/species`);
