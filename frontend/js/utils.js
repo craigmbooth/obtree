@@ -26,8 +26,30 @@ function showSuccess(message) {
 }
 
 function formatDate(dateString) {
-    const date = new Date(dateString);
-    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+    if (!dateString) return '';
+
+    // Ensure the datetime string is treated as UTC
+    // If it doesn't end with 'Z' and doesn't have a timezone offset, add 'Z'
+    let utcString = dateString;
+    if (!dateString.endsWith('Z') && !dateString.match(/[+-]\d{2}:\d{2}$/)) {
+        utcString = dateString + 'Z';
+    }
+
+    // Parse as UTC and convert to local timezone
+    const date = new Date(utcString);
+
+    // Format in user's local timezone with a clear format
+    const options = {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true
+    };
+
+    return date.toLocaleString(undefined, options);
 }
 
 function copyToClipboard(text) {

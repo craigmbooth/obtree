@@ -31,13 +31,21 @@ class DataTable {
                 const value = cell.getValue();
                 if (!value) return '';
                 try {
-                    const date = new Date(value);
-                    return date.toLocaleString('en-US', {
+                    // Ensure the datetime string is treated as UTC
+                    let utcString = value;
+                    if (!value.endsWith('Z') && !value.match(/[+-]\d{2}:\d{2}$/)) {
+                        utcString = value + 'Z';
+                    }
+                    // Parse as UTC and convert to local timezone
+                    const date = new Date(utcString);
+                    return date.toLocaleString(undefined, {
                         year: 'numeric',
                         month: 'short',
                         day: 'numeric',
                         hour: '2-digit',
-                        minute: '2-digit'
+                        minute: '2-digit',
+                        second: '2-digit',
+                        hour12: true
                     });
                 } catch (e) {
                     return String(value);
@@ -48,8 +56,14 @@ class DataTable {
                 const value = cell.getValue();
                 if (!value) return '';
                 try {
-                    const date = new Date(value);
-                    return date.toLocaleDateString('en-US', {
+                    // Ensure the datetime string is treated as UTC
+                    let utcString = value;
+                    if (!value.endsWith('Z') && !value.match(/[+-]\d{2}:\d{2}$/)) {
+                        utcString = value + 'Z';
+                    }
+                    // Parse as UTC and convert to local timezone
+                    const date = new Date(utcString);
+                    return date.toLocaleDateString(undefined, {
                         year: 'numeric',
                         month: 'short',
                         day: 'numeric'
