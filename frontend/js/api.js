@@ -317,6 +317,35 @@ class ApiClient {
             method: 'DELETE'
         });
     }
+
+    // Plant endpoints
+    async getPlants(organizationId, speciesId, accessionId) {
+        return this.request(`/api/organizations/${organizationId}/species/${speciesId}/accessions/${accessionId}/plants`);
+    }
+
+    async getPlant(organizationId, speciesId, accessionId, plantId) {
+        return this.request(`/api/organizations/${organizationId}/species/${speciesId}/accessions/${accessionId}/plants/${plantId}`);
+    }
+
+    async createPlant(organizationId, speciesId, accessionId, data) {
+        return this.request(`/api/organizations/${organizationId}/species/${speciesId}/accessions/${accessionId}/plants`, {
+            method: 'POST',
+            body: JSON.stringify(data)
+        });
+    }
+
+    async updatePlant(organizationId, speciesId, accessionId, plantId, data) {
+        return this.request(`/api/organizations/${organizationId}/species/${speciesId}/accessions/${accessionId}/plants/${plantId}`, {
+            method: 'PATCH',
+            body: JSON.stringify(data)
+        });
+    }
+
+    async deletePlant(organizationId, speciesId, accessionId, plantId) {
+        return this.request(`/api/organizations/${organizationId}/species/${speciesId}/accessions/${accessionId}/plants/${plantId}`, {
+            method: 'DELETE'
+        });
+    }
 }
 
 const api = new ApiClient();

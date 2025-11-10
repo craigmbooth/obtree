@@ -8,7 +8,7 @@ import structlog
 
 from app.config import settings
 from app.logging_config import configure_logging, get_logger
-from app.api.routes import auth, organizations, invites, table_config, projects, species, accessions, org_accessions, project_fields
+from app.api.routes import auth, organizations, invites, table_config, projects, species, accessions, org_accessions, project_fields, plants
 
 # Configure logging first
 configure_logging()
@@ -71,6 +71,7 @@ app.include_router(project_fields.router, prefix="/api/organizations/{organizati
 app.include_router(species.router, prefix="/api/organizations/{organization_id}/species", tags=["species"])
 app.include_router(org_accessions.router, prefix="/api/organizations/{organization_id}/accessions", tags=["accessions"])
 app.include_router(accessions.router, prefix="/api/organizations/{organization_id}/species/{species_id}/accessions", tags=["accessions"])
+app.include_router(plants.router, prefix="/api/organizations/{organization_id}/species/{species_id}/accessions/{accession_id}/plants", tags=["plants"])
 app.include_router(table_config.router, prefix="/api", tags=["tables"])
 
 
@@ -167,3 +168,9 @@ def species_page():
 def accession_page():
     """Serve accession page."""
     return Path("frontend/accession.html").read_text()
+
+
+@app.get("/plant.html", response_class=HTMLResponse)
+def plant_page():
+    """Serve plant page."""
+    return Path("frontend/plant.html").read_text()

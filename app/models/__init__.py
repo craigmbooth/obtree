@@ -7,6 +7,7 @@ from app.models.species import Species, SpeciesStatus
 from app.models.accession import Accession, projects_accessions
 from app.models.project_accession_field import ProjectAccessionField, FieldType
 from app.models.accession_field_value import AccessionFieldValue
+from app.models.plant import Plant
 
 __all__ = [
     "User",
@@ -23,4 +24,5 @@ __all__ = [
     "ProjectAccessionField",
     "FieldType",
     "AccessionFieldValue",
+    "Plant",
 ]

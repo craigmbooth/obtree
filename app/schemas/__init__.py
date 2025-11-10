@@ -43,6 +43,12 @@ from app.schemas.accession_field_value import (
     AccessionFieldValueCreate,
     AccessionFieldValueResponse,
 )
+from app.schemas.plant import (
+    PlantCreate,
+    PlantUpdate,
+    PlantResponse,
+    PlantWithDetailsResponse,
+)
 
 __all__ = [
     "UserCreate",
@@ -74,4 +80,8 @@ __all__ = [
     "ProjectAccessionFieldResponse",
     "AccessionFieldValueCreate",
     "AccessionFieldValueResponse",
+    "PlantCreate",
+    "PlantUpdate",
+    "PlantResponse",
+    "PlantWithDetailsResponse",
 ]

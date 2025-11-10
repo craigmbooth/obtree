@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="icon" type="image/png" href="/assets/images/favicon.png">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plant - RedBuds App</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <!-- Navigation -->
+    <div id="navigation"></div>
+
+    <div class="container mx-auto px-4 py-8">
+
+        <div id="error-message" class="hidden bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4"></div>
+        <div id="success-message" class="hidden bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4"></div>
+
+        <!-- Loading state -->
+        <div id="loading" class="text-center py-12">
+            <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+            <p class="mt-4 text-gray-600">Loading plant...</p>
+        </div>
+
+        <!-- Plant content -->
+        <div id="plant-content" class="hidden">
+            <!-- Header with link back to accession page -->
+            <div class="mb-6">
+                <a href="#" id="back-to-accession" class="text-blue-600 hover:underline">← Back to Accession</a>
+            </div>
+
+            <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+                <h2 id="plant-id" class="text-3xl font-bold text-gray-800 mb-4"></h2>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-700 mb-2">Species</h3>
+                        <p class="text-gray-600">
+                            <a href="#" id="species-link" class="text-blue-600 hover:underline">
+                                <span id="species-genus"></span>
+                                <span id="species-name"></span>
+                                <span id="species-variety" class="text-gray-600"></span>
+                            </a>
+                        </p>
+                        <p id="species-common-name" class="text-sm text-gray-500 mt-1"></p>
+                    </div>
+
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-700 mb-2">Accession</h3>
+                        <p class="text-gray-600">
+                            <a href="#" id="accession-link" class="text-blue-600 hover:underline">
+                                <span id="accession-name"></span>
+                            </a>
+                        </p>
+                    </div>
+                </div>
+
+                <div class="mt-6 pt-6 border-t border-gray-200">
+                    <p class="text-sm text-gray-500">
+                        Created: <span id="plant-created"></span>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/api.js"></script>
+    <script src="/js/auth.js"></script>
+    <script src="/js/utils.js"></script>
+    <script src="/js/navigation.js"></script>
+    <script>
+        let currentUser = null;
+        let organizationId = null;
+        let speciesId = null;
+        let accessionId = null;
+        let plantId = null;
+        let plant = null;
+
+        async function init() {
+            currentUser = await Auth.checkAuth();
+            if (!currentUser) return;
+
+            const params = new URLSearchParams(window.location.search);
+            organizationId = params.get('org_id');
+            speciesId = params.get('species_id');
+            accessionId = params.get('accession_id');
+            plantId = params.get('id');
+
+            if (!organizationId || !speciesId || !accessionId || !plantId) {
+                showError('Missing required parameters');
+                return;
+            }
+
+            // Render navigation
+            document.getElementById('navigation').innerHTML = navigation.render({ showOrgDropdown: true });
+            navigation.init(currentUser, {
+                showOrgDropdown: true,
+                orgDropdownId: organizationId
+            });
+            document.getElementById('footer').innerHTML = navigation.renderFooter();
+
+            // Set back link
+            document.getElementById('back-to-accession').href = `/accession.html?org_id=${organizationId}&species_id=${speciesId}&id=${accessionId}`;
+
+            await loadPlant();
+        }
+
+        async function loadPlant() {
+            try {
+                plant = await api.getPlant(organizationId, speciesId, accessionId, plantId);
+
+                document.getElementById('loading').classList.add('hidden');
+                document.getElementById('plant-content').classList.remove('hidden');
+
+                // Display plant ID
+                document.getElementById('plant-id').textContent = plant.plant_id;
+
+                // Display species information
+                document.getElementById('species-genus').textContent = plant.species_genus;
+                document.getElementById('species-name').textContent = ' ' + plant.species_name;
+
+                if (plant.species_variety) {
+                    document.getElementById('species-variety').textContent = ' var. ' + plant.species_variety;
+                }
+
+                if (plant.species_common_name) {
+                    document.getElementById('species-common-name').textContent = plant.species_common_name;
+                } else {
+                    document.getElementById('species-common-name').classList.add('hidden');
+                }
+
+                // Set species link
+                document.getElementById('species-link').href = `/species.html?org_id=${organizationId}&id=${speciesId}`;
+
+                // Display accession information
+                document.getElementById('accession-name').textContent = plant.accession;
+                document.getElementById('accession-link').href = `/accession.html?org_id=${organizationId}&species_id=${speciesId}&id=${accessionId}`;
+
+                // Display created date
+                document.getElementById('plant-created').textContent = formatDate(plant.created_at);
+            } catch (error) {
+                document.getElementById('loading').classList.add('hidden');
+                showError(error.message || 'Failed to load plant');
+            }
+        }
+
+        init();
+    </script>
+    <!-- Footer -->
+    <div id="footer"></div>
+
+</body>
+</html>
