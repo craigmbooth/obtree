@@ -4,6 +4,7 @@ This module provides CRUD endpoints for managing plants, which are nested
 under accessions within the organization hierarchy.
 """
 
+from datetime import datetime
 from typing import List
 from uuid import UUID
 
@@ -11,15 +12,24 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session, joinedload
 
 from app.api.deps import get_current_user, get_db
+from app.core.field_validation import (
+    get_project_plant_fields,
+    validate_field_value,
+    validate_plant_required_fields,
+)
 from app.core.permissions import can_manage_organization, is_org_member
 from app.logging_config import get_logger
 from app.models import Accession, Plant, Species, User
+from app.models.plant_field_value import PlantFieldValue
+from app.models.project_accession_field import FieldType
+from app.models.project_plant_field import ProjectPlantField
 from app.schemas.plant import (
     PlantCreate,
     PlantResponse,
     PlantUpdate,
     PlantWithDetailsResponse,
 )
+from app.schemas.plant_field_value import PlantFieldValueResponse
 
 logger = get_logger(__name__)
 router = APIRouter()
@@ -121,6 +131,62 @@ def create_plant(
     db.commit()
     db.refresh(new_plant)
 
+    # Handle custom field values if provided
+    if plant_data.field_values:
+        # Get project_id from accession
+        project_id = None
+        if accession.projects:
+            project_id = accession.projects[0].id
+
+        if project_id:
+            # Validate required fields
+            field_values_dicts = [
+                {"field_id": fv.field_id, "value": fv.value}
+                for fv in plant_data.field_values
+            ]
+            validate_plant_required_fields(db, project_id, field_values_dicts)
+
+            # Create field values
+            for field_value_data in plant_data.field_values:
+                # Get field definition
+                field = (
+                    db.query(ProjectPlantField)
+                    .filter(
+                        ProjectPlantField.id == field_value_data.field_id,
+                        ProjectPlantField.project_id == project_id,
+                        ProjectPlantField.is_deleted == False,
+                    )
+                    .first()
+                )
+
+                if not field:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"Field {field_value_data.field_id} not found in this project",
+                    )
+
+                # Validate value
+                validate_field_value(field, field_value_data.value)
+
+                # Create field value record
+                new_field_value = PlantFieldValue(
+                    plant_id=new_plant.id,
+                    field_id=field.id,
+                    value_string=(
+                        str(field_value_data.value)
+                        if field.field_type == FieldType.STRING
+                        else None
+                    ),
+                    value_number=(
+                        field_value_data.value
+                        if field.field_type == FieldType.NUMBER
+                        else None
+                    ),
+                )
+                db.add(new_field_value)
+
+            db.commit()
+
     logger.info(
         "plant_create_success",
         plant_id=new_plant.id,
@@ -203,14 +269,74 @@ def list_plants(
     # Get all plants for this accession
     plants = db.query(Plant).filter(Plant.accession_id == accession_id).all()
 
+    # Get project_id from accession for field values
+    project_id = None
+    if accession.projects:
+        project_id = accession.projects[0].id
+
+    # Build response with field values
+    result = []
+    for plant in plants:
+        # Get all project plant fields and merge with plant values
+        field_values = []
+        if project_id:
+            # Get all fields for this project
+            project_fields = get_project_plant_fields(db, project_id, include_deleted=False)
+
+            # Create a map of existing field values
+            existing_values = {str(fv.field_id): fv for fv in plant.field_values}
+
+            # For each project field, include it with value if exists, or null if not
+            for field in project_fields:
+                field_id_str = str(field.id)
+                if field_id_str in existing_values:
+                    fv = existing_values[field_id_str]
+                    field_values.append(
+                        PlantFieldValueResponse(
+                            id=fv.id,
+                            plant_id=fv.plant_id,
+                            field_id=fv.field_id,
+                            field_name=fv.field_name,
+                            field_type=fv.field_type,
+                            value=fv.value,
+                            created_at=fv.created_at,
+                            updated_at=fv.updated_at,
+                        )
+                    )
+                else:
+                    # Field exists in project but no value for this plant yet
+                    field_values.append(
+                        PlantFieldValueResponse(
+                            id=None,
+                            plant_id=plant.id,
+                            field_id=field.id,
+                            field_name=field.field_name,
+                            field_type=field.field_type,
+                            value=None,
+                            created_at=datetime.utcnow(),
+                            updated_at=datetime.utcnow(),
+                        )
+                    )
+
+        result.append(
+            PlantResponse(
+                id=plant.id,
+                plant_id=plant.plant_id,
+                accession_id=plant.accession_id,
+                created_at=plant.created_at,
+                created_by=plant.created_by,
+                field_values=field_values,
+            )
+        )
+
     logger.info(
         "plant_list_success",
         organization_id=organization_id,
         accession_id=accession_id,
-        count=len(plants),
+        count=len(result),
     )
 
-    return plants
+    return result
 
 
 @router.get("/{plant_id}", response_model=PlantWithDetailsResponse)
@@ -308,6 +434,55 @@ def get_plant(
             detail="Species not found in this organization",
         )
 
+    # Get project_id from accession for field values
+    project_id = None
+    project_title = None
+    if plant.accession.projects:
+        first_project = plant.accession.projects[0]
+        project_id = first_project.id
+        project_title = first_project.title
+
+    # Get all project plant fields and merge with plant values
+    field_values = []
+    if project_id:
+        # Get all fields for this project
+        project_fields = get_project_plant_fields(db, project_id, include_deleted=False)
+
+        # Create a map of existing field values
+        existing_values = {str(fv.field_id): fv for fv in plant.field_values}
+
+        # For each project field, include it with value if exists, or null if not
+        for field in project_fields:
+            field_id_str = str(field.id)
+            if field_id_str in existing_values:
+                fv = existing_values[field_id_str]
+                field_values.append(
+                    PlantFieldValueResponse(
+                        id=fv.id,
+                        plant_id=fv.plant_id,
+                        field_id=fv.field_id,
+                        field_name=fv.field_name,
+                        field_type=fv.field_type,
+                        value=fv.value,
+                        created_at=fv.created_at,
+                        updated_at=fv.updated_at,
+                    )
+                )
+            else:
+                # Field exists in project but no value for this plant yet
+                field_values.append(
+                    PlantFieldValueResponse(
+                        id=None,
+                        plant_id=plant.id,
+                        field_id=field.id,
+                        field_name=field.field_name,
+                        field_type=field.field_type,
+                        value=None,
+                        created_at=datetime.utcnow(),
+                        updated_at=datetime.utcnow(),
+                    )
+                )
+
     # Build the detailed response
     result = PlantWithDetailsResponse(
         id=plant.id,
@@ -320,6 +495,9 @@ def get_plant(
         species_name=plant.accession.species.species_name,
         species_variety=plant.accession.species.variety,
         species_common_name=plant.accession.species.common_name,
+        project_id=project_id,
+        project_title=project_title,
+        field_values=field_values,
     )
 
     logger.info("plant_get_success", plant_id=plant_id)
@@ -407,13 +585,75 @@ def update_plant(
             detail="Species not found in this organization",
         )
 
-    # Update fields
-    update_data = plant_update.model_dump(exclude_unset=True)
+    # Update fields (exclude field_values as it's handled separately)
+    update_data = plant_update.model_dump(exclude_unset=True, exclude={"field_values"})
     for field, value in update_data.items():
         setattr(plant, field, value)
 
     db.commit()
     db.refresh(plant)
+
+    # Handle custom field values if provided
+    if plant_update.field_values is not None:
+        # Get project_id from accession
+        project_id = None
+        if accession.projects:
+            project_id = accession.projects[0].id
+
+        if not project_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Cannot update field values for plant without project association",
+            )
+
+        # Validate required fields
+        field_values_dicts = [
+            {"field_id": fv.field_id, "value": fv.value}
+            for fv in plant_update.field_values
+        ]
+        validate_plant_required_fields(db, project_id, field_values_dicts)
+
+        # Delete existing field values
+        db.query(PlantFieldValue).filter(PlantFieldValue.plant_id == plant_id).delete()
+
+        # Create new field values
+        for field_value_data in plant_update.field_values:
+            # Get field definition
+            field = (
+                db.query(ProjectPlantField)
+                .filter(
+                    ProjectPlantField.id == field_value_data.field_id,
+                    ProjectPlantField.project_id == project_id,
+                    ProjectPlantField.is_deleted == False,
+                )
+                .first()
+            )
+
+            if not field:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Field {field_value_data.field_id} not found in this project",
+                )
+
+            # Validate value
+            validate_field_value(field, field_value_data.value)
+
+            # Create field value record
+            new_field_value = PlantFieldValue(
+                plant_id=plant_id,
+                field_id=field.id,
+                value_string=(
+                    str(field_value_data.value)
+                    if field.field_type == FieldType.STRING
+                    else None
+                ),
+                value_number=(
+                    field_value_data.value if field.field_type == FieldType.NUMBER else None
+                ),
+            )
+            db.add(new_field_value)
+
+        db.commit()
 
     logger.info("plant_update_success", plant_id=plant_id)
 

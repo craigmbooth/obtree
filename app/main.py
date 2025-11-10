@@ -8,7 +8,7 @@ import structlog
 
 from app.config import settings
 from app.logging_config import configure_logging, get_logger
-from app.api.routes import auth, organizations, invites, table_config, projects, species, accessions, org_accessions, project_fields, plants
+from app.api.routes import auth, organizations, invites, table_config, projects, species, accessions, org_accessions, project_fields, project_plant_fields, plants
 
 # Configure logging first
 configure_logging()
@@ -68,6 +68,7 @@ app.include_router(organizations.router, prefix="/api/organizations", tags=["org
 app.include_router(invites.router, prefix="/api/invites", tags=["invites"])
 app.include_router(projects.router, prefix="/api/organizations/{organization_id}/projects", tags=["projects"])
 app.include_router(project_fields.router, prefix="/api/organizations/{organization_id}/projects/{project_id}/fields", tags=["fields"])
+app.include_router(project_plant_fields.router, prefix="/api/organizations/{organization_id}/projects/{project_id}/plant_fields", tags=["plant_fields"])
 app.include_router(species.router, prefix="/api/organizations/{organization_id}/species", tags=["species"])
 app.include_router(org_accessions.router, prefix="/api/organizations/{organization_id}/accessions", tags=["accessions"])
 app.include_router(accessions.router, prefix="/api/organizations/{organization_id}/species/{species_id}/accessions", tags=["accessions"])

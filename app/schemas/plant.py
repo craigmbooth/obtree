@@ -5,10 +5,12 @@ plant data in API requests and responses.
 """
 
 from datetime import datetime
-from typing import Optional
+from typing import List, Optional
 from uuid import UUID
 
 from pydantic import BaseModel, Field
+
+from app.schemas.plant_field_value import PlantFieldValueCreate, PlantFieldValueResponse
 
 
 class PlantBase(BaseModel):
@@ -33,10 +35,15 @@ class PlantBase(BaseModel):
 class PlantCreate(PlantBase):
     """Schema for creating a new plant.
 
-    Inherits all fields from PlantBase.
+    Includes optional field values for project custom fields.
+
+    Attributes:
+        field_values: List of custom field values.
     """
 
-    pass
+    field_values: Optional[List[PlantFieldValueCreate]] = Field(
+        default_factory=list, description="Custom field values for this plant"
+    )
 
 
 class PlantUpdate(BaseModel):
@@ -47,26 +54,34 @@ class PlantUpdate(BaseModel):
     Attributes:
         plant_id: Updated plant identifier.
         accession_id: Updated accession ID.
+        field_values: Updated custom field values.
     """
 
     plant_id: Optional[str] = Field(None, min_length=1, max_length=255)
     accession_id: Optional[UUID] = None
+    field_values: Optional[List[PlantFieldValueCreate]] = Field(
+        None, description="Custom field values for this plant"
+    )
 
 
 class PlantResponse(PlantBase):
     """Schema for plant response.
 
-    Includes all base fields plus metadata.
+    Includes all base fields plus metadata and field values.
 
     Attributes:
         id: Unique identifier for the plant.
         created_at: Timestamp when the plant was created.
         created_by: User who created the plant.
+        field_values: List of custom field values.
     """
 
     id: UUID
     created_at: datetime
     created_by: UUID
+    field_values: List[PlantFieldValueResponse] = Field(
+        default_factory=list, description="Custom field values for this plant"
+    )
 
     class Config:
         """Pydantic configuration."""
@@ -86,6 +101,8 @@ class PlantWithDetailsResponse(PlantResponse):
         species_name: Species name.
         species_variety: Optional variety name.
         species_common_name: Optional common name.
+        project_id: Optional project ID (inherited from accession).
+        project_title: Optional project title.
     """
 
     accession: str
@@ -93,6 +110,8 @@ class PlantWithDetailsResponse(PlantResponse):
     species_name: str
     species_variety: Optional[str]
     species_common_name: Optional[str]
+    project_id: Optional[UUID] = None
+    project_title: Optional[str] = None
 
     class Config:
         """Pydantic configuration."""

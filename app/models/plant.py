@@ -47,6 +47,9 @@ class Plant(Base):
     # Relationships
     accession = relationship("Accession", back_populates="plants")
     creator = relationship("User")
+    field_values = relationship(
+        "PlantFieldValue", back_populates="plant", cascade="all, delete-orphan"
+    )
 
     def __repr__(self) -> str:
         """Return string representation of the plant."""

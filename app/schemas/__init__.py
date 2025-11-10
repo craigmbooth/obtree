@@ -49,6 +49,15 @@ from app.schemas.plant import (
     PlantResponse,
     PlantWithDetailsResponse,
 )
+from app.schemas.project_plant_field import (
+    ProjectPlantFieldCreate,
+    ProjectPlantFieldUpdate,
+    ProjectPlantFieldResponse,
+)
+from app.schemas.plant_field_value import (
+    PlantFieldValueCreate,
+    PlantFieldValueResponse,
+)
 
 __all__ = [
     "UserCreate",
@@ -84,4 +93,9 @@ __all__ = [
     "PlantUpdate",
     "PlantResponse",
     "PlantWithDetailsResponse",
+    "ProjectPlantFieldCreate",
+    "ProjectPlantFieldUpdate",
+    "ProjectPlantFieldResponse",
+    "PlantFieldValueCreate",
+    "PlantFieldValueResponse",
 ]

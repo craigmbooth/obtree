@@ -35,13 +35,18 @@ make reset         # Requires confirmation
 
 ## Git Workflow
 
-**CRITICAL: Never push to remote without explicit user permission.**
+**CRITICAL RULES:**
+1. **Never commit without explicit user permission** - Do NOT run `git commit` unless the user explicitly says "commit"
+2. **Never push without explicit user permission** - Do NOT run `git push` unless the user explicitly says "push"
 
-When making commits:
-1. Stage files with `git add`
-2. Create commits with descriptive messages
-3. **DO NOT run `git push` unless the user explicitly asks**
-4. After committing, wait for the user to review and approve
+**Workflow**:
+1. Make code changes as requested
+2. Wait for user to say "commit" before creating commits
+3. When user says commit: stage files with `git add` and create commit with descriptive message
+4. Wait for user to say "push" before pushing to remote
+5. When user says push: run `git push` to publish commits
+
+**Never assume the user wants to commit or push.** Always wait for explicit instruction.
 
 ## Architecture Patterns
 

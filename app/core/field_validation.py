@@ -11,12 +11,18 @@ from app.logging_config import get_logger
 logger = get_logger(__name__)
 
 
-def validate_field_value(field: ProjectAccessionField, value: Union[str, Decimal]) -> None:
+# Generic field validation (works for both accession and plant fields)
+
+
+def validate_field_value(field: Union[ProjectAccessionField, Any], value: Union[str, Decimal]) -> None:
     """
     Validate a field value against the field's validation rules.
 
+    Works for both ProjectAccessionField and ProjectPlantField since they
+    have the same structure.
+
     Args:
-        field: The ProjectAccessionField with validation rules
+        field: The field with validation rules (ProjectAccessionField or ProjectPlantField)
         value: The value to validate
 
     Raises:
@@ -158,6 +164,94 @@ def is_field_locked(db: Session, field_id: UUID) -> bool:
 
     count = db.query(AccessionFieldValue).filter(
         AccessionFieldValue.field_id == field_id
+    ).count()
+
+    return count > 0
+
+
+# Plant field validation functions
+
+
+def validate_plant_required_fields(
+    db: Session,
+    project_id: UUID,
+    field_values: List[Dict[str, Any]]
+) -> None:
+    """
+    Validate that all required plant fields are present in the field_values.
+
+    Args:
+        db: Database session
+        project_id: ID of the project
+        field_values: List of field value dicts with field_id and value
+
+    Raises:
+        HTTPException: If required fields are missing
+    """
+    from app.models.project_plant_field import ProjectPlantField
+
+    # Get all required fields for this project
+    required_fields = db.query(ProjectPlantField).filter(
+        ProjectPlantField.project_id == project_id,
+        ProjectPlantField.is_required == True,
+        ProjectPlantField.is_deleted == False
+    ).all()
+
+    # Get set of provided field IDs
+    provided_field_ids = {str(fv['field_id']) for fv in field_values if fv.get('field_id')}
+
+    # Check for missing required fields
+    missing_fields = []
+    for field in required_fields:
+        if str(field.id) not in provided_field_ids:
+            missing_fields.append(field.field_name)
+
+    if missing_fields:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Missing required plant fields: {', '.join(missing_fields)}"
+        )
+
+
+def get_project_plant_fields(db: Session, project_id: UUID, include_deleted: bool = False):
+    """
+    Get all custom plant fields for a project.
+
+    Args:
+        db: Database session
+        project_id: ID of the project
+        include_deleted: Whether to include soft-deleted fields
+
+    Returns:
+        List of ProjectPlantField objects
+    """
+    from app.models.project_plant_field import ProjectPlantField
+
+    query = db.query(ProjectPlantField).filter(
+        ProjectPlantField.project_id == project_id
+    )
+
+    if not include_deleted:
+        query = query.filter(ProjectPlantField.is_deleted == False)
+
+    return query.order_by(ProjectPlantField.display_order, ProjectPlantField.field_name).all()
+
+
+def is_plant_field_locked(db: Session, field_id: UUID) -> bool:
+    """
+    Check if a plant field is locked (has values) and cannot have its type changed.
+
+    Args:
+        db: Database session
+        field_id: ID of the field
+
+    Returns:
+        True if field has any values, False otherwise
+    """
+    from app.models.plant_field_value import PlantFieldValue
+
+    count = db.query(PlantFieldValue).filter(
+        PlantFieldValue.field_id == field_id
     ).count()
 
     return count > 0
