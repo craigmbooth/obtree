@@ -32,12 +32,12 @@ class Auth {
     static logout() {
         this.removeToken();
         this.removeUser();
-        window.location.href = '/login.html';
+        window.location.href = '/login';
     }
 
     static async checkAuth() {
         if (!this.isAuthenticated()) {
-            window.location.href = '/login.html';
+            window.location.href = '/login';
             return null;
         }
 
@@ -54,7 +54,7 @@ class Auth {
 
     static requireAuth() {
         if (!this.isAuthenticated()) {
-            window.location.href = '/login.html';
+            window.location.href = '/login';
         }
     }
 
@@ -69,7 +69,7 @@ class Auth {
     static getHomePage(user) {
         // Site admins go to admin page
         if (user && user.is_site_admin) {
-            return '/admin.html';
+            return '/admin';
         }
         // Regular users go to index which will redirect to their organization
         return '/';

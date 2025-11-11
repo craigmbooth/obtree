@@ -8,7 +8,7 @@ import structlog
 
 from app.config import settings
 from app.logging_config import configure_logging, get_logger
-from app.api.routes import auth, organizations, invites, table_config, projects, species, accessions, org_accessions, project_fields, project_plant_fields, plants
+from app.api.routes import auth, organizations, invites, table_config, projects, species, accessions, org_accessions, project_fields, project_plant_fields, plants, org_plants
 
 # Configure logging first
 configure_logging()
@@ -72,6 +72,7 @@ app.include_router(project_plant_fields.router, prefix="/api/organizations/{orga
 app.include_router(species.router, prefix="/api/organizations/{organization_id}/species", tags=["species"])
 app.include_router(org_accessions.router, prefix="/api/organizations/{organization_id}/accessions", tags=["accessions"])
 app.include_router(accessions.router, prefix="/api/organizations/{organization_id}/species/{species_id}/accessions", tags=["accessions"])
+app.include_router(org_plants.router, prefix="/api/organizations/{organization_id}/plants", tags=["plants"])
 app.include_router(plants.router, prefix="/api/organizations/{organization_id}/species/{species_id}/accessions/{accession_id}/plants", tags=["plants"])
 app.include_router(table_config.router, prefix="/api", tags=["tables"])
 
@@ -111,67 +112,68 @@ def read_root():
     return Path("frontend/index.html").read_text()
 
 
-@app.get("/login.html", response_class=HTMLResponse)
+@app.get("/login", response_class=HTMLResponse)
 def login_page():
     """Serve login page."""
     return Path("frontend/login.html").read_text()
 
 
-@app.get("/signup.html", response_class=HTMLResponse)
-def signup_page():
-    """Serve signup page."""
+@app.get("/signup", response_class=HTMLResponse)
+@app.get("/signup/{invite_code}", response_class=HTMLResponse)
+def signup_page(invite_code: str = None):
+    """Serve signup page (with optional invite code in URL)."""
     return Path("frontend/signup.html").read_text()
 
 
-@app.get("/organization.html", response_class=HTMLResponse)
-def organization_page():
-    """Serve organization page."""
+@app.get("/profile", response_class=HTMLResponse)
+def profile_page():
+    """Serve profile page."""
+    return Path("frontend/profile.html").read_text()
+
+
+@app.get("/admin", response_class=HTMLResponse)
+def admin_page():
+    """Serve site admin dashboard."""
+    return Path("frontend/admin.html").read_text()
+
+
+@app.get("/organizations/{organization_id}", response_class=HTMLResponse)
+def organization_page(organization_id: str):
+    """Serve organization dashboard page."""
     return Path("frontend/organization.html").read_text()
 
 
-@app.get("/admin.html", response_class=HTMLResponse)
-def admin_page():
-    """Serve admin page."""
-    return Path("frontend/admin.html").read_text()
+@app.get("/organizations/{organization_id}/admin", response_class=HTMLResponse)
+def org_admin_page(organization_id: str):
+    """Serve organization admin page."""
+    return Path("frontend/org-admin.html").read_text()
+
+
+@app.get("/organizations/{organization_id}/projects/{project_id}", response_class=HTMLResponse)
+def project_page(organization_id: str, project_id: str):
+    """Serve project details page."""
+    return Path("frontend/project.html").read_text()
+
+
+@app.get("/organizations/{organization_id}/species/{species_id}", response_class=HTMLResponse)
+def species_page(organization_id: str, species_id: str):
+    """Serve species details page."""
+    return Path("frontend/species.html").read_text()
+
+
+@app.get("/organizations/{organization_id}/accessions/{accession_id}", response_class=HTMLResponse)
+def accession_page(organization_id: str, accession_id: str):
+    """Serve accession details page."""
+    return Path("frontend/accession.html").read_text()
+
+
+@app.get("/organizations/{organization_id}/plants/{plant_id}", response_class=HTMLResponse)
+def plant_page(organization_id: str, plant_id: str):
+    """Serve plant details page."""
+    return Path("frontend/plant.html").read_text()
 
 
 @app.get("/tables-demo.html", response_class=HTMLResponse)
 def tables_demo_page():
     """Serve tables demo page."""
     return Path("frontend/tables-demo.html").read_text()
-
-
-@app.get("/profile.html", response_class=HTMLResponse)
-def profile_page():
-    """Serve profile page."""
-    return Path("frontend/profile.html").read_text()
-
-
-@app.get("/org-admin.html", response_class=HTMLResponse)
-def org_admin_page():
-    """Serve organization admin page."""
-    return Path("frontend/org-admin.html").read_text()
-
-
-@app.get("/project.html", response_class=HTMLResponse)
-def project_page():
-    """Serve project page."""
-    return Path("frontend/project.html").read_text()
-
-
-@app.get("/species.html", response_class=HTMLResponse)
-def species_page():
-    """Serve species page."""
-    return Path("frontend/species.html").read_text()
-
-
-@app.get("/accession.html", response_class=HTMLResponse)
-def accession_page():
-    """Serve accession page."""
-    return Path("frontend/accession.html").read_text()
-
-
-@app.get("/plant.html", response_class=HTMLResponse)
-def plant_page():
-    """Serve plant page."""
-    return Path("frontend/plant.html").read_text()

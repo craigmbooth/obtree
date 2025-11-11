@@ -112,6 +112,7 @@
 
     <script src="/js/api.js"></script>
     <script src="/js/auth.js"></script>
+    <script src="/js/router.js"></script>
     <script src="/js/utils.js"></script>
     <script src="/js/navigation.js"></script>
     <script>
@@ -125,12 +126,11 @@
             currentUser = await Auth.checkAuth();
             if (!currentUser) return;
 
-            const params = new URLSearchParams(window.location.search);
-            organizationId = params.get('org_id');
-            speciesId = params.get('species_id');
-            accessionId = params.get('id');
+            const { orgId, accessionId: aId } = getPathParams();
+            organizationId = orgId;
+            accessionId = aId;
 
-            if (!organizationId || !speciesId || !accessionId) {
+            if (!organizationId || !accessionId) {
                 showError('Missing required parameters');
                 return;
             }
@@ -143,17 +143,21 @@
             });
             document.getElementById('footer').innerHTML = navigation.renderFooter();
 
-            // Set back link
-            document.getElementById('back-to-species').href = `/species.html?org_id=${organizationId}&id=${speciesId}`;
-
             await loadAccession();
+
+            // Set back link (after loading accession to get speciesId)
+            document.getElementById('back-to-species').href = buildUrl('organizations', organizationId, 'species', speciesId);
+
             await loadPlants();
             setupPlantHandlers();
         }
 
         async function loadAccession() {
             try {
-                accession = await api.getAccession(organizationId, speciesId, accessionId);
+                accession = await api.getOrgAccession(organizationId, accessionId);
+
+                // Extract speciesId from the accession
+                speciesId = accession.species_id;
 
                 document.getElementById('loading').classList.add('hidden');
                 document.getElementById('accession-content').classList.remove('hidden');
@@ -176,13 +180,13 @@
                 }
 
                 // Set species link
-                document.getElementById('species-link').href = `/species.html?org_id=${organizationId}&id=${speciesId}`;
+                document.getElementById('species-link').href = buildUrl('organizations', organizationId, 'species', speciesId);
 
                 // Display project information if available
                 if (accession.project_id && accession.project_title) {
                     document.getElementById('project-container').classList.remove('hidden');
                     document.getElementById('project-title').textContent = accession.project_title;
-                    document.getElementById('project-link').href = `/project.html?org_id=${organizationId}&id=${accession.project_id}`;
+                    document.getElementById('project-link').href = buildUrl('organizations', organizationId, 'projects', accession.project_id);
                 }
 
                 // Display description
@@ -248,7 +252,7 @@
                 <div class="space-y-2">
                     ${plants.map(plant => `
                         <div class="flex items-center justify-between p-3 bg-gray-50 rounded hover:bg-gray-100">
-                            <a href="/plant.html?org_id=${organizationId}&species_id=${speciesId}&accession_id=${accessionId}&id=${plant.id}"
+                            <a href="${buildUrl('organizations', organizationId, 'plants', plant.id)}"
                                class="text-blue-600 hover:underline font-medium">
                                 ${plant.plant_id}
                             </a>

@@ -283,6 +283,7 @@
 
     <script src="/js/api.js"></script>
     <script src="/js/auth.js"></script>
+    <script src="/js/router.js"></script>
     <script src="/js/utils.js"></script>
     <script src="/js/navigation.js"></script>
     <script src="/js/table.js"></script>
@@ -306,8 +307,8 @@
             currentUser = await Auth.checkAuth();
             if (!currentUser) return;
 
-            const params = new URLSearchParams(window.location.search);
-            organizationId = params.get('id');
+            const { orgId } = getPathParams();
+            organizationId = orgId;
 
             if (!organizationId) {
                 showError('No organization ID provided');
@@ -360,13 +361,13 @@
                 isAdmin = (userMembership && userMembership.role === 'admin' && userMembership.status === 'Active') || currentUser.is_site_admin;
                 if (isAdmin) {
                     const adminLink = document.getElementById('admin-link');
-                    adminLink.href = `/org-admin.html?id=${organizationId}`;
+                    adminLink.href = `/organizations/${organizationId}/admin`;
                     adminLink.classList.remove('hidden');
 
                     // Update navigation dropdown link
                     const orgAdminMenuLink = document.getElementById('org-admin-menu-link');
                     if (orgAdminMenuLink) {
-                        orgAdminMenuLink.href = `/org-admin.html?id=${organizationId}`;
+                        orgAdminMenuLink.href = `/organizations/${organizationId}/admin`;
                         orgAdminMenuLink.classList.remove('hidden');
                     }
                 }
@@ -416,7 +417,7 @@
 
                             // Create clickable link
                             const link = document.createElement('a');
-                            link.href = `/project.html?org_id=${organizationId}&id=${project.id}`;
+                            link.href = buildUrl('organizations', organizationId, 'projects', project.id);
                             link.className = 'text-blue-600 hover:underline font-medium';
                             link.textContent = project.title;
 
@@ -554,7 +555,7 @@
                         formatter: (cell) => {
                             const speciesData = cell.getData();
                             const link = document.createElement('a');
-                            link.href = `/species.html?org_id=${organizationId}&id=${speciesData.id}`;
+                            link.href = buildUrl('organizations', organizationId, 'species', speciesData.id);
                             link.className = 'text-blue-600 hover:underline font-medium';
                             link.textContent = speciesData.genus;
                             return link;
@@ -835,7 +836,7 @@
                         formatter: (cell) => {
                             const data = cell.getData();
                             const link = document.createElement('a');
-                            link.href = `/accession.html?org_id=${organizationId}&species_id=${data.species_id}&id=${data.id}`;
+                            link.href = buildUrl('organizations', organizationId, 'accessions', data.id);
                             link.className = 'text-blue-600 hover:underline font-medium';
                             link.textContent = data.accession;
                             return link;

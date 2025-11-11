@@ -9,7 +9,7 @@ from app.core.permissions import can_manage_organization, is_org_member
 from app.core.field_validation import validate_field_value, validate_required_fields, get_project_fields
 from app.logging_config import get_logger
 from app.models import User, Accession, Species, Organization, Project, projects_accessions, ProjectAccessionField, AccessionFieldValue
-from app.schemas.accession import AccessionCreate, AccessionUpdate, AccessionResponse, AccessionWithSpeciesResponse
+from app.schemas.accession import AccessionCreate, AccessionUpdate, AccessionResponse, AccessionWithSpeciesResponse, AccessionFieldValueResponse
 
 logger = get_logger(__name__)
 router = APIRouter()
@@ -136,6 +136,133 @@ def list_all_accessions(
         "org_accession_list_success",
         organization_id=organization_id,
         count=len(result)
+    )
+
+    return result
+
+
+@router.get("/{accession_id}", response_model=AccessionWithSpeciesResponse)
+def get_accession(
+    organization_id: UUID,
+    accession_id: UUID,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get a single accession by ID (org members can view)."""
+    logger.info(
+        "org_accession_get_started",
+        organization_id=organization_id,
+        accession_id=accession_id,
+        user_id=current_user.id
+    )
+
+    # Check if user is a member of the organization
+    if not is_org_member(db, current_user, organization_id):
+        logger.warning(
+            "org_accession_get_forbidden",
+            organization_id=organization_id,
+            accession_id=accession_id,
+            user_id=current_user.id
+        )
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not enough permissions to view this accession"
+        )
+
+    # Get the accession
+    accession = db.query(Accession).filter(Accession.id == accession_id).first()
+    if not accession:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Accession not found"
+        )
+
+    # Get the species and verify it belongs to the organization
+    species = db.query(Species).filter(Species.id == accession.species_id).first()
+    if not species or species.organization_id != organization_id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Accession not found in this organization"
+        )
+
+    # Get project association if exists
+    project_id = None
+    project_title = None
+    if accession.projects:
+        first_project = accession.projects[0]
+        project_id = first_project.id
+        project_title = first_project.title
+
+    # Get all project fields and merge with accession values
+    field_values = []
+    if project_id:
+        # Get all fields for this project
+        project_fields = get_project_fields(db, project_id, include_deleted=False)
+
+        # Create a map of existing field values
+        existing_values = {str(fv.field_id): fv for fv in accession.field_values}
+
+        # For each project field, include it with value if exists, or null if not
+        for field in project_fields:
+            field_id_str = str(field.id)
+            if field_id_str in existing_values:
+                fv = existing_values[field_id_str]
+                field_values.append(AccessionFieldValueResponse(
+                    id=fv.id,
+                    accession_id=fv.accession_id,
+                    field_id=fv.field_id,
+                    field_name=fv.field_name,
+                    field_type=fv.field_type,
+                    value=fv.value,
+                    created_at=fv.created_at,
+                    updated_at=fv.updated_at
+                ))
+            else:
+                # Field exists in project but no value for this accession yet
+                field_values.append(AccessionFieldValueResponse(
+                    id=None,
+                    accession_id=accession.id,
+                    field_id=field.id,
+                    field_name=field.field_name,
+                    field_type=field.field_type,
+                    value=None,
+                    created_at=datetime.utcnow(),
+                    updated_at=datetime.utcnow()
+                ))
+    else:
+        # No project, just include existing field values
+        for fv in accession.field_values:
+            field_values.append(AccessionFieldValueResponse(
+                id=fv.id,
+                accession_id=fv.accession_id,
+                field_id=fv.field_id,
+                field_name=fv.field_name,
+                field_type=fv.field_type,
+                value=fv.value,
+                created_at=fv.created_at,
+                updated_at=fv.updated_at
+            ))
+
+    result = AccessionWithSpeciesResponse(
+        id=accession.id,
+        accession=accession.accession,
+        description=accession.description,
+        species_id=accession.species_id,
+        created_at=accession.created_at,
+        created_by=accession.created_by,
+        species_genus=species.genus,
+        species_name=species.species_name,
+        species_variety=species.variety,
+        species_common_name=species.common_name,
+        project_id=project_id,
+        project_title=project_title,
+        field_values=field_values
+    )
+
+    logger.info(
+        "org_accession_get_success",
+        organization_id=organization_id,
+        accession_id=accession_id
     )
 
     return result

@@ -491,6 +491,7 @@ def get_plant(
         created_at=plant.created_at,
         created_by=plant.created_by,
         accession=plant.accession.accession,
+        species_id=plant.accession.species.id,
         species_genus=plant.accession.species.genus,
         species_name=plant.accession.species.species_name,
         species_variety=plant.accession.species.variety,

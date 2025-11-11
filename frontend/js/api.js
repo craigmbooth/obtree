@@ -295,6 +295,14 @@ class ApiClient {
         return this.request(`/api/organizations/${organizationId}/accessions`);
     }
 
+    async getOrgAccession(organizationId, accessionId) {
+        return this.request(`/api/organizations/${organizationId}/accessions/${accessionId}`);
+    }
+
+    async getOrgPlant(organizationId, plantId) {
+        return this.request(`/api/organizations/${organizationId}/plants/${plantId}`);
+    }
+
     async createOrgAccession(organizationId, data) {
         return this.request(`/api/organizations/${organizationId}/accessions`, {
             method: 'POST',

@@ -57,12 +57,13 @@
 
         <p class="mt-4 text-center text-sm text-gray-600">
             Already have an account?
-            <a href="/login.html" class="text-blue-600 hover:underline">Login</a>
+            <a href="/login" class="text-blue-600 hover:underline">Login</a>
         </p>
     </div>
 
     <script src="/js/api.js"></script>
     <script src="/js/auth.js"></script>
+    <script src="/js/router.js"></script>
     <script src="/js/utils.js"></script>
     <script>
         // Redirect if already logged in
@@ -71,9 +72,8 @@
             window.location.href = Auth.getHomePage(user);
         }
 
-        // Check for invite code in URL
-        const urlParams = new URLSearchParams(window.location.search);
-        const inviteCodeFromUrl = urlParams.get('invite');
+        // Check for invite code in URL path
+        const { inviteCode: inviteCodeFromUrl } = getPathParams();
         if (inviteCodeFromUrl) {
             document.getElementById('invite-code').value = inviteCodeFromUrl;
             validateInvite();
@@ -122,7 +122,7 @@
                 showSuccess('Account created successfully! Redirecting to login...');
 
                 setTimeout(() => {
-                    window.location.href = '/login.html';
+                    window.location.href = '/login';
                 }, 2000);
             } catch (error) {
                 showError(error.message || 'Signup failed');

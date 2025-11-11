@@ -97,6 +97,7 @@ class PlantWithDetailsResponse(PlantResponse):
 
     Attributes:
         accession: Accession identifier string.
+        species_id: UUID of the species.
         species_genus: Genus of the plant's species.
         species_name: Species name.
         species_variety: Optional variety name.
@@ -106,6 +107,7 @@ class PlantWithDetailsResponse(PlantResponse):
     """
 
     accession: str
+    species_id: UUID
     species_genus: str
     species_name: str
     species_variety: Optional[str]

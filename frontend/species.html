@@ -67,6 +67,7 @@
 
     <script src="/js/api.js"></script>
     <script src="/js/auth.js"></script>
+    <script src="/js/router.js"></script>
     <script src="/js/utils.js"></script>
     <script src="/js/navigation.js"></script>
     <script src="/js/table.js"></script>
@@ -82,9 +83,9 @@
             currentUser = await Auth.checkAuth();
             if (!currentUser) return;
 
-            const params = new URLSearchParams(window.location.search);
-            organizationId = params.get('org_id');
-            speciesId = params.get('id');
+            const { orgId, speciesId: sId } = getPathParams();
+            organizationId = orgId;
+            speciesId = sId;
 
             if (!organizationId || !speciesId) {
                 showError('Missing organization or species ID');
@@ -100,7 +101,7 @@
             document.getElementById('footer').innerHTML = navigation.renderFooter();
 
             // Set back link
-            document.getElementById('back-to-org').href = `/organization.html?id=${organizationId}`;
+            document.getElementById('back-to-org').href = buildUrl('organizations', organizationId);
 
             await loadSpecies();
         }
@@ -160,7 +161,7 @@
                         formatter: (cell) => {
                             const data = cell.getData();
                             const link = document.createElement('a');
-                            link.href = `/accession.html?org_id=${organizationId}&species_id=${speciesId}&id=${data.id}`;
+                            link.href = buildUrl('organizations', organizationId, 'accessions', data.id);
                             link.className = 'text-blue-600 hover:underline font-medium';
                             link.textContent = data.accession;
                             return link;

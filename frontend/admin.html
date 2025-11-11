@@ -58,6 +58,7 @@
 
     <script src="/js/api.js"></script>
     <script src="/js/auth.js"></script>
+    <script src="/js/router.js"></script>
     <script src="/js/utils.js"></script>
     <script src="/js/navigation.js"></script>
     <script src="/js/table.js"></script>
@@ -105,7 +106,7 @@
                             const org = cell.getData();
                             // Create DOM element instead of HTML string to bypass Tabulator sanitization
                             const link = document.createElement('a');
-                            link.href = `/organization.html?id=${org.id}`;
+                            link.href = buildUrl('organizations', org.id);
                             link.className = 'text-blue-600 hover:underline font-medium';
                             link.textContent = org.name;
                             return link;
@@ -236,7 +237,7 @@
 
                 // Optional: redirect to the new organization after a delay
                 setTimeout(() => {
-                    window.location.href = `/organization.html?id=${org.id}`;
+                    navigateToOrganization(org.id);
                 }, 1500);
             } catch (error) {
                 showError(error.message || 'Failed to create organization');

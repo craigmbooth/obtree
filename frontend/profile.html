@@ -49,6 +49,7 @@
 
     <script src="/js/api.js"></script>
     <script src="/js/auth.js"></script>
+    <script src="/js/router.js"></script>
     <script src="/js/utils.js"></script>
     <script src="/js/navigation.js"></script>
     <script>
@@ -82,14 +83,14 @@
                         orgsList.innerHTML = '<p class="text-gray-500">You are not a member of any organizations yet.</p>';
                     } else {
                         orgsList.innerHTML = organizations.map(org => `
-                            <a href="/organization.html?id=${org.id}" class="block p-3 rounded hover:bg-gray-50 border border-gray-200">
+                            <a href="${buildUrl('organizations', org.id)}" class="block p-3 rounded hover:bg-gray-50 border border-gray-200">
                                 <div class="font-medium text-blue-600">${escapeHtml(org.name)}</div>
                             </a>
                         `).join('');
                     }
                 } else {
                     const orgsList = document.getElementById('organizations-list');
-                    orgsList.innerHTML = '<p class="text-gray-500">As a site administrator, you have access to all organizations via the <a href="/admin.html" class="text-blue-600 hover:underline">Admin page</a>.</p>';
+                    orgsList.innerHTML = '<p class="text-gray-500">As a site administrator, you have access to all organizations via the <a href="/admin" class="text-blue-600 hover:underline">Admin page</a>.</p>';
                 }
             } catch (error) {
                 showError(error.message || 'Failed to load profile');
