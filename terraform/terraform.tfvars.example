@@ -1,0 +1,21 @@
+# GCP Project Configuration
+project_id = "your-gcp-project-id"
+region     = "us-central1"
+
+# Application Configuration
+service_name = "obtree"
+environment  = "prod"
+app_name     = "OBTree"
+
+# Database Configuration
+db_name = "obtree"
+db_user = "obtree_user"
+
+# Scaling Configuration
+max_instances = 2
+
+# Container Image
+# Leave commented out to use the default hello-world image for initial deployment
+# After deployment, update the image using: gcloud run deploy obtree --image=YOUR_IMAGE
+# Terraform will ignore subsequent image changes (managed outside of Terraform)
+# container_image = "us-central1-docker.pkg.dev/your-project-id/obtree/obtree:latest"
