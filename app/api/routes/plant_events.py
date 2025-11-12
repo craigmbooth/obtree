@@ -47,7 +47,9 @@ def get_accessible_event_types(db: Session, plant: Plant, organization_id: UUID)
     project_ids = [p.id for p in accession.projects]
 
     # Query event types: org-level OR in plant's projects
-    query = db.query(EventType).filter(
+    query = db.query(EventType).options(
+        joinedload(EventType.fields)
+    ).filter(
         EventType.organization_id == organization_id,
         EventType.is_deleted == False,
         or_(
