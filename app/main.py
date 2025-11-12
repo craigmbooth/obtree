@@ -168,6 +168,24 @@ def org_admin_page(organization_id: str):
     return Path("frontend/org-admin.html").read_text()
 
 
+@app.get("/organizations/{organization_id}/projects", response_class=HTMLResponse)
+def projects_list_page(organization_id: str):
+    """Serve projects list page."""
+    return Path("frontend/projects.html").read_text()
+
+
+@app.get("/organizations/{organization_id}/species", response_class=HTMLResponse)
+def species_list_page(organization_id: str):
+    """Serve species list page."""
+    return Path("frontend/species-list.html").read_text()
+
+
+@app.get("/organizations/{organization_id}/accessions", response_class=HTMLResponse)
+def accessions_list_page(organization_id: str):
+    """Serve accessions list page."""
+    return Path("frontend/accessions-list.html").read_text()
+
+
 @app.get("/organizations/{organization_id}/projects/{project_id}", response_class=HTMLResponse)
 def project_page(organization_id: str, project_id: str):
     """Serve project details page."""

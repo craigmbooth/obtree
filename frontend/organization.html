@@ -316,7 +316,10 @@
             }
 
             // Render navigation
-            document.getElementById('navigation').innerHTML = navigation.render({ showOrgDropdown: true });
+            document.getElementById('navigation').innerHTML = navigation.render({
+                showOrgDropdown: true,
+                orgDropdownId: organizationId
+            });
             navigation.init(currentUser, {
                 showOrgDropdown: true,
                 orgDropdownId: organizationId

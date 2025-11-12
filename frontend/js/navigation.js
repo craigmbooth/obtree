@@ -24,7 +24,6 @@ class Navigation {
                                 <img src="/assets/images/redbud.png" alt="RedBuds App Logo" class="h-10 w-10">
                                 <span class="text-2xl font-bold">RedBuds App</span>
                             </a>
-                            <a href="/admin.html" id="site-admin-link" class="hover:underline hidden">Admin</a>
                             ${showOrgDropdown ? `
                             <!-- Organization dropdown for non-admins -->
                             <div id="org-dropdown" class="hidden relative">
@@ -38,13 +37,16 @@ class Navigation {
                             <!-- Quick navigation links -->
                             <div class="flex items-center space-x-4">
                                 <span class="text-sm opacity-75">|</span>
-                                <a href="${buildUrl('organizations', orgDropdownId)}#projects" class="text-sm hover:underline">Projects</a>
-                                <a href="${buildUrl('organizations', orgDropdownId)}#species" class="text-sm hover:underline">Species</a>
-                                <a href="${buildUrl('organizations', orgDropdownId)}#accessions" class="text-sm hover:underline">Accessions</a>
+                                <a href="${buildUrl('organizations', orgDropdownId)}" class="text-sm hover:underline">Organization</a>
+                                <a href="${buildUrl('organizations', orgDropdownId, 'projects')}" class="text-sm hover:underline">Projects</a>
+                                <a href="${buildUrl('organizations', orgDropdownId, 'species')}" class="text-sm hover:underline">Species</a>
+                                <a href="${buildUrl('organizations', orgDropdownId, 'accessions')}" class="text-sm hover:underline">Accessions</a>
                             </div>
                             ` : ''}
                         </div>
                         <div class="flex items-center space-x-4">
+                            <!-- Site Admin link -->
+                            <a href="/admin" id="site-admin-link" class="hidden text-sm hover:underline">Site Admin</a>
                             <!-- User dropdown -->
                             <div class="relative">
                                 <button id="user-menu-button" class="flex items-center space-x-2 text-sm hover:text-gray-200 focus:outline-none">
