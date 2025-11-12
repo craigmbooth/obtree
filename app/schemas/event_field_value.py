@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Optional, Union
 from uuid import UUID
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, computed_field
 
 
 class EventFieldValueCreate(BaseModel):
@@ -33,6 +33,7 @@ class EventFieldValueResponse(BaseModel):
     class Config:
         from_attributes = True
 
+    @computed_field
     @property
     def value(self) -> Union[str, float, None]:
         """Get the appropriate value based on field type."""
