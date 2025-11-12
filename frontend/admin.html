@@ -24,25 +24,14 @@
         <div id="error-message" class="hidden bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4"></div>
         <div id="success-message" class="hidden bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4"></div>
 
-        <!-- Create Organization -->
-        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
-            <h3 class="text-xl font-bold text-gray-800 mb-4">Create New Organization</h3>
-            <form id="create-org-form" class="space-y-4">
-                <div>
-                    <label for="org-name" class="block text-sm font-medium text-gray-700">Organization Name</label>
-                    <input type="text" id="org-name" required
-                        class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-                </div>
-                <button type="submit"
-                    class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700">
-                    Create Organization
-                </button>
-            </form>
-        </div>
-
         <!-- Organizations Table -->
         <div class="bg-white rounded-lg shadow-md p-6 mb-6">
-            <h3 class="text-xl font-bold text-gray-800 mb-4">All Organizations</h3>
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold text-gray-800">All Organizations</h3>
+                <button id="add-org-btn" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+                    Add Organization
+                </button>
+            </div>
             <div id="organizations-table"></div>
         </div>
 
@@ -55,6 +44,39 @@
 
     <!-- Footer -->
     <div id="footer"></div>
+
+    <!-- Add Organization Modal -->
+    <div id="org-modal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold text-gray-900">Add Organization</h3>
+                <button id="close-org-modal" class="text-gray-400 hover:text-gray-600">
+                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            <form id="create-org-form">
+                <div class="mb-4">
+                    <label for="org-name" class="block text-gray-700 text-sm font-bold mb-2">
+                        Organization Name *
+                    </label>
+                    <input type="text" id="org-name" required
+                        class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                </div>
+                <div class="flex justify-end gap-2">
+                    <button type="button" id="cancel-org-btn"
+                        class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded">
+                        Cancel
+                    </button>
+                    <button type="submit"
+                        class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                        Create
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
 
     <script src="/js/api.js"></script>
     <script src="/js/auth.js"></script>
@@ -218,6 +240,22 @@
             return div.innerHTML;
         }
 
+        // Modal functions
+        function openOrgModal() {
+            document.getElementById('org-modal').classList.remove('hidden');
+            document.getElementById('org-name').focus();
+        }
+
+        function closeOrgModal() {
+            document.getElementById('org-modal').classList.add('hidden');
+            document.getElementById('create-org-form').reset();
+        }
+
+        // Event listeners
+        document.getElementById('add-org-btn').addEventListener('click', openOrgModal);
+        document.getElementById('close-org-modal').addEventListener('click', closeOrgModal);
+        document.getElementById('cancel-org-btn').addEventListener('click', closeOrgModal);
+
         document.getElementById('create-org-form').addEventListener('submit', async (e) => {
             e.preventDefault();
 
@@ -230,7 +268,7 @@
             try {
                 const org = await api.createOrganization(name);
                 showSuccess('Organization created successfully!');
-                document.getElementById('org-name').value = '';
+                closeOrgModal();
 
                 // Reload organizations table
                 await loadOrganizations();
