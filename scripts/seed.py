@@ -532,7 +532,8 @@ def create_event_types(db, orgs, projects, users):
                 is_required=field_data["is_required"],
                 min_value=field_data.get("min_value"),
                 max_value=field_data.get("max_value"),
-                max_length=field_data.get("max_length")
+                max_length=field_data.get("max_length"),
+                created_by=users[0].id
             )
             db.add(field)
 
@@ -560,7 +561,8 @@ def create_event_types(db, orgs, projects, users):
                 is_required=field_data["is_required"],
                 min_value=field_data.get("min_value"),
                 max_value=field_data.get("max_value"),
-                max_length=field_data.get("max_length")
+                max_length=field_data.get("max_length"),
+                created_by=users[0].id
             )
             db.add(field)
 
