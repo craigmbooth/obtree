@@ -22,6 +22,7 @@ from app.schemas import (
     PlantEventCreate,
     PlantEventUpdate,
     PlantEventResponse,
+    EventTypeResponse,
 )
 
 logger = get_logger(__name__)
