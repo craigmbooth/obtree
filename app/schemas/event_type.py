@@ -24,6 +24,7 @@ class EventTypeUpdate(BaseModel):
     event_name: Optional[str] = Field(None, min_length=1, max_length=255)
     description: Optional[str] = None
     display_order: Optional[int] = None
+    fields: Optional[List[EventTypeFieldCreate]] = Field(None, description="Fields for this event type")
 
 
 class EventTypeResponse(EventTypeBase):

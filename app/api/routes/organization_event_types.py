@@ -295,10 +295,45 @@ def update_organization_event_type(
             detail="Event type not found"
         )
 
-    # Update fields
-    update_data = event_type_update.model_dump(exclude_unset=True)
+    # Update basic fields (excluding nested fields list)
+    update_data = event_type_update.model_dump(exclude_unset=True, exclude={'fields'})
     for field, value in update_data.items():
         setattr(event_type, field, value)
+
+    # Handle fields array if provided
+    if event_type_update.fields is not None:
+        # Get existing field IDs
+        existing_field_ids = {f.id for f in event_type.fields if not f.is_deleted}
+        incoming_field_ids = {f.id for f in event_type_update.fields if hasattr(f, 'id') and f.id}
+
+        # Delete fields that are no longer in the list
+        for field in event_type.fields:
+            if not field.is_deleted and field.id not in incoming_field_ids:
+                field.is_deleted = True
+                field.deleted_at = datetime.utcnow()
+                logger.info("org_event_type_field_deleted", field_id=field.id)
+
+        # Update or create fields
+        for field_data in event_type_update.fields:
+            field_dict = field_data.model_dump()
+            field_id = field_dict.pop('id', None)
+
+            if field_id and field_id in existing_field_ids:
+                # Update existing field
+                existing_field = next((f for f in event_type.fields if f.id == field_id), None)
+                if existing_field:
+                    for key, value in field_dict.items():
+                        setattr(existing_field, key, value)
+                    logger.info("org_event_type_field_updated", field_id=field_id)
+            else:
+                # Create new field
+                new_field = EventTypeField(
+                    **field_dict,
+                    event_type_id=event_type.id,
+                    created_by=current_user.id
+                )
+                db.add(new_field)
+                logger.info("org_event_type_field_created", event_type_id=event_type.id)
 
     db.commit()
     db.refresh(event_type)
