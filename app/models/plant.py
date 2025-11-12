@@ -50,6 +50,7 @@ class Plant(Base):
     field_values = relationship(
         "PlantFieldValue", back_populates="plant", cascade="all, delete-orphan"
     )
+    events = relationship("PlantEvent", back_populates="plant", cascade="all, delete-orphan")
 
     def __repr__(self) -> str:
         """Return string representation of the plant."""

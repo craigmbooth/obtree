@@ -38,6 +38,41 @@
                 </div>
             </div>
 
+            <!-- Accessions Section -->
+            <div class="bg-white rounded-lg shadow-md p-6 mt-6">
+                <div class="flex justify-between items-center mb-4">
+                    <div>
+                        <h3 class="text-xl font-semibold text-gray-800">Accessions</h3>
+                        <p class="text-sm text-gray-600 mt-1">Accessions associated with this project</p>
+                    </div>
+                </div>
+
+                <div id="accessions-loading" class="text-center py-8">
+                    <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                    <p class="mt-2 text-gray-600">Loading accessions...</p>
+                </div>
+
+                <div id="accessions-content" class="hidden">
+                    <div id="accessions-empty" class="text-center py-8 text-gray-600 hidden">
+                        No accessions associated with this project yet.
+                    </div>
+
+                    <table id="accessions-table" class="min-w-full divide-y divide-gray-200 hidden">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Accession</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Species</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Common Name</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="accessions-tbody" class="bg-white divide-y divide-gray-200">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
             <!-- Accession Custom Fields Section -->
             <div class="bg-white rounded-lg shadow-md p-6 mt-6">
                 <div class="flex justify-between items-center mb-4">
@@ -218,6 +253,7 @@
         let organizationId = null;
         let projectId = null;
         let project = null;
+        let accessions = [];
         let fields = [];
         let plantFields = [];
         let editingFieldId = null;
@@ -250,6 +286,7 @@
             document.getElementById('back-to-org').href = buildUrl('organizations', organizationId);
 
             await loadProject();
+            await loadAccessions();
             await loadFields();
             await loadPlantFields();
             setupFieldHandlers();
@@ -286,6 +323,59 @@
                 document.getElementById('loading').classList.add('hidden');
                 showError(error.message || 'Failed to load project');
             }
+        }
+
+        async function loadAccessions() {
+            try {
+                accessions = await api.getProjectAccessions(organizationId, projectId);
+                renderAccessions();
+            } catch (error) {
+                showError('Failed to load accessions: ' + error.message);
+            } finally {
+                document.getElementById('accessions-loading').classList.add('hidden');
+                document.getElementById('accessions-content').classList.remove('hidden');
+            }
+        }
+
+        function renderAccessions() {
+            const tbody = document.getElementById('accessions-tbody');
+            const emptyDiv = document.getElementById('accessions-empty');
+            const table = document.getElementById('accessions-table');
+
+            if (accessions.length === 0) {
+                emptyDiv.classList.remove('hidden');
+                table.classList.add('hidden');
+                return;
+            }
+
+            emptyDiv.classList.add('hidden');
+            table.classList.remove('hidden');
+
+            tbody.innerHTML = accessions.map(accession => {
+                // Build species name
+                let speciesName = `${accession.species_genus} ${accession.species_name}`;
+                if (accession.species_variety) {
+                    speciesName += ` var. ${accession.species_variety}`;
+                }
+
+                const commonName = accession.species_common_name || '-';
+                const description = accession.description || '-';
+
+                // Build link to accession detail page
+                const accessionUrl = buildUrl('organizations', organizationId, 'accessions', accession.id);
+
+                return `
+                    <tr>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${accession.accession}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 italic">${speciesName}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">${commonName}</td>
+                        <td class="px-6 py-4 text-sm text-gray-600">${description}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm">
+                            <a href="${accessionUrl}" class="text-blue-600 hover:underline">View</a>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
         }
 
         async function loadFields() {

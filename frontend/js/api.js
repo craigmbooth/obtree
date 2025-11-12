@@ -209,6 +209,10 @@ class ApiClient {
         });
     }
 
+    async getProjectAccessions(organizationId, projectId) {
+        return this.request(`/api/organizations/${organizationId}/projects/${projectId}/accessions`);
+    }
+
     // Project Field endpoints
     async getProjectFields(organizationId, projectId, includeDeleted = false) {
         const params = includeDeleted ? '?include_deleted=true' : '';

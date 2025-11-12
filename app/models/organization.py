@@ -25,6 +25,7 @@ class Organization(Base, TableConfigMixin):
     invites = relationship("Invite", back_populates="organization")
     projects = relationship("Project", back_populates="organization")
     species = relationship("Species", back_populates="organization")
+    event_types = relationship("EventType", back_populates="organization")
 
     # Table configuration for frontend display
     __table_config__ = {

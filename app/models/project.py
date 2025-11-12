@@ -33,6 +33,7 @@ class Project(Base, TableConfigMixin):
     organization = relationship("Organization", back_populates="projects")
     creator = relationship("User")
     accessions = relationship("Accession", secondary="projects_accessions", back_populates="projects")
+    event_types = relationship("EventType", back_populates="project")
 
     # Table configuration for frontend display
     __table_config__ = {
