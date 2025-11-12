@@ -91,7 +91,7 @@ class Navigation {
         this.setupUserDropdown();
 
         // Load organization dropdown if needed
-        if (options.showOrgDropdown && !user.is_site_admin) {
+        if (options.showOrgDropdown) {
             this.loadOrganizationDropdown(options.orgDropdownId);
         }
 
