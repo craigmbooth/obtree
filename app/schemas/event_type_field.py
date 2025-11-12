@@ -25,7 +25,7 @@ class EventTypeFieldBase(BaseModel):
 
 class EventTypeFieldCreate(EventTypeFieldBase):
     """Schema for creating a new event type field."""
-    pass
+    id: Optional[UUID] = Field(None, description="Optional field ID for updates")
 
 
 class EventTypeFieldUpdate(BaseModel):
