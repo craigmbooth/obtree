@@ -14,10 +14,14 @@ from datetime import datetime, timedelta
 sys.path.insert(0, '.')
 
 from app.database import SessionLocal
-from app.models import User, Organization, OrganizationMembership, Project, Species, Invite
+from app.models import (
+    User, Organization, OrganizationMembership, Project, Species,
+    Accession, Plant, EventType, PlantEvent, EventFieldValue
+)
 from app.models.membership import OrganizationRole
 from app.models.project import ProjectStatus
 from app.models.species import SpeciesStatus
+from app.models.event_type import EventScope, EventTypeField, FieldType
 from app.core.security import get_password_hash
 
 
@@ -407,6 +411,214 @@ def create_species(db, orgs, users):
     return species
 
 
+def create_accessions(db, species, users):
+    """Create accessions for species."""
+    print("\nCreating accessions...")
+
+    accessions = []
+    # Create 2-3 accessions per species
+    for i, sp in enumerate(species[:5]):  # First 5 species get accessions
+        for j in range(2 if i % 2 == 0 else 3):
+            accession = Accession(
+                accession=f"{sp.genus[:3].upper()}-{sp.species_name[:3].upper()}-{(i*10)+j+1:04d}",
+                species_id=sp.id,
+                source_location=f"Illinois Collection Site {i+1}",
+                acquisition_date=datetime.utcnow() - timedelta(days=200 - (i * 10)),
+                notes=f"Sample accession for {sp.common_name} breeding program",
+                created_by=sp.created_by,
+                created_at=datetime.utcnow() - timedelta(days=180 - (i * 10))
+            )
+            db.add(accession)
+            accessions.append(accession)
+
+    db.commit()
+    print(f"✓ Created {len(accessions)} accessions")
+    return accessions
+
+
+def create_plants(db, accessions, users):
+    """Create plants from accessions."""
+    print("\nCreating plants...")
+
+    plants = []
+    # Create 2-4 plants per accession
+    for i, acc in enumerate(accessions):
+        num_plants = 2 if i % 3 == 0 else (3 if i % 3 == 1 else 4)
+        for j in range(num_plants):
+            plant = Plant(
+                plant_number=f"{acc.accession}-P{j+1:02d}",
+                accession_id=acc.id,
+                location=f"Field Block {(i % 5) + 1}, Row {(j % 10) + 1}",
+                notes=f"Plant {j+1} from accession {acc.accession}",
+                created_by=acc.created_by,
+                created_at=datetime.utcnow() - timedelta(days=150 - (i * 5))
+            )
+            db.add(plant)
+            plants.append(plant)
+
+    db.commit()
+    print(f"✓ Created {len(plants)} plants")
+    return plants
+
+
+def create_event_types(db, orgs, projects, users):
+    """Create organization and project-level event types."""
+    print("\nCreating event types...")
+
+    event_types = []
+
+    # Organization-level event types for Morton Arboretum (orgs[0])
+    org_event_types = [
+        {
+            "event_name": "Height Measurement",
+            "description": "Record plant height in centimeters",
+            "scope": EventScope.ORGANIZATION,
+            "org_idx": 0,
+            "fields": [
+                {"field_name": "Height (cm)", "field_type": FieldType.NUMBER, "is_required": True, "min_value": 0.0, "max_value": 10000.0}
+            ]
+        },
+        {
+            "event_name": "Disease Observation",
+            "description": "Record disease symptoms and severity",
+            "scope": EventScope.ORGANIZATION,
+            "org_idx": 0,
+            "fields": [
+                {"field_name": "Disease Name", "field_type": FieldType.STRING, "is_required": True, "max_length": 200},
+                {"field_name": "Severity (1-10)", "field_type": FieldType.NUMBER, "is_required": True, "min_value": 1.0, "max_value": 10.0}
+            ]
+        },
+        {
+            "event_name": "Flowering Date",
+            "description": "Record when flowering begins",
+            "scope": EventScope.ORGANIZATION,
+            "org_idx": 0,
+            "fields": [
+                {"field_name": "Bloom Stage", "field_type": FieldType.STRING, "is_required": True, "max_length": 100}
+            ]
+        }
+    ]
+
+    # Project-level event types for Oak Disease Resistance Program (projects[0])
+    project_event_types = [
+        {
+            "event_name": "Oak Wilt Assessment",
+            "description": "Assess oak wilt resistance",
+            "scope": EventScope.PROJECT,
+            "project_idx": 0,
+            "fields": [
+                {"field_name": "Wilt Symptoms", "field_type": FieldType.STRING, "is_required": True, "max_length": 500},
+                {"field_name": "Resistance Score", "field_type": FieldType.NUMBER, "is_required": True, "min_value": 0.0, "max_value": 100.0}
+            ]
+        }
+    ]
+
+    # Create org-level event types
+    for et_data in org_event_types:
+        event_type = EventType(
+            event_name=et_data["event_name"],
+            description=et_data["description"],
+            scope=et_data["scope"],
+            organization_id=orgs[et_data["org_idx"]].id,
+            created_by=users[0].id,
+            created_at=datetime.utcnow() - timedelta(days=120)
+        )
+        db.add(event_type)
+        db.flush()  # Get the ID
+
+        # Add fields
+        for field_data in et_data["fields"]:
+            field = EventTypeField(
+                event_type_id=event_type.id,
+                field_name=field_data["field_name"],
+                field_type=field_data["field_type"],
+                is_required=field_data["is_required"],
+                min_value=field_data.get("min_value"),
+                max_value=field_data.get("max_value"),
+                max_length=field_data.get("max_length")
+            )
+            db.add(field)
+
+        event_types.append(event_type)
+
+    # Create project-level event types
+    for et_data in project_event_types:
+        event_type = EventType(
+            event_name=et_data["event_name"],
+            description=et_data["description"],
+            scope=et_data["scope"],
+            project_id=projects[et_data["project_idx"]].id,
+            created_by=users[0].id,
+            created_at=datetime.utcnow() - timedelta(days=100)
+        )
+        db.add(event_type)
+        db.flush()
+
+        # Add fields
+        for field_data in et_data["fields"]:
+            field = EventTypeField(
+                event_type_id=event_type.id,
+                field_name=field_data["field_name"],
+                field_type=field_data["field_type"],
+                is_required=field_data["is_required"],
+                min_value=field_data.get("min_value"),
+                max_value=field_data.get("max_value"),
+                max_length=field_data.get("max_length")
+            )
+            db.add(field)
+
+        event_types.append(event_type)
+
+    db.commit()
+    print(f"✓ Created {len(event_types)} event types")
+    return event_types
+
+
+def create_plant_events(db, plants, event_types, users):
+    """Create plant events."""
+    print("\nCreating plant events...")
+
+    events = []
+    # Create 2-3 events per plant
+    for i, plant in enumerate(plants[:10]):  # First 10 plants get events
+        # Use different event types
+        for j in range(2 if i % 2 == 0 else 3):
+            event_type = event_types[j % len(event_types)]
+
+            event = PlantEvent(
+                plant_id=plant.id,
+                event_type_id=event_type.id,
+                event_date=datetime.utcnow() - timedelta(days=90 - (i * 5) - (j * 2)),
+                notes=f"Sample event {j+1} for {plant.plant_number}",
+                created_by=plant.created_by,
+                created_at=datetime.utcnow() - timedelta(days=90 - (i * 5) - (j * 2))
+            )
+            db.add(event)
+            db.flush()  # Get the ID
+
+            # Add field values
+            for field in event_type.fields:
+                if field.field_type == FieldType.NUMBER:
+                    value = EventFieldValue(
+                        event_id=event.id,
+                        field_id=field.id,
+                        value_number=50.0 + (i * 5.5) + (j * 2.3)  # Sample numeric value
+                    )
+                else:  # STRING
+                    value = EventFieldValue(
+                        event_id=event.id,
+                        field_id=field.id,
+                        value_string=f"Sample observation {i}-{j}"
+                    )
+                db.add(value)
+
+            events.append(event)
+
+    db.commit()
+    print(f"✓ Created {len(events)} plant events")
+    return events
+
+
 def seed_database():
     """Main seeding function."""
     print("=" * 60)
@@ -425,6 +637,10 @@ def seed_database():
         memberships = create_memberships(db, users, orgs)
         projects = create_projects(db, orgs, users)
         species = create_species(db, orgs, users)
+        accessions = create_accessions(db, species, users)
+        plants = create_plants(db, accessions, users)
+        event_types = create_event_types(db, orgs, projects, users)
+        plant_events = create_plant_events(db, plants, event_types, users)
 
         print("\n" + "=" * 60)
         print("✓ Database seeding completed successfully!")
@@ -435,11 +651,15 @@ def seed_database():
         print(f"  Memberships: {len(memberships)}")
         print(f"  Projects: {len(projects)}")
         print(f"  Species: {len(species)}")
+        print(f"  Accessions: {len(accessions)}")
+        print(f"  Plants: {len(plants)}")
+        print(f"  Event Types: {len(event_types)}")
+        print(f"  Plant Events: {len(plant_events)}")
         print(f"\nDefault login credentials:")
-        print(f"  Site Admin    -> username: admin    | password: admin")
-        print(f"  Site Admin    -> username: s@o.com  | password: susie")
-        print(f"  Org Admin     -> username: orgadmin | password: orgadmin")
-        print(f"  Regular User  -> username: user     | password: user")
+        print(f"  Site Admin    -> username: siteadmin@redbudsapp.com | password: siteadmin")
+        print(f"  Site Admin    -> username: s@o.com                  | password: susie")
+        print(f"  Org Admin     -> username: orgadmin@redbudsapp.com  | password: orgadmin")
+        print(f"  Regular User  -> username: user@redbudsapp.com      | password: user")
         print("=" * 60)
 
     except Exception as e:
