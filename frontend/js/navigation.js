@@ -9,10 +9,11 @@ class Navigation {
      * @param {Object} options - Navigation options
      * @param {boolean} options.showOrgDropdown - Whether to show organization dropdown
      * @param {string} options.orgDropdownId - Current organization ID for dropdown
+     * @param {string} options.organizationName - Organization name to display
      * @returns {string} Navigation HTML
      */
     render(options = {}) {
-        const { showOrgDropdown = false, orgDropdownId = null } = options;
+        const { showOrgDropdown = false, orgDropdownId = null, organizationName = null } = options;
 
         return `
             <nav class="bg-blue-600 text-white shadow-lg">
@@ -31,6 +32,17 @@ class Navigation {
                                     class="bg-blue-700 text-white px-3 py-2 rounded hover:bg-blue-800 cursor-pointer focus:outline-none focus:ring-2 focus:ring-white">
                                     <option value="">Loading...</option>
                                 </select>
+                            </div>
+                            ` : ''}
+                            ${organizationName && orgDropdownId ? `
+                            <!-- Organization context and quick links -->
+                            <div class="flex items-center space-x-4">
+                                <span class="text-sm opacity-75">|</span>
+                                <a href="${buildUrl('organizations', orgDropdownId)}" class="font-semibold hover:underline" id="org-name-link">${organizationName}</a>
+                                <span class="text-sm opacity-75">|</span>
+                                <a href="${buildUrl('organizations', orgDropdownId)}#projects" class="text-sm hover:underline">Projects</a>
+                                <a href="${buildUrl('organizations', orgDropdownId)}#species" class="text-sm hover:underline">Species</a>
+                                <a href="${buildUrl('organizations', orgDropdownId)}#accessions" class="text-sm hover:underline">Accessions</a>
                             </div>
                             ` : ''}
                         </div>

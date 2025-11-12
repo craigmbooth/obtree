@@ -229,8 +229,19 @@
                 return;
             }
 
+            // Fetch organization for navigation
+            let organizationName = null;
+            try {
+                const org = await api.getOrganization(organizationId);
+                organizationName = org.name;
+            } catch (error) {
+                console.error('Failed to load organization:', error);
+            }
+
             // Render navigation
-            document.getElementById('navigation').innerHTML = navigation.render();
+            document.getElementById('navigation').innerHTML = navigation.render({
+                organizationName: organizationName
+            });
             navigation.init(currentUser, {
                 orgPageLink: buildUrl('organizations', organizationId)
             });
