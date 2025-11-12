@@ -56,7 +56,7 @@ class Navigation {
                                     </svg>
                                 </button>
                                 <div id="user-menu" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50">
-                                    <a href="/profile.html" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Profile</a>
+                                    <a href="/profile" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Profile</a>
                                     <a href="#" id="org-admin-menu-link" class="hidden block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Manage Organization</a>
                                     <a href="#" id="org-page-menu-link" class="hidden block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">View Organization</a>
                                     <button onclick="Auth.logout()" class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Logout</button>
