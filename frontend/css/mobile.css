@@ -1,0 +1,196 @@
+/* Mobile-First Responsive Utilities for RedBuds App */
+
+/* Touch-friendly button and link sizing */
+.btn-touch {
+    min-height: 44px;
+    min-width: 44px;
+    padding: 12px 16px;
+}
+
+/* Mobile-friendly spacing */
+.mobile-container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+}
+
+@media (min-width: 640px) {
+    .mobile-container {
+        padding-left: 1.5rem;
+        padding-right: 1.5rem;
+    }
+}
+
+/* Responsive table wrapper with horizontal scroll */
+.table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    width: 100%;
+}
+
+.table-responsive table {
+    min-width: 600px;
+}
+
+@media (max-width: 768px) {
+    /* Hide certain columns on mobile */
+    .mobile-hide {
+        display: none !important;
+    }
+
+    /* Stack form fields vertically on mobile */
+    .form-row {
+        flex-direction: column;
+    }
+
+    .form-row > * {
+        width: 100%;
+        margin-bottom: 1rem;
+    }
+}
+
+/* Modal improvements for mobile */
+@media (max-width: 640px) {
+    .modal-content {
+        width: 95vw !important;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+
+    /* Make modals full-screen on small devices */
+    .modal-fullscreen-sm {
+        width: 100vw !important;
+        height: 100vh !important;
+        max-height: 100vh !important;
+        margin: 0 !important;
+        border-radius: 0 !important;
+    }
+}
+
+/* Touch-friendly input fields */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+input[type="date"],
+input[type="datetime-local"],
+select,
+textarea {
+    font-size: 16px !important; /* Prevents zoom on iOS */
+    min-height: 44px;
+}
+
+/* Improve tap targets for mobile */
+a, button {
+    min-height: 32px;
+    display: inline-flex;
+    align-items: center;
+}
+
+/* Stack cards on mobile */
+@media (max-width: 768px) {
+    .card-grid {
+        grid-template-columns: 1fr !important;
+    }
+}
+
+/* Responsive text sizing */
+@media (max-width: 640px) {
+    h1, .text-3xl {
+        font-size: 1.875rem !important; /* 30px */
+    }
+
+    h2, .text-2xl {
+        font-size: 1.5rem !important; /* 24px */
+    }
+
+    h3, .text-xl {
+        font-size: 1.25rem !important; /* 20px */
+    }
+}
+
+/* Better spacing for mobile */
+@media (max-width: 640px) {
+    .section-spacing {
+        margin-bottom: 1.5rem !important;
+    }
+
+    .mb-6 {
+        margin-bottom: 1rem !important;
+    }
+
+    .py-8 {
+        padding-top: 1.5rem !important;
+        padding-bottom: 1.5rem !important;
+    }
+}
+
+/* Tabulator table mobile improvements */
+.tabulator {
+    font-size: 14px;
+}
+
+@media (max-width: 768px) {
+    .tabulator {
+        font-size: 12px;
+    }
+
+    .tabulator-cell {
+        padding: 6px 8px !important;
+    }
+
+    .tabulator-col {
+        padding: 6px 8px !important;
+    }
+}
+
+/* Horizontal scrolling indicator - Disabled for Tabulator compatibility */
+/* .table-responsive::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 30px;
+    background: linear-gradient(to left, rgba(255,255,255,0.9), transparent);
+    pointer-events: none;
+} */
+
+/* Action buttons spacing for mobile */
+@media (max-width: 640px) {
+    .action-buttons {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .action-buttons > * {
+        width: 100%;
+        margin-bottom: 0.5rem;
+    }
+}
+
+/* Safe area insets for iOS notch */
+@supports (padding: max(0px)) {
+    .safe-area-inset-bottom {
+        padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+    }
+
+    .safe-area-inset-top {
+        padding-top: max(0.5rem, env(safe-area-inset-top));
+    }
+}
+
+/* Sticky headers for better mobile scrolling */
+.sticky-header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background-color: white;
+}
+
+/* Landscape mode adjustments for phones */
+@media (max-height: 500px) and (orientation: landscape) {
+    .mobile-menu {
+        max-height: 80vh;
+        overflow-y: auto;
+    }
+}

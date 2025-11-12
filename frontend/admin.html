@@ -9,13 +9,14 @@
     <!-- Tabulator CSS and JS -->
     <link href="https://unpkg.com/tabulator-tables@6.2.5/dist/css/tabulator.min.css" rel="stylesheet">
     <link href="/css/table-custom.css" rel="stylesheet">
+    <link href="/css/mobile.css" rel="stylesheet">
     <script src="https://unpkg.com/tabulator-tables@6.2.5/dist/js/tabulator.min.js"></script>
 </head>
 <body class="bg-gray-100 min-h-screen">
     <!-- Navigation -->
     <div id="navigation"></div>
 
-    <div class="container mx-auto px-4 py-8">
+    <div class="container mx-auto mobile-container py-8">
         <div class="mb-6">
             <h2 class="text-3xl font-bold text-gray-800">Site Administration</h2>
             <p class="text-gray-600 mt-2">Manage organizations and site-wide settings</p>
@@ -26,19 +27,23 @@
 
         <!-- Organizations Table -->
         <div class="bg-white rounded-lg shadow-md p-6 mb-6">
-            <div class="flex justify-between items-center mb-4">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-2">
                 <h3 class="text-xl font-bold text-gray-800">All Organizations</h3>
-                <button id="add-org-btn" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+                <button id="add-org-btn" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 btn-touch w-full sm:w-auto">
                     Add Organization
                 </button>
             </div>
-            <div id="organizations-table"></div>
+            <div class="table-responsive">
+                <div id="organizations-table"></div>
+            </div>
         </div>
 
         <!-- All Users Table -->
         <div class="bg-white rounded-lg shadow-md p-6 mb-6">
             <h3 class="text-xl font-bold text-gray-800 mb-4">All Users</h3>
-            <div id="users-table"></div>
+            <div class="table-responsive">
+                <div id="users-table"></div>
+            </div>
         </div>
     </div>
 
@@ -47,7 +52,7 @@
 
     <!-- Add Organization Modal -->
     <div id="org-modal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+        <div class="modal-content relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
             <div class="flex justify-between items-center mb-4">
                 <h3 class="text-lg font-bold text-gray-900">Add Organization</h3>
                 <button id="close-org-modal" class="text-gray-400 hover:text-gray-600">
@@ -64,13 +69,13 @@
                     <input type="text" id="org-name" required
                         class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
                 </div>
-                <div class="flex justify-end gap-2">
+                <div class="flex flex-col sm:flex-row justify-end gap-2">
                     <button type="button" id="cancel-org-btn"
-                        class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded">
+                        class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded btn-touch">
                         Cancel
                     </button>
                     <button type="submit"
-                        class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                        class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded btn-touch">
                         Create
                     </button>
                 </div>

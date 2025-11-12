@@ -9,12 +9,13 @@
     <!-- Tabulator CSS and JS -->
     <link href="https://unpkg.com/tabulator-tables@6.2.5/dist/css/tabulator.min.css" rel="stylesheet">
     <link href="/css/table-custom.css" rel="stylesheet">
+    <link href="/css/mobile.css" rel="stylesheet">
     <script src="https://unpkg.com/tabulator-tables@6.2.5/dist/js/tabulator.min.js"></script>
 </head>
 <body class="bg-gray-100 min-h-screen">
     <div id="navigation"></div>
 
-    <div class="container mx-auto px-4 py-8">
+    <div class="container mx-auto mobile-container py-8">
         <!-- Error Message -->
         <div id="error-message" class="hidden bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4"></div>
 
@@ -23,12 +24,12 @@
 
         <!-- Page Header -->
         <div class="mb-6">
-            <div class="flex justify-between items-center">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
                 <div>
                     <h1 class="text-3xl font-bold text-gray-800" id="org-name">Projects</h1>
                     <p class="text-gray-600 mt-1">Manage and view all projects in this organization</p>
                 </div>
-                <button id="add-project-btn" class="hidden bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+                <button id="add-project-btn" class="hidden bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 btn-touch w-full sm:w-auto">
                     Add Project
                 </button>
             </div>
@@ -36,7 +37,9 @@
 
         <!-- Projects Table -->
         <div class="bg-white rounded-lg shadow-md p-6">
-            <div id="projects-table"></div>
+            <div class="table-responsive">
+                <div id="projects-table"></div>
+            </div>
         </div>
     </div>
 
@@ -44,7 +47,7 @@
 
     <!-- Add Project Modal -->
     <div id="project-modal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+        <div class="modal-content relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
             <div class="flex justify-between items-center mb-4">
                 <h3 class="text-lg font-bold text-gray-900">Add Project</h3>
                 <button id="close-project-modal" class="text-gray-400 hover:text-gray-600">
@@ -68,13 +71,13 @@
                     <textarea id="project-description" rows="3"
                         class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"></textarea>
                 </div>
-                <div class="flex justify-end gap-2">
+                <div class="flex flex-col sm:flex-row justify-end gap-2">
                     <button type="button" id="cancel-project-btn"
-                        class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded">
+                        class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded btn-touch">
                         Cancel
                     </button>
                     <button type="submit"
-                        class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                        class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded btn-touch">
                         Save
                     </button>
                 </div>
