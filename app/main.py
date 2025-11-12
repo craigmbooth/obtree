@@ -8,7 +8,23 @@ import structlog
 
 from app.config import settings
 from app.logging_config import configure_logging, get_logger
-from app.api.routes import auth, organizations, invites, table_config, projects, species, accessions, org_accessions, project_fields, project_plant_fields, plants, org_plants
+from app.api.routes import (
+    auth,
+    organizations,
+    invites,
+    table_config,
+    projects,
+    species,
+    accessions,
+    org_accessions,
+    project_fields,
+    project_plant_fields,
+    plants,
+    org_plants,
+    organization_event_types,
+    project_event_types,
+    plant_events,
+)
 
 # Configure logging first
 configure_logging()
@@ -74,6 +90,9 @@ app.include_router(org_accessions.router, prefix="/api/organizations/{organizati
 app.include_router(accessions.router, prefix="/api/organizations/{organization_id}/species/{species_id}/accessions", tags=["accessions"])
 app.include_router(org_plants.router, prefix="/api/organizations/{organization_id}/plants", tags=["plants"])
 app.include_router(plants.router, prefix="/api/organizations/{organization_id}/species/{species_id}/accessions/{accession_id}/plants", tags=["plants"])
+app.include_router(organization_event_types.router, prefix="/api/organizations/{organization_id}/event-types", tags=["event-types"])
+app.include_router(project_event_types.router, prefix="/api/organizations/{organization_id}/projects/{project_id}/event-types", tags=["event-types"])
+app.include_router(plant_events.router, prefix="/api/organizations/{organization_id}/species/{species_id}/accessions/{accession_id}/plants/{plant_id}/events", tags=["events"])
 app.include_router(table_config.router, prefix="/api", tags=["tables"])
 
 
