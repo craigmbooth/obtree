@@ -423,9 +423,7 @@ def create_accessions(db, species, users):
             accession = Accession(
                 accession=f"{sp.genus[:3].upper()}-{sp.species_name[:3].upper()}-{(i*10)+j+1:04d}",
                 species_id=sp.id,
-                source_location=f"Illinois Collection Site {i+1}",
-                acquisition_date=datetime.utcnow() - timedelta(days=200 - (i * 10)),
-                notes=f"Sample accession for {sp.common_name} breeding program",
+                description=f"Sample accession for {sp.common_name} breeding program from Illinois Collection Site {i+1}",
                 created_by=sp.created_by,
                 created_at=datetime.utcnow() - timedelta(days=180 - (i * 10))
             )
@@ -447,10 +445,8 @@ def create_plants(db, accessions, users):
         num_plants = 2 if i % 3 == 0 else (3 if i % 3 == 1 else 4)
         for j in range(num_plants):
             plant = Plant(
-                plant_number=f"{acc.accession}-P{j+1:02d}",
+                plant_id=f"{acc.accession}-P{j+1:02d}",
                 accession_id=acc.id,
-                location=f"Field Block {(i % 5) + 1}, Row {(j % 10) + 1}",
-                notes=f"Plant {j+1} from accession {acc.accession}",
                 created_by=acc.created_by,
                 created_at=datetime.utcnow() - timedelta(days=150 - (i * 5))
             )
@@ -590,7 +586,7 @@ def create_plant_events(db, plants, event_types, users):
                 plant_id=plant.id,
                 event_type_id=event_type.id,
                 event_date=datetime.utcnow() - timedelta(days=90 - (i * 5) - (j * 2)),
-                notes=f"Sample event {j+1} for {plant.plant_number}",
+                notes=f"Sample event {j+1} for {plant.plant_id}",
                 created_by=plant.created_by,
                 created_at=datetime.utcnow() - timedelta(days=90 - (i * 5) - (j * 2))
             )
