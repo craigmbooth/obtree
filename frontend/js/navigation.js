@@ -34,11 +34,9 @@ class Navigation {
                                 </select>
                             </div>
                             ` : ''}
-                            ${organizationName && orgDropdownId ? `
-                            <!-- Organization context and quick links -->
+                            ${orgDropdownId ? `
+                            <!-- Quick navigation links -->
                             <div class="flex items-center space-x-4">
-                                <span class="text-sm opacity-75">|</span>
-                                <a href="${buildUrl('organizations', orgDropdownId)}" class="font-semibold hover:underline" id="org-name-link">${organizationName}</a>
                                 <span class="text-sm opacity-75">|</span>
                                 <a href="${buildUrl('organizations', orgDropdownId)}#projects" class="text-sm hover:underline">Projects</a>
                                 <a href="${buildUrl('organizations', orgDropdownId)}#species" class="text-sm hover:underline">Species</a>
