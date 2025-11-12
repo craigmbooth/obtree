@@ -195,6 +195,6 @@ function handleOrgChange() {
     const dropdown = document.getElementById('org-selector');
     const selectedOrgId = dropdown.value;
     if (selectedOrgId) {
-        window.location.href = `/organization.html?id=${selectedOrgId}`;
+        window.location.href = buildUrl('organizations', selectedOrgId);
     }
 }
