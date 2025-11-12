@@ -169,7 +169,7 @@
 
                 if (!projectsTable) {
                     projectsTable = new DataTable('#projects-table', {
-                        pageSize: 20,
+                        pageSize: 100,
                         rowFormatter: (row) => {
                             const data = row.getData();
                             if (data.status === 'archived' || data.status === 'deleted') {

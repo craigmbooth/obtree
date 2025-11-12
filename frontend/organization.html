@@ -59,7 +59,9 @@
             <!-- Projects List -->
             <div class="bg-white rounded-lg shadow-md p-6 mb-6">
                 <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-xl font-bold text-gray-800">Projects</h3>
+                    <h3 class="text-xl font-bold text-gray-800">
+                        <a href="#" id="projects-link" class="text-blue-600 hover:underline">Projects</a>
+                    </h3>
                     <button id="add-project-btn" class="hidden bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
                         Add Project
                     </button>
@@ -72,7 +74,9 @@
             <!-- Species List -->
             <div class="bg-white rounded-lg shadow-md p-6 mb-6">
                 <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-xl font-bold text-gray-800">Species</h3>
+                    <h3 class="text-xl font-bold text-gray-800">
+                        <a href="#" id="species-link" class="text-blue-600 hover:underline">Species</a>
+                    </h3>
                     <button id="add-species-btn" class="hidden bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
                         Add Species
                     </button>
@@ -85,7 +89,9 @@
             <!-- Accessions List -->
             <div class="bg-white rounded-lg shadow-md p-6">
                 <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-xl font-bold text-gray-800">Accessions</h3>
+                    <h3 class="text-xl font-bold text-gray-800">
+                        <a href="#" id="accessions-link" class="text-blue-600 hover:underline">Accessions</a>
+                    </h3>
                     <button id="add-accession-btn" class="hidden bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
                         Add Accession
                     </button>
@@ -360,6 +366,11 @@
                     document.getElementById('user-role').textContent = 'Guest';
                 }
 
+                // Set up section title links
+                document.getElementById('projects-link').href = buildUrl('organizations', organizationId, 'projects');
+                document.getElementById('species-link').href = buildUrl('organizations', organizationId, 'species');
+                document.getElementById('accessions-link').href = buildUrl('organizations', organizationId, 'accessions');
+
                 // Show admin link if user is admin and active
                 isAdmin = (userMembership && userMembership.role === 'admin' && userMembership.status === 'Active') || currentUser.is_site_admin;
                 if (isAdmin) {
@@ -526,7 +537,7 @@
                 // Create table instance if it doesn't exist
                 if (!projectsTable) {
                     projectsTable = new DataTable('#projects-table', {
-                        pageSize: 20,
+                        pageSize: 10,
                         rowFormatter: (row) => {
                             const data = row.getData();
                             if (data.status === 'archived' || data.status === 'deleted') {
@@ -648,7 +659,7 @@
                 // Create table instance if it doesn't exist
                 if (!speciesTable) {
                     speciesTable = new DataTable('#species-table', {
-                        pageSize: 20
+                        pageSize: 10
                     });
                 }
 
@@ -928,7 +939,7 @@
                 // Create table instance if it doesn't exist
                 if (!accessionsTable) {
                     accessionsTable = new DataTable('#accessions-table', {
-                        pageSize: 20
+                        pageSize: 10
                     });
                 }
 
