@@ -58,6 +58,77 @@ def get_accessible_event_types(db: Session, plant: Plant, organization_id: UUID)
     return query.all()
 
 
+@router.get("/accessible-types", response_model=List[EventTypeResponse])
+def get_accessible_event_types_for_plant(
+    organization_id: UUID,
+    species_id: UUID,
+    accession_id: UUID,
+    plant_id: UUID,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get all event types accessible to a plant.
+
+    Returns org-level event types and project-level event types for projects
+    that the plant's accession belongs to.
+
+    Args:
+        organization_id: Organization UUID.
+        species_id: Species UUID.
+        accession_id: Accession UUID.
+        plant_id: Plant UUID.
+        current_user: Authenticated user.
+        db: Database session.
+
+    Returns:
+        List[EventTypeResponse]: List of accessible event types.
+
+    Raises:
+        HTTPException: If user is not a member or plant not found.
+    """
+    logger.info(
+        "get_accessible_event_types_started",
+        organization_id=organization_id,
+        plant_id=plant_id,
+        user_id=current_user.id
+    )
+
+    # Check org membership
+    if not is_org_member(db, current_user, organization_id):
+        logger.warning(
+            "get_accessible_event_types_forbidden",
+            organization_id=organization_id,
+            user_id=current_user.id
+        )
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not a member of this organization"
+        )
+
+    # Get plant
+    plant = db.query(Plant).filter(Plant.id == plant_id).first()
+    if not plant:
+        logger.warning(
+            "get_accessible_event_types_plant_not_found",
+            plant_id=plant_id
+        )
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Plant not found"
+        )
+
+    # Get accessible event types
+    event_types = get_accessible_event_types(db, plant, organization_id)
+
+    logger.info(
+        "get_accessible_event_types_success",
+        plant_id=plant_id,
+        event_type_count=len(event_types)
+    )
+
+    return event_types
+
+
 @router.get("", response_model=List[PlantEventResponse])
 def list_plant_events(
     organization_id: UUID,
