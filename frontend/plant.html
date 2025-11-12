@@ -63,11 +63,86 @@
             </div>
 
             <!-- Custom Fields Section -->
-            <div id="custom-fields-section" class="bg-white rounded-lg shadow-md p-6 hidden">
+            <div id="custom-fields-section" class="bg-white rounded-lg shadow-md p-6 mb-6 hidden">
                 <h3 class="text-xl font-semibold text-gray-800 mb-4">Custom Plant Fields</h3>
                 <div id="custom-fields-content" class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <!-- Custom fields will be rendered here -->
                 </div>
+            </div>
+
+            <!-- Events Section -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-semibold text-gray-800">Events</h3>
+                    <button onclick="openAddEventModal()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+                        Add Event
+                    </button>
+                </div>
+
+                <div id="events-loading" class="text-center py-8">
+                    <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+                    <p class="mt-2 text-gray-600">Loading events...</p>
+                </div>
+
+                <div id="events-content" class="hidden">
+                    <div id="events-empty" class="text-center py-8 text-gray-600 hidden">
+                        No events recorded yet. Click "Add Event" to record the first event for this plant.
+                    </div>
+
+                    <div id="events-timeline" class="space-y-4">
+                        <!-- Events will be rendered here as timeline -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Event Modal -->
+    <div id="add-event-modal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50" onclick="if(event.target === this) closeAddEventModal()">
+        <div class="relative top-10 mx-auto p-5 border w-auto max-w-2xl shadow-lg rounded-md bg-white">
+            <div class="mt-3">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">Add Event</h3>
+                <form id="add-event-form">
+                    <!-- Event Type Selection -->
+                    <div class="mb-4">
+                        <label for="event-type-select" class="block text-sm font-medium text-gray-700 mb-1">Event Type *</label>
+                        <select id="event-type-select" required
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                            <option value="">Select an event type...</option>
+                        </select>
+                    </div>
+
+                    <!-- Event Date -->
+                    <div class="mb-4">
+                        <label for="event-date" class="block text-sm font-medium text-gray-700 mb-1">Event Date & Time *</label>
+                        <input type="datetime-local" id="event-date" required
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+
+                    <!-- Notes -->
+                    <div class="mb-4">
+                        <label for="event-notes" class="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+                        <textarea id="event-notes" rows="3"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"></textarea>
+                    </div>
+
+                    <!-- Dynamic Fields Container -->
+                    <div id="event-fields-container" class="hidden mb-4">
+                        <h4 class="text-sm font-medium text-gray-700 mb-2">Event Data</h4>
+                        <div id="event-fields" class="space-y-3">
+                            <!-- Dynamic fields will be added here -->
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end gap-2">
+                        <button type="button" onclick="closeAddEventModal()" class="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300">
+                            Cancel
+                        </button>
+                        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                            Save Event
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
@@ -84,6 +159,9 @@
         let accessionId = null;
         let plantId = null;
         let plant = null;
+        let events = [];
+        let accessibleEventTypes = [];
+        let selectedEventType = null;
 
         async function init() {
             currentUser = await Auth.checkAuth();
@@ -107,6 +185,7 @@
             document.getElementById('footer').innerHTML = navigation.renderFooter();
 
             await loadPlant();
+            await loadEvents();
 
             // Set back link (after loading plant to get accessionId)
             document.getElementById('back-to-accession').href = buildUrl('organizations', organizationId, 'accessions', accessionId);
@@ -180,6 +259,227 @@
                     </div>
                 `;
             }).join('');
+        }
+
+        // Events Management
+        async function loadEvents() {
+            try {
+                events = await api.getPlantEvents(organizationId, speciesId, accessionId, plantId);
+                accessibleEventTypes = await api.getAccessibleEventTypes(organizationId, speciesId, accessionId, plantId);
+
+                document.getElementById('events-loading').classList.add('hidden');
+                document.getElementById('events-content').classList.remove('hidden');
+
+                if (events.length > 0) {
+                    renderEventsTimeline(events);
+                    document.getElementById('events-empty').classList.add('hidden');
+                } else {
+                    document.getElementById('events-empty').classList.remove('hidden');
+                }
+            } catch (error) {
+                console.error('Failed to load events:', error);
+                document.getElementById('events-loading').classList.add('hidden');
+                document.getElementById('events-content').classList.remove('hidden');
+                document.getElementById('events-empty').classList.remove('hidden');
+            }
+        }
+
+        function renderEventsTimeline(eventsList) {
+            const timeline = document.getElementById('events-timeline');
+            timeline.innerHTML = '';
+
+            // Sort events by date descending (newest first)
+            const sortedEvents = [...eventsList].sort((a, b) =>
+                new Date(b.event_date) - new Date(a.event_date)
+            );
+
+            sortedEvents.forEach(event => {
+                const eventCard = document.createElement('div');
+                eventCard.className = 'border-l-4 border-green-500 pl-4 py-3 bg-gray-50 rounded-r';
+
+                let fieldValuesHtml = '';
+                if (event.field_values && event.field_values.length > 0) {
+                    fieldValuesHtml = `
+                        <div class="mt-2 space-y-1">
+                            ${event.field_values.map(fv => `
+                                <div class="text-sm">
+                                    <span class="font-medium text-gray-700">${fv.field_name}:</span>
+                                    <span class="text-gray-600">${fv.value}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                }
+
+                let notesHtml = '';
+                if (event.notes) {
+                    notesHtml = `
+                        <div class="mt-2 text-sm text-gray-600 italic">
+                            ${event.notes}
+                        </div>
+                    `;
+                }
+
+                eventCard.innerHTML = `
+                    <div class="flex justify-between items-start">
+                        <div class="flex-1">
+                            <h4 class="font-semibold text-gray-900">${event.event_type_name}</h4>
+                            <p class="text-sm text-gray-500">${formatDate(event.event_date)}</p>
+                            ${fieldValuesHtml}
+                            ${notesHtml}
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="deleteEvent('${event.id}', '${event.event_type_name.replace(/'/g, "\\'")}')" class="text-red-600 hover:text-red-800 text-sm font-medium">
+                                Delete
+                            </button>
+                        </div>
+                    </div>
+                `;
+
+                timeline.appendChild(eventCard);
+            });
+        }
+
+        function openAddEventModal() {
+            // Populate event types dropdown
+            const select = document.getElementById('event-type-select');
+            select.innerHTML = '<option value="">Select an event type...</option>';
+
+            accessibleEventTypes.forEach(eventType => {
+                const option = document.createElement('option');
+                option.value = eventType.id;
+                option.textContent = eventType.event_name;
+                option.dataset.eventType = JSON.stringify(eventType);
+                select.appendChild(option);
+            });
+
+            // Set default date to now
+            const now = new Date();
+            const localDateTime = new Date(now.getTime() - (now.getTimezoneOffset() * 60000)).toISOString().slice(0, 16);
+            document.getElementById('event-date').value = localDateTime;
+
+            // Clear other fields
+            document.getElementById('event-notes').value = '';
+            document.getElementById('event-fields').innerHTML = '';
+            document.getElementById('event-fields-container').classList.add('hidden');
+
+            selectedEventType = null;
+            document.getElementById('add-event-modal').classList.remove('hidden');
+        }
+
+        function closeAddEventModal() {
+            document.getElementById('add-event-modal').classList.add('hidden');
+            selectedEventType = null;
+        }
+
+        // Handle event type selection change
+        document.getElementById('event-type-select').addEventListener('change', (e) => {
+            const selectedOption = e.target.options[e.target.selectedIndex];
+
+            if (!selectedOption.value) {
+                document.getElementById('event-fields-container').classList.add('hidden');
+                selectedEventType = null;
+                return;
+            }
+
+            selectedEventType = JSON.parse(selectedOption.dataset.eventType);
+
+            const fieldsContainer = document.getElementById('event-fields');
+            fieldsContainer.innerHTML = '';
+
+            if (selectedEventType.fields && selectedEventType.fields.length > 0) {
+                document.getElementById('event-fields-container').classList.remove('hidden');
+
+                selectedEventType.fields.forEach(field => {
+                    const fieldDiv = document.createElement('div');
+
+                    if (field.field_type === 'STRING') {
+                        fieldDiv.innerHTML = `
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                ${field.field_name} ${field.is_required ? '*' : ''}
+                            </label>
+                            <input type="text" data-field-id="${field.id}" data-field-type="STRING"
+                                ${field.is_required ? 'required' : ''}
+                                ${field.min_length ? `minlength="${field.min_length}"` : ''}
+                                ${field.max_length ? `maxlength="${field.max_length}"` : ''}
+                                ${field.regex_pattern ? `pattern="${field.regex_pattern}"` : ''}
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                        `;
+                    } else if (field.field_type === 'NUMBER') {
+                        fieldDiv.innerHTML = `
+                            <label class="block text-sm font-medium text-gray-700 mb-1">
+                                ${field.field_name} ${field.is_required ? '*' : ''}
+                            </label>
+                            <input type="number" data-field-id="${field.id}" data-field-type="NUMBER"
+                                ${field.is_required ? 'required' : ''}
+                                ${field.min_value !== null && field.min_value !== undefined ? `min="${field.min_value}"` : ''}
+                                ${field.max_value !== null && field.max_value !== undefined ? `max="${field.max_value}"` : ''}
+                                step="any"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                        `;
+                    }
+
+                    fieldsContainer.appendChild(fieldDiv);
+                });
+            } else {
+                document.getElementById('event-fields-container').classList.add('hidden');
+            }
+        });
+
+        document.getElementById('add-event-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const eventTypeId = document.getElementById('event-type-select').value;
+            const eventDate = document.getElementById('event-date').value;
+            const notes = document.getElementById('event-notes').value.trim();
+
+            // Collect field values
+            const fieldInputs = document.querySelectorAll('#event-fields input');
+            const fieldValues = [];
+
+            fieldInputs.forEach(input => {
+                const fieldId = input.dataset.fieldId;
+                const fieldType = input.dataset.fieldType;
+                const value = input.value.trim();
+
+                if (value) {
+                    fieldValues.push({
+                        field_id: fieldId,
+                        value_string: fieldType === 'STRING' ? value : null,
+                        value_number: fieldType === 'NUMBER' ? parseFloat(value) : null
+                    });
+                }
+            });
+
+            const data = {
+                event_type_id: eventTypeId,
+                event_date: new Date(eventDate).toISOString(),
+                notes: notes || null,
+                field_values: fieldValues
+            };
+
+            try {
+                await api.createPlantEvent(organizationId, speciesId, accessionId, plantId, data);
+                showSuccess('Event recorded successfully!');
+                closeAddEventModal();
+                await loadEvents();
+            } catch (error) {
+                showError(error.message || 'Failed to record event');
+            }
+        });
+
+        async function deleteEvent(eventId, eventTypeName) {
+            if (!confirm(`Are you sure you want to delete this ${eventTypeName} event?`)) {
+                return;
+            }
+
+            try {
+                await api.deletePlantEvent(organizationId, speciesId, accessionId, plantId, eventId);
+                showSuccess('Event deleted successfully!');
+                await loadEvents();
+            } catch (error) {
+                showError(error.message || 'Failed to delete event');
+            }
         }
 
         init();
