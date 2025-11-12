@@ -440,13 +440,13 @@
             fieldInputs.forEach(input => {
                 const fieldId = input.dataset.fieldId;
                 const fieldType = input.dataset.fieldType;
-                const value = input.value.trim();
+                const rawValue = input.value.trim();
 
-                if (value) {
+                if (rawValue) {
+                    const value = fieldType === 'number' ? parseFloat(rawValue) : rawValue;
                     fieldValues.push({
                         field_id: fieldId,
-                        value_string: fieldType === 'string' ? value : null,
-                        value_number: fieldType === 'number' ? parseFloat(value) : null
+                        value: value
                     });
                 }
             });
