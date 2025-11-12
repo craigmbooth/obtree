@@ -21,7 +21,8 @@ from app.models import (
 from app.models.membership import OrganizationRole
 from app.models.project import ProjectStatus
 from app.models.species import SpeciesStatus
-from app.models.event_type import EventScope, EventTypeField, FieldType
+from app.models.event_type_field import EventTypeField
+from app.models.project_accession_field import FieldType
 from app.core.security import get_password_hash
 
 
@@ -472,8 +473,8 @@ def create_event_types(db, orgs, projects, users):
         {
             "event_name": "Height Measurement",
             "description": "Record plant height in centimeters",
-            "scope": EventScope.ORGANIZATION,
             "org_idx": 0,
+            "project_id": None,  # NULL = org-level
             "fields": [
                 {"field_name": "Height (cm)", "field_type": FieldType.NUMBER, "is_required": True, "min_value": 0.0, "max_value": 10000.0}
             ]
@@ -481,8 +482,8 @@ def create_event_types(db, orgs, projects, users):
         {
             "event_name": "Disease Observation",
             "description": "Record disease symptoms and severity",
-            "scope": EventScope.ORGANIZATION,
             "org_idx": 0,
+            "project_id": None,  # NULL = org-level
             "fields": [
                 {"field_name": "Disease Name", "field_type": FieldType.STRING, "is_required": True, "max_length": 200},
                 {"field_name": "Severity (1-10)", "field_type": FieldType.NUMBER, "is_required": True, "min_value": 1.0, "max_value": 10.0}
@@ -491,8 +492,8 @@ def create_event_types(db, orgs, projects, users):
         {
             "event_name": "Flowering Date",
             "description": "Record when flowering begins",
-            "scope": EventScope.ORGANIZATION,
             "org_idx": 0,
+            "project_id": None,  # NULL = org-level
             "fields": [
                 {"field_name": "Bloom Stage", "field_type": FieldType.STRING, "is_required": True, "max_length": 100}
             ]
@@ -504,7 +505,7 @@ def create_event_types(db, orgs, projects, users):
         {
             "event_name": "Oak Wilt Assessment",
             "description": "Assess oak wilt resistance",
-            "scope": EventScope.PROJECT,
+            "org_idx": 0,
             "project_idx": 0,
             "fields": [
                 {"field_name": "Wilt Symptoms", "field_type": FieldType.STRING, "is_required": True, "max_length": 500},
@@ -518,8 +519,8 @@ def create_event_types(db, orgs, projects, users):
         event_type = EventType(
             event_name=et_data["event_name"],
             description=et_data["description"],
-            scope=et_data["scope"],
             organization_id=orgs[et_data["org_idx"]].id,
+            project_id=et_data["project_id"],
             created_by=users[0].id,
             created_at=datetime.utcnow() - timedelta(days=120)
         )
@@ -546,7 +547,7 @@ def create_event_types(db, orgs, projects, users):
         event_type = EventType(
             event_name=et_data["event_name"],
             description=et_data["description"],
-            scope=et_data["scope"],
+            organization_id=orgs[et_data["org_idx"]].id,
             project_id=projects[et_data["project_idx"]].id,
             created_by=users[0].id,
             created_at=datetime.utcnow() - timedelta(days=100)
