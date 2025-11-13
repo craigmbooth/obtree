@@ -33,67 +33,74 @@
                 <a href="#" id="back-to-org" class="text-blue-600 hover:underline">← Back to Organization</a>
             </div>
 
+            <!-- Manage Organization & Invites -->
             <div class="bg-white rounded-lg shadow-md p-6 mb-6">
-                <h2 class="text-3xl font-bold text-gray-800 mb-4">Manage Organization</h2>
+                <h2 class="text-2xl font-bold text-gray-800 mb-4">Manage Organization</h2>
 
-                <!-- Organization Name Display -->
-                <div id="org-name-display" class="mb-4">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Organization Name</label>
-                            <p id="org-name-text" class="text-lg font-semibold text-gray-900"></p>
-                        </div>
-                        <button id="edit-org-name-btn" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-                            Edit
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Edit Organization Name Form -->
-                <form id="edit-org-form" class="hidden mb-4">
+                <div class="space-y-4">
+                    <!-- Organization Name Section -->
                     <div>
-                        <label for="org-name-input" class="block text-sm font-medium text-gray-700 mb-2">Organization Name</label>
+                        <!-- Organization Name Display -->
+                        <div id="org-name-display">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Organization Name</label>
+                            <div class="flex items-center gap-3">
+                                <p id="org-name-text" class="text-base font-semibold text-gray-900"></p>
+                                <button id="edit-org-name-btn" class="text-blue-600 hover:text-blue-700 text-sm font-medium">
+                                    Edit
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Edit Organization Name Form -->
+                        <form id="edit-org-form" class="hidden">
+                            <label for="org-name-input" class="block text-sm font-medium text-gray-700 mb-1">Organization Name</label>
+                            <div class="flex gap-2">
+                                <input type="text" id="org-name-input" required
+                                    class="flex-1 px-3 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500">
+                                <button type="submit" class="bg-blue-600 text-white px-3 py-1.5 text-sm rounded hover:bg-blue-700">
+                                    Save
+                                </button>
+                                <button type="button" id="cancel-org-name-btn" class="bg-gray-300 text-gray-800 px-3 py-1.5 text-sm rounded hover:bg-gray-400">
+                                    Cancel
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Create Invites Section -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Create Invite</label>
                         <div class="flex gap-2">
-                            <input type="text" id="org-name-input" required
-                                class="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-                            <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-                                Save
-                            </button>
-                            <button type="button" id="cancel-org-name-btn" class="bg-gray-300 text-gray-800 px-4 py-2 rounded hover:bg-gray-400">
-                                Cancel
+                            <select id="invite-role" class="px-3 py-1.5 text-sm border border-gray-300 rounded">
+                                <option value="user">User</option>
+                                <option value="admin">Admin</option>
+                            </select>
+                            <button onclick="createInvite()" class="bg-blue-600 text-white px-3 py-1.5 text-sm rounded hover:bg-blue-700">
+                                Generate Invite
                             </button>
                         </div>
-                    </div>
-                </form>
-            </div>
-
-            <!-- Create Invites -->
-            <div class="bg-white rounded-lg shadow-md p-6 mb-6">
-                <h3 class="text-xl font-bold text-gray-800 mb-4">Create Invites</h3>
-                <div>
-                    <label for="invite-role" class="block text-sm font-medium text-gray-700 mb-2">Role</label>
-                    <div class="flex space-x-2">
-                        <select id="invite-role" class="flex-1 px-3 py-2 border border-gray-300 rounded-md">
-                            <option value="user">User</option>
-                            <option value="admin">Admin</option>
-                        </select>
-                        <button onclick="createInvite()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-                            Generate Invite
-                        </button>
                     </div>
                 </div>
 
                 <!-- Active invites -->
-                <div id="invites-section" class="hidden mt-6">
-                    <h4 class="font-semibold text-gray-700 mb-2">Active Invites</h4>
+                <div id="invites-section" class="hidden mt-6 pt-4 border-t border-gray-200">
+                    <h4 class="text-sm font-semibold text-gray-700 mb-2">Active Invites</h4>
                     <div id="invites-table">
                         <!-- Invites table will be initialized here -->
                     </div>
                 </div>
             </div>
 
-            <!-- Event Types -->
+            <!-- Members table -->
             <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+                <h3 class="text-xl font-bold text-gray-800 mb-4">Members</h3>
+                <div id="members-table">
+                    <!-- Members table will be initialized here -->
+                </div>
+            </div>
+
+            <!-- Event Types -->
+            <div class="bg-white rounded-lg shadow-md p-6">
                 <div class="flex justify-between items-center mb-4">
                     <h3 class="text-xl font-bold text-gray-800">Organization Event Types</h3>
                     <button onclick="openCreateEventTypeModal()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
@@ -103,14 +110,6 @@
                 <p class="text-sm text-gray-600 mb-4">Event types defined here are available to all plants in the organization.</p>
                 <div id="event-types-table">
                     <!-- Event types table will be initialized here -->
-                </div>
-            </div>
-
-            <!-- Members table -->
-            <div class="bg-white rounded-lg shadow-md p-6">
-                <h3 class="text-xl font-bold text-gray-800 mb-4">Members</h3>
-                <div id="members-table">
-                    <!-- Members table will be initialized here -->
                 </div>
             </div>
         </div>

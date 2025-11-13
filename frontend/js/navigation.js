@@ -2,6 +2,7 @@
 class Navigation {
     constructor() {
         this.currentUser = null;
+        this.searchDebounceTimer = null;
     }
 
     /**
@@ -25,12 +26,23 @@ class Navigation {
                                 <span class="text-2xl font-bold">RedBuds App</span>
                             </a>
                             ${showOrgDropdown ? `
-                            <!-- Organization dropdown for non-admins -->
+                            <!-- Organization dropdown -->
                             <div id="org-dropdown" class="hidden relative">
-                                <select id="org-selector" onchange="handleOrgChange()"
-                                    class="bg-blue-700 text-white px-3 py-2 rounded hover:bg-blue-800 cursor-pointer focus:outline-none focus:ring-2 focus:ring-white">
-                                    <option value="">Loading...</option>
-                                </select>
+                                <button id="org-menu-button" class="flex items-center space-x-2 bg-blue-700 text-white px-3 py-2 rounded hover:bg-blue-800 cursor-pointer focus:outline-none focus:ring-2 focus:ring-white">
+                                    <span id="org-current-name">Loading...</span>
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                    </svg>
+                                </button>
+                                <div id="org-menu" class="hidden absolute left-0 mt-2 w-80 bg-white rounded-md shadow-lg z-50">
+                                    <div class="p-2 border-b border-gray-200">
+                                        <input type="text" id="org-search" placeholder="Search organizations..."
+                                            class="w-full px-3 py-2 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500">
+                                    </div>
+                                    <div id="org-menu-list" class="py-1 max-h-80 overflow-y-auto">
+                                        <!-- Organization options will be populated here -->
+                                    </div>
+                                </div>
                             </div>
                             ` : ''}
                             ${orgDropdownId ? `
@@ -128,6 +140,12 @@ class Navigation {
         userMenuButton.addEventListener('click', (e) => {
             e.stopPropagation();
             userMenu.classList.toggle('hidden');
+
+            // Close org menu if open
+            const orgMenu = document.getElementById('org-menu');
+            if (orgMenu && !orgMenu.classList.contains('hidden')) {
+                orgMenu.classList.add('hidden');
+            }
         });
 
         // Close dropdown when clicking outside
@@ -139,35 +157,140 @@ class Navigation {
     }
 
     /**
-     * Load organization dropdown for non-admin users
+     * Setup organization dropdown menu toggle
+     */
+    setupOrgDropdown() {
+        const orgMenuButton = document.getElementById('org-menu-button');
+        const orgMenu = document.getElementById('org-menu');
+        const orgSearch = document.getElementById('org-search');
+
+        if (!orgMenuButton || !orgMenu) return;
+
+        // Toggle dropdown
+        orgMenuButton.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const wasHidden = orgMenu.classList.contains('hidden');
+            orgMenu.classList.toggle('hidden');
+
+            // Close user menu if open
+            const userMenu = document.getElementById('user-menu');
+            if (userMenu && !userMenu.classList.contains('hidden')) {
+                userMenu.classList.add('hidden');
+            }
+
+            // Focus search input when opening
+            if (wasHidden && orgSearch) {
+                setTimeout(() => orgSearch.focus(), 100);
+            }
+        });
+
+        // Prevent dropdown from closing when clicking inside
+        orgMenu.addEventListener('click', (e) => {
+            e.stopPropagation();
+        });
+
+        // Setup search functionality with debouncing
+        if (orgSearch) {
+            orgSearch.addEventListener('input', (e) => {
+                // Clear existing timer
+                if (this.searchDebounceTimer) {
+                    clearTimeout(this.searchDebounceTimer);
+                }
+
+                // Set new timer to filter after 150ms
+                const searchValue = e.target.value;
+                this.searchDebounceTimer = setTimeout(() => {
+                    this.filterOrganizations(searchValue);
+                }, 150);
+            });
+
+            // Prevent search input from closing dropdown
+            orgSearch.addEventListener('click', (e) => {
+                e.stopPropagation();
+            });
+        }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', () => {
+            if (!orgMenu.classList.contains('hidden')) {
+                orgMenu.classList.add('hidden');
+                // Clear search when closing
+                if (orgSearch) {
+                    orgSearch.value = '';
+                    this.filterOrganizations('');
+                }
+            }
+        });
+    }
+
+    /**
+     * Filter organizations in dropdown based on search term
+     * @param {string} searchTerm - Search term to filter by
+     */
+    filterOrganizations(searchTerm) {
+        const orgMenuList = document.getElementById('org-menu-list');
+        if (!orgMenuList) return;
+
+        const items = orgMenuList.querySelectorAll('a');
+        const lowerSearch = searchTerm.toLowerCase();
+
+        items.forEach(item => {
+            const orgName = item.textContent.toLowerCase();
+            if (orgName.includes(lowerSearch)) {
+                item.style.display = 'block';
+            } else {
+                item.style.display = 'none';
+            }
+        });
+    }
+
+    /**
+     * Load organization dropdown
      * @param {string} currentOrgId - Current organization ID
      */
     async loadOrganizationDropdown(currentOrgId = null) {
         try {
             const organizations = await api.getOrganizations();
-            const dropdown = document.getElementById('org-selector');
+            const orgMenuList = document.getElementById('org-menu-list');
+            const orgCurrentName = document.getElementById('org-current-name');
             const dropdownContainer = document.getElementById('org-dropdown');
 
-            if (!dropdown || !dropdownContainer) return;
+            if (!orgMenuList || !orgCurrentName || !dropdownContainer) return;
 
             if (organizations.length > 0) {
                 dropdownContainer.classList.remove('hidden');
 
+                // Sort organizations alphabetically
+                organizations.sort((a, b) => a.name.localeCompare(b.name));
+
+                // Find current organization name
+                const currentOrg = organizations.find(org => org.id === currentOrgId);
+                if (currentOrg) {
+                    orgCurrentName.textContent = currentOrg.name;
+                } else {
+                    orgCurrentName.textContent = organizations[0].name;
+                }
+
                 // Clear existing options
-                dropdown.innerHTML = '';
+                orgMenuList.innerHTML = '';
 
                 // Add organization options
                 organizations.forEach(org => {
-                    const option = document.createElement('option');
-                    option.value = org.id;
-                    option.textContent = org.name;
-                    dropdown.appendChild(option);
+                    const item = document.createElement('a');
+                    item.href = buildUrl('organizations', org.id);
+                    item.className = 'block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100';
+
+                    // Highlight current organization
+                    if (org.id === currentOrgId) {
+                        item.className = 'block px-4 py-2 text-sm text-gray-700 bg-gray-100 font-semibold';
+                    }
+
+                    item.textContent = org.name;
+                    orgMenuList.appendChild(item);
                 });
 
-                // Set current organization as selected
-                if (currentOrgId) {
-                    dropdown.value = currentOrgId;
-                }
+                // Setup dropdown toggle
+                this.setupOrgDropdown();
             }
         } catch (error) {
             console.error('Failed to load organizations for dropdown:', error);
@@ -191,12 +314,3 @@ class Navigation {
 
 // Create global navigation instance
 const navigation = new Navigation();
-
-// Global function for org dropdown change (referenced in HTML)
-function handleOrgChange() {
-    const dropdown = document.getElementById('org-selector');
-    const selectedOrgId = dropdown.value;
-    if (selectedOrgId) {
-        window.location.href = buildUrl('organizations', selectedOrgId);
-    }
-}
