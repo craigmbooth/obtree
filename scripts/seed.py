@@ -8,6 +8,7 @@ Run with: poetry run python scripts/seed.py
 import sys
 import os
 import subprocess
+import json
 from datetime import datetime, timedelta
 
 # Add parent directory to path to import app modules
@@ -662,7 +663,7 @@ def create_location_types(db, orgs, users):
 
     # Add fields for Tree Breeding Nursery
     fields_data = [
-        {"field_name": "Blocks", "field_type": FieldType.STRING, "is_required": True, "max_length": 100, "display_order": 0},
+        {"field_name": "Block", "field_type": FieldType.SELECT, "is_required": True, "field_options": ["Block A", "Block B", "Block C", "Block D", "Block E"], "display_order": 0},
         {"field_name": "Rows", "field_type": FieldType.NUMBER, "is_required": True, "min_value": 1.0, "max_value": 1000.0, "display_order": 1},
         {"field_name": "Row Feet", "field_type": FieldType.NUMBER, "is_required": False, "min_value": 0.0, "max_value": 10000.0, "display_order": 2},
         {"field_name": "Latitude", "field_type": FieldType.NUMBER, "is_required": False, "min_value": -90.0, "max_value": 90.0, "display_order": 3},
@@ -670,6 +671,11 @@ def create_location_types(db, orgs, users):
     ]
 
     for field_data in fields_data:
+        # Convert field_options list to JSON string for storage
+        field_options_json = None
+        if "field_options" in field_data:
+            field_options_json = json.dumps(field_data["field_options"])
+
         field = LocationTypeField(
             location_type_id=location_type.id,
             field_name=field_data["field_name"],
@@ -679,6 +685,7 @@ def create_location_types(db, orgs, users):
             min_value=field_data.get("min_value"),
             max_value=field_data.get("max_value"),
             max_length=field_data.get("max_length"),
+            field_options=field_options_json,
             created_by=users[0].id
         )
         db.add(field)
@@ -708,7 +715,7 @@ def create_locations(db, location_types, orgs, users):
         lon_field = None
 
         for field in nursery_type.fields:
-            if field.field_name == "Blocks":
+            if field.field_name == "Block":
                 blocks_field = field
             elif field.field_name == "Rows":
                 rows_field = field
@@ -744,7 +751,7 @@ def create_locations(db, location_types, orgs, users):
             {
                 "name": "South Greenhouse Complex",
                 "notes": "Climate-controlled environment for seedling development",
-                "blocks": "GH-1",
+                "blocks": "Block D",
                 "rows": 8,
                 "row_feet": 75.0,
                 "lat": 41.813200,

@@ -1,4 +1,5 @@
 import re
+import json
 from decimal import Decimal
 from typing import List, Dict, Any, Union
 from uuid import UUID
@@ -85,6 +86,30 @@ def validate_field_value(field: Union[ProjectAccessionField, Any], value: Union[
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Field '{field.field_name}' must be at most {field.max_value}"
+            )
+
+    elif field.field_type == FieldType.SELECT:
+        if not isinstance(value, str):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Field '{field.field_name}' must be a string"
+            )
+
+        # Parse field_options from JSON
+        try:
+            options = json.loads(field.field_options) if field.field_options else []
+        except json.JSONDecodeError:
+            logger.error(f"Invalid JSON in field_options for field {field.id}")
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Invalid field configuration"
+            )
+
+        # Check if value is in the allowed options
+        if value not in options:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Field '{field.field_name}' must be one of: {', '.join(options)}"
             )
 
 

@@ -1,7 +1,8 @@
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 from uuid import UUID
-from pydantic import BaseModel, Field
+import json
+from pydantic import BaseModel, Field, field_serializer, field_validator
 
 from app.models.project_accession_field import FieldType
 
@@ -21,6 +22,9 @@ class LocationTypeFieldBase(BaseModel):
     # Number validation
     min_value: Optional[float] = Field(None, description="Minimum value for NUMBER fields")
     max_value: Optional[float] = Field(None, description="Maximum value for NUMBER fields")
+
+    # Select field options
+    field_options: Optional[List[str]] = Field(None, description="List of valid options for SELECT fields")
 
 
 class LocationTypeFieldCreate(LocationTypeFieldBase):
@@ -44,6 +48,9 @@ class LocationTypeFieldUpdate(BaseModel):
     min_value: Optional[float] = None
     max_value: Optional[float] = None
 
+    # Select field options
+    field_options: Optional[List[str]] = None
+
 
 class LocationTypeFieldResponse(LocationTypeFieldBase):
     """Schema for location type field response."""
@@ -53,6 +60,19 @@ class LocationTypeFieldResponse(LocationTypeFieldBase):
     is_locked: bool  # Computed property from model
     created_at: datetime
     created_by: UUID
+
+    @field_validator('field_options', mode='before')
+    @classmethod
+    def parse_field_options(cls, v):
+        """Convert JSON string from database to list."""
+        if v is None:
+            return None
+        if isinstance(v, str):
+            try:
+                return json.loads(v)
+            except json.JSONDecodeError:
+                return None
+        return v
 
     class Config:
         from_attributes = True

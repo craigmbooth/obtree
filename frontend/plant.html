@@ -32,9 +32,14 @@
             <div class="bg-white rounded-lg shadow-md p-6 mb-6">
                 <div class="flex justify-between items-start mb-4">
                     <h2 id="plant-id" class="text-3xl font-bold text-gray-800"></h2>
-                    <button id="edit-plant-btn" onclick="openEditPlantModal()" class="hidden bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-                        Edit Plant
-                    </button>
+                    <div class="flex gap-2">
+                        <button id="edit-plant-btn" onclick="openEditPlantModal()" class="hidden bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                            Edit
+                        </button>
+                        <button id="delete-plant-btn" onclick="deletePlant()" class="hidden bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">
+                            Delete
+                        </button>
+                    </div>
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -323,15 +328,31 @@
                     renderCustomFields(plant.field_values);
                 }
 
-                // Show edit button if user is admin or site admin
+                // Show edit/delete buttons if user is admin or site admin
                 const org = await api.getOrganization(organizationId);
                 const isAdmin = org.members.some(m => m.user_id === currentUser.id && m.role === 'admin' && m.status === 'Active');
                 if (currentUser.is_site_admin || isAdmin) {
                     document.getElementById('edit-plant-btn').classList.remove('hidden');
+                    document.getElementById('delete-plant-btn').classList.remove('hidden');
                 }
             } catch (error) {
                 document.getElementById('loading').classList.add('hidden');
                 showError(error.message || 'Failed to load plant');
+            }
+        }
+
+        async function deletePlant() {
+            if (!confirm(`Are you sure you want to delete plant "${plant.plant_id}"? This will also delete all associated events. This action cannot be undone.`)) {
+                return;
+            }
+
+            try {
+                await api.deletePlant(organizationId, speciesId, accessionId, plantId);
+                showSuccess('Plant deleted successfully!');
+                // Redirect back to accession page
+                window.location.href = buildUrl('organizations', organizationId, 'accessions', accessionId);
+            } catch (error) {
+                showError(error.message || 'Failed to delete plant');
             }
         }
 
@@ -689,28 +710,60 @@
                 label.className = 'block text-xs font-medium text-gray-700 mb-1';
                 label.textContent = field.field_name + (field.is_required ? ' *' : '');
 
-                const input = document.createElement('input');
-                input.type = field.field_type === 'NUMBER' ? 'number' : 'text';
-                input.id = `location-field-${field.id}`;
-                input.dataset.fieldId = field.id;
-                input.dataset.fieldType = field.field_type;
-                input.className = 'w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500';
+                let inputElement;
 
-                if (field.is_required) {
-                    input.required = true;
-                }
+                if (field.field_type === 'select') {
+                    // Create select dropdown for SELECT fields
+                    inputElement = document.createElement('select');
+                    inputElement.id = `location-field-${field.id}`;
+                    inputElement.dataset.fieldId = field.id;
+                    inputElement.dataset.fieldType = field.field_type;
+                    inputElement.className = 'w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500';
 
-                if (field.field_type === 'NUMBER') {
-                    if (field.min_value !== null) input.min = field.min_value;
-                    if (field.max_value !== null) input.max = field.max_value;
-                    input.step = 'any';
+                    if (field.is_required) {
+                        inputElement.required = true;
+                    }
+
+                    // Add blank option
+                    const blankOption = document.createElement('option');
+                    blankOption.value = '';
+                    blankOption.textContent = 'Select...';
+                    inputElement.appendChild(blankOption);
+
+                    // Add options from field_options
+                    if (field.field_options && Array.isArray(field.field_options)) {
+                        field.field_options.forEach(option => {
+                            const optionElement = document.createElement('option');
+                            optionElement.value = option;
+                            optionElement.textContent = option;
+                            inputElement.appendChild(optionElement);
+                        });
+                    }
                 } else {
-                    if (field.min_length) input.minLength = field.min_length;
-                    if (field.max_length) input.maxLength = field.max_length;
+                    // Create input for STRING or NUMBER fields
+                    inputElement = document.createElement('input');
+                    inputElement.type = field.field_type === 'number' ? 'number' : 'text';
+                    inputElement.id = `location-field-${field.id}`;
+                    inputElement.dataset.fieldId = field.id;
+                    inputElement.dataset.fieldType = field.field_type;
+                    inputElement.className = 'w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500';
+
+                    if (field.is_required) {
+                        inputElement.required = true;
+                    }
+
+                    if (field.field_type === 'number') {
+                        if (field.min_value !== null) inputElement.min = field.min_value;
+                        if (field.max_value !== null) inputElement.max = field.max_value;
+                        inputElement.step = 'any';
+                    } else {
+                        if (field.min_length) inputElement.minLength = field.min_length;
+                        if (field.max_length) inputElement.maxLength = field.max_length;
+                    }
                 }
 
                 fieldDiv.appendChild(label);
-                fieldDiv.appendChild(input);
+                fieldDiv.appendChild(inputElement);
                 fieldsDiv.appendChild(fieldDiv);
             });
         }

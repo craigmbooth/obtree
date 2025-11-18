@@ -1,6 +1,6 @@
 from datetime import datetime
 import uuid as uuid_lib
-from sqlalchemy import Column, DateTime, String, ForeignKey, Integer, Boolean, Enum, Float
+from sqlalchemy import Column, DateTime, String, ForeignKey, Integer, Boolean, Enum, Float, Text
 from sqlalchemy.orm import relationship
 
 from app.database import Base
@@ -32,6 +32,9 @@ class LocationTypeField(Base):
     # Number validation
     min_value = Column(Float, nullable=True)
     max_value = Column(Float, nullable=True)
+
+    # Select field options (JSON array stored as text)
+    field_options = Column(Text, nullable=True)
 
     # Soft delete
     is_deleted = Column(Boolean, default=False, nullable=False)

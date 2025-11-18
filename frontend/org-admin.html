@@ -835,11 +835,15 @@
                             value="${existingField ? existingField.field_name : ''}" required>
                     </div>
                     <div class="col-span-2">
-                        <label class="block text-xs font-medium text-gray-700 mb-1">Type *</label>
-                        <select class="field-type w-full px-2 py-1 text-sm border border-gray-300 rounded" ${existingField && existingField.is_locked ? 'disabled' : ''}>
+                        <label class="block text-xs font-medium text-gray-700 mb-1">
+                            Type *
+                            ${existingField && existingField.is_locked ? '<span class="ml-1 text-yellow-600" title="Field type is locked because events are using this field">🔒</span>' : ''}
+                        </label>
+                        <select class="field-type w-full px-2 py-1 text-sm border border-gray-300 rounded ${existingField && existingField.is_locked ? 'bg-gray-100 cursor-not-allowed' : ''}" ${existingField && existingField.is_locked ? 'disabled' : ''}>
                             <option value="string" ${existingField && existingField.field_type === 'string' ? 'selected' : ''}>String</option>
                             <option value="number" ${existingField && existingField.field_type === 'number' ? 'selected' : ''}>Number</option>
                         </select>
+                        ${existingField && existingField.is_locked ? '<p class="text-xs text-yellow-600 mt-1">Type locked - events exist</p>' : ''}
                     </div>
                     <div class="col-span-2">
                         <label class="block text-xs font-medium text-gray-700 mb-1">Required</label>
@@ -1162,11 +1166,16 @@
                             value="${existingField ? existingField.field_name : ''}" required>
                     </div>
                     <div class="col-span-2">
-                        <label class="block text-xs font-medium text-gray-700 mb-1">Type *</label>
-                        <select class="loc-field-type w-full px-2 py-1 text-sm border border-gray-300 rounded" ${existingField && existingField.is_locked ? 'disabled' : ''}>
+                        <label class="block text-xs font-medium text-gray-700 mb-1">
+                            Type *
+                            ${existingField && existingField.is_locked ? '<span class="ml-1 text-yellow-600" title="Field type is locked because locations are using this field">🔒</span>' : ''}
+                        </label>
+                        <select class="loc-field-type w-full px-2 py-1 text-sm border border-gray-300 rounded ${existingField && existingField.is_locked ? 'bg-gray-100 cursor-not-allowed' : ''}" ${existingField && existingField.is_locked ? 'disabled' : ''}>
                             <option value="string" ${existingField && existingField.field_type === 'string' ? 'selected' : ''}>String</option>
                             <option value="number" ${existingField && existingField.field_type === 'number' ? 'selected' : ''}>Number</option>
+                            <option value="select" ${existingField && existingField.field_type === 'select' ? 'selected' : ''}>Select (Dropdown)</option>
                         </select>
+                        ${existingField && existingField.is_locked ? '<p class="text-xs text-yellow-600 mt-1">Type locked - locations exist</p>' : ''}
                     </div>
                     <div class="col-span-2">
                         <label class="block text-xs font-medium text-gray-700 mb-1">Required</label>
@@ -1218,6 +1227,12 @@
                             </div>
                         </div>
                     </div>
+                    <div class="loc-select-validation hidden">
+                        <label class="block text-xs text-gray-700 mb-1">Dropdown Options (one per line)</label>
+                        <textarea class="loc-field-options w-full px-2 py-1 text-sm border border-gray-300 rounded" rows="5"
+                            placeholder="Option 1&#10;Option 2&#10;Option 3"></textarea>
+                        <p class="text-xs text-gray-500 mt-1">Enter each option on a new line</p>
+                    </div>
                 </div>
             `;
 
@@ -1229,21 +1244,45 @@
                 const validation = fieldDiv.querySelector('.loc-field-validation');
                 const stringValidation = validation.querySelector('.loc-string-validation');
                 const numberValidation = validation.querySelector('.loc-number-validation');
+                const selectValidation = validation.querySelector('.loc-select-validation');
 
                 if (e.target.value === 'string') {
                     stringValidation.classList.remove('hidden');
                     numberValidation.classList.add('hidden');
-                } else {
+                    selectValidation.classList.add('hidden');
+                } else if (e.target.value === 'number') {
                     stringValidation.classList.add('hidden');
                     numberValidation.classList.remove('hidden');
+                    selectValidation.classList.add('hidden');
+                } else if (e.target.value === 'select') {
+                    stringValidation.classList.add('hidden');
+                    numberValidation.classList.add('hidden');
+                    selectValidation.classList.remove('hidden');
                 }
             });
 
             // Trigger initial state
-            if (existingField && existingField.field_type === 'number') {
+            if (existingField) {
                 const validation = fieldDiv.querySelector('.loc-field-validation');
-                validation.querySelector('.loc-string-validation').classList.add('hidden');
-                validation.querySelector('.loc-number-validation').classList.remove('hidden');
+                const stringValidation = validation.querySelector('.loc-string-validation');
+                const numberValidation = validation.querySelector('.loc-number-validation');
+                const selectValidation = validation.querySelector('.loc-select-validation');
+
+                if (existingField.field_type === 'number') {
+                    stringValidation.classList.add('hidden');
+                    numberValidation.classList.remove('hidden');
+                    selectValidation.classList.add('hidden');
+                } else if (existingField.field_type === 'select') {
+                    stringValidation.classList.add('hidden');
+                    numberValidation.classList.add('hidden');
+                    selectValidation.classList.remove('hidden');
+
+                    // Populate field options textarea
+                    if (existingField.field_options && Array.isArray(existingField.field_options)) {
+                        const optionsTextarea = fieldDiv.querySelector('.loc-field-options');
+                        optionsTextarea.value = existingField.field_options.join('\n');
+                    }
+                }
             }
         }
 
@@ -1298,6 +1337,15 @@
 
                     if (minValue) field.min_value = parseFloat(minValue);
                     if (maxValue) field.max_value = parseFloat(maxValue);
+                } else if (fieldType === 'select') {
+                    const optionsText = fieldDiv.querySelector('.loc-field-options').value;
+                    // Split by newlines, trim whitespace, filter out empty lines
+                    const options = optionsText
+                        .split('\n')
+                        .map(opt => opt.trim())
+                        .filter(opt => opt.length > 0);
+
+                    field.field_options = options;
                 }
 
                 // If editing existing field, include field ID

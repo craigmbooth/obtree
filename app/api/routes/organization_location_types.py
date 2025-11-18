@@ -1,6 +1,7 @@
 from typing import List
 from uuid import UUID
 from datetime import datetime
+import json
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session, joinedload
 
@@ -149,6 +150,11 @@ def create_organization_location_type(
     # Create fields if provided
     if location_type_data.fields:
         for field_data in location_type_data.fields:
+            # Convert field_options list to JSON string for storage
+            field_options_json = None
+            if field_data.field_options:
+                field_options_json = json.dumps(field_data.field_options)
+
             new_field = LocationTypeField(
                 location_type_id=new_location_type.id,
                 field_name=field_data.field_name,
@@ -160,6 +166,7 @@ def create_organization_location_type(
                 regex_pattern=field_data.regex_pattern,
                 min_value=field_data.min_value,
                 max_value=field_data.max_value,
+                field_options=field_options_json,
                 created_by=current_user.id
             )
             db.add(new_field)
@@ -314,6 +321,11 @@ def update_organization_location_type(
 
         # Update or create fields
         for field_data in location_type_update.fields:
+            # Convert field_options list to JSON string for storage
+            field_options_json = None
+            if field_data.field_options:
+                field_options_json = json.dumps(field_data.field_options)
+
             if field_data.id and field_data.id in existing_field_ids:
                 # Update existing field
                 field = next(f for f in location_type.fields if f.id == field_data.id)
@@ -326,6 +338,7 @@ def update_organization_location_type(
                 field.regex_pattern = field_data.regex_pattern
                 field.min_value = field_data.min_value
                 field.max_value = field_data.max_value
+                field.field_options = field_options_json
             else:
                 # Create new field
                 new_field = LocationTypeField(
@@ -339,6 +352,7 @@ def update_organization_location_type(
                     regex_pattern=field_data.regex_pattern,
                     min_value=field_data.min_value,
                     max_value=field_data.max_value,
+                    field_options=field_options_json,
                     created_by=current_user.id
                 )
                 db.add(new_field)
