@@ -15,6 +15,7 @@ from app.schemas.organization import (
 )
 from app.schemas.invite import (
     InviteCreate,
+    SiteAdminInviteCreate,
     InviteResponse,
     InviteValidateResponse,
 )
@@ -110,6 +111,7 @@ __all__ = [
     "OrganizationMemberResponse",
     "OrganizationMemberRoleUpdate",
     "InviteCreate",
+    "SiteAdminInviteCreate",
     "InviteResponse",
     "InviteValidateResponse",
     "ProjectCreate",

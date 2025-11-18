@@ -10,6 +10,8 @@
     <link href="https://unpkg.com/tabulator-tables@6.2.5/dist/css/tabulator.min.css" rel="stylesheet">
     <link href="/css/table-custom.css" rel="stylesheet">
     <script src="https://unpkg.com/tabulator-tables@6.2.5/dist/js/tabulator.min.js"></script>
+    <!-- QR Code Generator -->
+    <script src="https://cdn.jsdelivr.net/npm/davidshimjs-qrcodejs@0.0.2/qrcode.min.js"></script>
 </head>
 <body class="bg-gray-100 min-h-screen">
     <!-- Navigation -->
@@ -40,10 +42,106 @@
             <h3 class="text-xl font-bold text-gray-800 mb-4">All Users</h3>
             <div id="users-table"></div>
         </div>
+
+        <!-- Site Admin Invites Table -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold text-gray-800">Site Admin Invites</h3>
+                <button id="add-site-admin-invite-btn" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+                    Create Site Admin Invite
+                </button>
+            </div>
+            <div id="site-admin-invites-table"></div>
+        </div>
     </div>
 
     <!-- Footer -->
     <div id="footer"></div>
+
+    <!-- Site Admin Invite Modal -->
+    <div id="site-admin-invite-modal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+        <div class="relative top-10 mx-auto p-5 border w-full max-w-lg shadow-lg rounded-md bg-white">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold text-gray-900">Create Site Admin Invite</h3>
+                <button id="close-site-admin-invite-modal" class="text-gray-400 hover:text-gray-600">
+                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            <!-- Loading State -->
+            <div id="invite-loading" class="text-center py-8">
+                <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                <p class="mt-4 text-gray-600">Creating invite...</p>
+            </div>
+
+            <!-- Display -->
+            <div id="invite-display" class="hidden">
+                <!-- QR Code Display -->
+                <div class="mb-4 flex justify-center">
+                    <div class="bg-white p-4 rounded-lg border-2 border-gray-200" id="qrcode-container">
+                    </div>
+                </div>
+
+                <!-- Signup URL -->
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2">
+                        Signup URL (scan QR code or copy link)
+                    </label>
+                    <div class="flex items-center space-x-2">
+                        <input type="text" id="invite-url" readonly
+                            class="flex-1 shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline bg-gray-100 text-sm">
+                        <button id="copy-url-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded whitespace-nowrap">
+                            Copy URL
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Invite Code -->
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2">
+                        Invite Code (for manual entry)
+                    </label>
+                    <div class="flex items-center space-x-2">
+                        <input type="text" id="invite-code" readonly
+                            class="flex-1 shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline bg-gray-100 font-mono">
+                        <button id="copy-code-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded whitespace-nowrap">
+                            Copy Code
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Expiration Notice -->
+                <div class="mb-4 bg-yellow-50 border border-yellow-200 rounded p-3">
+                    <div class="flex items-start">
+                        <svg class="h-5 w-5 text-yellow-600 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <div class="flex-1">
+                            <p class="text-sm font-medium text-yellow-800">Expires in 24 hours</p>
+                            <p class="text-xs text-yellow-700 mt-1">
+                                Expires: <span id="invite-expires-at" class="font-mono"></span>
+                            </p>
+                            <p class="text-xs text-yellow-700 mt-1">
+                                Site admin invites expire after 24 hours for security. Share this immediately.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <p class="text-sm text-gray-600">
+                        Share the QR code or URL with the person you want to make a site admin. They can scan the QR code or click the link to sign up.
+                    </p>
+                </div>
+                <div class="flex justify-end">
+                    <button id="done-invite-btn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
+                        Done
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <!-- Add Organization Modal -->
     <div id="org-modal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
@@ -89,6 +187,7 @@
         let currentUser = null;
         let organizationsTable = null;
         let usersTable = null;
+        let siteAdminInvitesTable = null;
 
         async function init() {
             currentUser = await Auth.checkAuth();
@@ -110,6 +209,7 @@
 
             await loadOrganizations();
             await loadAllUsers();
+            await loadSiteAdminInvites();
         }
 
         async function loadOrganizations() {
@@ -234,6 +334,78 @@
             }
         }
 
+        async function loadSiteAdminInvites() {
+            try {
+                const invites = await api.request('/api/invites/site-admin/list');
+
+                // Define columns
+                const columns = [
+                    {
+                        field: 'uuid',
+                        label: 'Invite Code',
+                        visible: true,
+                        sortable: false,
+                        width: 300,
+                        formatter: 'plaintext'
+                    },
+                    {
+                        field: 'role',
+                        label: 'Role',
+                        visible: true,
+                        sortable: true,
+                        width: 120,
+                        formatter: 'badge'
+                    },
+                    {
+                        field: 'expires_at',
+                        label: 'Expires',
+                        visible: true,
+                        sortable: true,
+                        width: 180,
+                        formatter: 'datetime'
+                    },
+                    {
+                        field: 'is_active',
+                        label: 'Active',
+                        visible: true,
+                        sortable: true,
+                        width: 100,
+                        formatter: 'boolean'
+                    },
+                    {
+                        field: 'used_at',
+                        label: 'Used At',
+                        visible: true,
+                        sortable: true,
+                        width: 180,
+                        formatter: 'datetime'
+                    },
+                    {
+                        field: 'created_at',
+                        label: 'Created',
+                        visible: true,
+                        sortable: true,
+                        width: 180,
+                        formatter: 'datetime'
+                    }
+                ];
+
+                const config = {
+                    visible_columns: columns,
+                    default_sort: { field: 'created_at', dir: 'desc' }
+                };
+
+                siteAdminInvitesTable = new DataTable('#site-admin-invites-table', {
+                    pageSize: 20
+                });
+
+                siteAdminInvitesTable.init(invites, config);
+            } catch (error) {
+                console.error('Failed to load site admin invites:', error);
+                showError('Failed to load site admin invites');
+            }
+        }
+
         function escapeHtml(text) {
             const div = document.createElement('div');
             div.textContent = text;
@@ -251,10 +423,85 @@
             document.getElementById('create-org-form').reset();
         }
 
+        async function openSiteAdminInviteModal() {
+            // Show modal with loading state
+            document.getElementById('site-admin-invite-modal').classList.remove('hidden');
+            document.getElementById('invite-loading').classList.remove('hidden');
+            document.getElementById('invite-display').classList.add('hidden');
+
+            // Create invite immediately
+            try {
+                const invite = await api.request('/api/invites/site-admin', {
+                    method: 'POST',
+                    body: JSON.stringify({})
+                });
+
+                // Build signup URL with invite code
+                const signupUrl = `${window.location.origin}/signup?invite=${invite.uuid}`;
+
+                // Set the invite code and URL
+                document.getElementById('invite-code').value = invite.uuid;
+                document.getElementById('invite-url').value = signupUrl;
+
+                // Set expiration time
+                document.getElementById('invite-expires-at').textContent = formatDate(invite.expires_at);
+
+                // Clear any previous QR code
+                const qrcodeContainer = document.getElementById('qrcode-container');
+                qrcodeContainer.innerHTML = '';
+
+                // Generate QR code
+                new QRCode(qrcodeContainer, {
+                    text: signupUrl,
+                    width: 256,
+                    height: 256,
+                    colorDark: '#000000',
+                    colorLight: '#FFFFFF',
+                    correctLevel: QRCode.CorrectLevel.H
+                });
+
+                // Switch to display view
+                document.getElementById('invite-loading').classList.add('hidden');
+                document.getElementById('invite-display').classList.remove('hidden');
+
+                // Reload invites table
+                await loadSiteAdminInvites();
+
+                showSuccess('Site admin invite created successfully!');
+            } catch (error) {
+                showError(error.message || 'Failed to create site admin invite');
+                closeSiteAdminInviteModal();
+            }
+        }
+
+        function closeSiteAdminInviteModal() {
+            document.getElementById('site-admin-invite-modal').classList.add('hidden');
+        }
+
         // Event listeners
         document.getElementById('add-org-btn').addEventListener('click', openOrgModal);
         document.getElementById('close-org-modal').addEventListener('click', closeOrgModal);
         document.getElementById('cancel-org-btn').addEventListener('click', closeOrgModal);
+
+        document.getElementById('add-site-admin-invite-btn').addEventListener('click', openSiteAdminInviteModal);
+        document.getElementById('close-site-admin-invite-modal').addEventListener('click', closeSiteAdminInviteModal);
+        document.getElementById('done-invite-btn').addEventListener('click', closeSiteAdminInviteModal);
+
+        document.getElementById('copy-code-btn').addEventListener('click', () => {
+            const inviteCode = document.getElementById('invite-code');
+            inviteCode.select();
+            navigator.clipboard.writeText(inviteCode.value).then(() => {
+                showSuccess('Invite code copied to clipboard!');
+            });
+        });
+
+        document.getElementById('copy-url-btn').addEventListener('click', () => {
+            const inviteUrl = document.getElementById('invite-url');
+            inviteUrl.select();
+            navigator.clipboard.writeText(inviteUrl.value).then(() => {
+                showSuccess('Signup URL copied to clipboard!');
+            });
+        });
 
         document.getElementById('create-org-form').addEventListener('submit', async (e) => {
             e.preventDefault();
