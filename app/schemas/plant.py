@@ -11,6 +11,7 @@ from uuid import UUID
 from pydantic import BaseModel, Field
 
 from app.schemas.plant_field_value import PlantFieldValueCreate, PlantFieldValueResponse
+from app.schemas.location import LocationResponse
 
 
 class PlantBase(BaseModel):
@@ -35,12 +36,16 @@ class PlantBase(BaseModel):
 class PlantCreate(PlantBase):
     """Schema for creating a new plant.
 
-    Includes optional field values for project custom fields.
+    Includes optional field values for project custom fields and location.
 
     Attributes:
+        location_id: Optional UUID of the location for this plant.
         field_values: List of custom field values.
     """
 
+    location_id: Optional[UUID] = Field(
+        None, description="Optional location ID for this plant"
+    )
     field_values: Optional[List[PlantFieldValueCreate]] = Field(
         default_factory=list, description="Custom field values for this plant"
     )
@@ -54,11 +59,13 @@ class PlantUpdate(BaseModel):
     Attributes:
         plant_id: Updated plant identifier.
         accession_id: Updated accession ID.
+        location_id: Updated location ID (can be None to clear location).
         field_values: Updated custom field values.
     """
 
     plant_id: Optional[str] = Field(None, min_length=1, max_length=255)
     accession_id: Optional[UUID] = None
+    location_id: Optional[UUID] = None
     field_values: Optional[List[PlantFieldValueCreate]] = Field(
         None, description="Custom field values for this plant"
     )
@@ -104,6 +111,7 @@ class PlantWithDetailsResponse(PlantResponse):
         species_common_name: Optional common name.
         project_id: Optional project ID (inherited from accession).
         project_title: Optional project title.
+        location: Optional location data.
     """
 
     accession: str
@@ -114,6 +122,7 @@ class PlantWithDetailsResponse(PlantResponse):
     species_common_name: Optional[str]
     project_id: Optional[UUID] = None
     project_title: Optional[str] = None
+    location: Optional[LocationResponse] = None
 
     class Config:
         """Pydantic configuration."""

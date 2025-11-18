@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="icon" type="image/png" href="/assets/images/favicon.png">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Species - RedBuds App</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tabulator CSS and JS -->
+    <link href="https://unpkg.com/tabulator-tables@6.2.5/dist/css/tabulator.min.css" rel="stylesheet">
+    <link href="/css/table-custom.css" rel="stylesheet">
+    <script src="https://unpkg.com/tabulator-tables@6.2.5/dist/js/tabulator.min.js"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div id="navigation"></div>
+
+    <div class="container mx-auto px-4 py-8">
+        <!-- Error Message -->
+        <div id="error-message" class="hidden bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4"></div>
+
+        <!-- Success Message -->
+        <div id="success-message" class="hidden bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4"></div>
+
+        <!-- Page Header -->
+        <div class="mb-6">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-800" id="org-name">Species</h1>
+                    <p class="text-gray-600 mt-1">Manage and view all species in this organization</p>
+                </div>
+                <button id="add-species-btn" class="hidden bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+                    Add Species
+                </button>
+            </div>
+        </div>
+
+        <!-- Species Table -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <div id="species-table"></div>
+        </div>
+    </div>
+
+    <div id="footer"></div>
+
+    <!-- Add Species Modal -->
+    <div id="add-species-modal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div class="mt-3">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">Add New Species</h3>
+                <form id="add-species-form">
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2">Scientific Name *</label>
+                        <input type="text" id="scientific-name" required
+                            class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2">Common Name</label>
+                        <input type="text" id="common-name"
+                            class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                    </div>
+                    <div class="flex justify-end space-x-2">
+                        <button type="button" id="cancel-species-btn"
+                            class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded">
+                            Cancel
+                        </button>
+                        <button type="submit"
+                            class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
+                            Add Species
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/auth.js"></script>
+    <script src="/js/api.js"></script>
+    <script src="/js/utils.js"></script>
+    <script src="/js/router.js"></script>
+    <script src="/js/navigation.js"></script>
+    <script src="/js/table.js"></script>
+    <script src="/js/tablebuilder.js"></script>
+
+    <script>
+        let currentUser = null;
+        let organizationId = null;
+        let speciesTable = null;
+
+        async function init() {
+            currentUser = await Auth.checkAuth();
+            if (!currentUser) return;
+
+            // Get organization ID from URL path
+            const pathSegments = window.location.pathname.split('/').filter(s => s);
+            organizationId = pathSegments[1]; // /organizations/{id}/species
+
+            if (!organizationId) {
+                showError('No organization ID provided');
+                return;
+            }
+
+            try {
+                // Fetch organization for navigation and title
+                const org = await api.getOrganization(organizationId);
+                document.getElementById('org-name').textContent = `Species - ${org.name}`;
+
+                // Render navigation
+                document.getElementById('navigation').innerHTML = navigation.render({
+                    showOrgDropdown: true,
+                    orgDropdownId: organizationId
+                });
+                navigation.init(currentUser, {
+                    showOrgDropdown: true,
+                    orgDropdownId: organizationId
+                });
+                document.getElementById('footer').innerHTML = navigation.renderFooter();
+
+                // Show add button for admins
+                const canManage = currentUser.is_site_admin ||
+                    (org.membership && org.membership.role === 'admin');
+                if (canManage) {
+                    document.getElementById('add-species-btn').classList.remove('hidden');
+                }
+
+                await loadSpecies();
+            } catch (error) {
+                console.error('Failed to load organization:', error);
+                showError('Failed to load organization');
+            }
+        }
+
+        async function loadSpecies() {
+            try {
+                const species = await api.getSpecies(organizationId);
+
+                // Define columns
+                const columns = [
+                    {
+                        field: 'genus',
+                        label: 'Genus',
+                        visible: true,
+                        sortable: true,
+                        width: 150,
+                        formatter: (cell) => {
+                            const speciesData = cell.getData();
+                            const link = document.createElement('a');
+                            link.href = buildUrl('organizations', organizationId, 'species', speciesData.id);
+                            link.className = 'text-blue-600 hover:underline font-medium';
+                            link.textContent = speciesData.genus;
+                            return link;
+                        }
+                    },
+                    {
+                        field: 'species_name',
+                        label: 'Species',
+                        visible: true,
+                        sortable: true,
+                        width: 150,
+                        formatter: 'plaintext'
+                    },
+                    {
+                        field: 'variety',
+                        label: 'Variety',
+                        visible: true,
+                        sortable: true,
+                        width: 150,
+                        formatter: 'plaintext'
+                    },
+                    {
+                        field: 'common_name',
+                        label: 'Common Name',
+                        visible: true,
+                        sortable: true,
+                        width: 200,
+                        formatter: 'plaintext'
+                    },
+                    {
+                        field: 'created_at',
+                        label: 'Created',
+                        visible: true,
+                        sortable: true,
+                        width: 180,
+                        formatter: 'datetime'
+                    }
+                ];
+
+                const tableConfig = {
+                    visible_columns: columns,
+                    default_sort: { field: 'genus', dir: 'asc' }
+                };
+
+                if (!speciesTable) {
+                    speciesTable = new DataTable('#species-table', {
+                        pageSize: 100
+                    });
+                }
+
+                speciesTable.init(species, tableConfig);
+            } catch (error) {
+                console.error('Failed to load species:', error);
+                showError('Failed to load species');
+            }
+        }
+
+        // Modal handling
+        document.getElementById('add-species-btn').addEventListener('click', () => {
+            document.getElementById('add-species-modal').classList.remove('hidden');
+        });
+
+        document.getElementById('cancel-species-btn').addEventListener('click', () => {
+            document.getElementById('add-species-modal').classList.add('hidden');
+            document.getElementById('add-species-form').reset();
+        });
+
+        document.getElementById('add-species-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const scientificName = document.getElementById('scientific-name').value;
+            const commonName = document.getElementById('common-name').value;
+
+            try {
+                await api.createSpecies(organizationId, {
+                    scientific_name: scientificName,
+                    common_name: commonName || null
+                });
+
+                showSuccess('Species created successfully');
+                document.getElementById('add-species-modal').classList.add('hidden');
+                document.getElementById('add-species-form').reset();
+                await loadSpecies();
+            } catch (error) {
+                console.error('Failed to create species:', error);
+                showError('Failed to create species');
+            }
+        });
+
+        init();
+    </script>
+</body>
+</html>

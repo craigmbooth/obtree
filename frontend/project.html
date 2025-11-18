@@ -38,6 +38,41 @@
                 </div>
             </div>
 
+            <!-- Accessions Section -->
+            <div class="bg-white rounded-lg shadow-md p-6 mt-6">
+                <div class="flex justify-between items-center mb-4">
+                    <div>
+                        <h3 class="text-xl font-semibold text-gray-800">Accessions</h3>
+                        <p class="text-sm text-gray-600 mt-1">Accessions associated with this project</p>
+                    </div>
+                </div>
+
+                <div id="accessions-loading" class="text-center py-8">
+                    <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                    <p class="mt-2 text-gray-600">Loading accessions...</p>
+                </div>
+
+                <div id="accessions-content" class="hidden">
+                    <div id="accessions-empty" class="text-center py-8 text-gray-600 hidden">
+                        No accessions associated with this project yet.
+                    </div>
+
+                    <table id="accessions-table" class="min-w-full divide-y divide-gray-200 hidden">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Accession</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Species</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Common Name</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="accessions-tbody" class="bg-white divide-y divide-gray-200">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
             <!-- Accession Custom Fields Section -->
             <div class="bg-white rounded-lg shadow-md p-6 mt-6">
                 <div class="flex justify-between items-center mb-4">
@@ -111,6 +146,44 @@
                             </tr>
                         </thead>
                         <tbody id="plant-fields-tbody" class="bg-white divide-y divide-gray-200">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Project Event Types Section -->
+            <div class="bg-white rounded-lg shadow-md p-6 mt-6">
+                <div class="flex justify-between items-center mb-4">
+                    <div>
+                        <h3 class="text-xl font-semibold text-gray-800">Project Event Types</h3>
+                        <p class="text-sm text-gray-600 mt-1">Event types available only to plants in this project</p>
+                    </div>
+                    <button id="add-event-type-btn" class="hidden bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+                        Add Event Type
+                    </button>
+                </div>
+
+                <div id="event-types-loading" class="text-center py-8">
+                    <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                    <p class="mt-2 text-gray-600">Loading event types...</p>
+                </div>
+
+                <div id="event-types-content" class="hidden">
+                    <div id="event-types-empty" class="text-center py-8 text-gray-600 hidden">
+                        No project-specific event types defined yet.
+                    </div>
+
+                    <table id="event-types-table" class="min-w-full divide-y divide-gray-200 hidden">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Event Type</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fields</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="event-types-tbody" class="bg-white divide-y divide-gray-200">
                         </tbody>
                     </table>
                 </div>
@@ -208,6 +281,51 @@
         </div>
     </div>
 
+    <!-- Event Type Modal -->
+    <div id="event-type-modal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50" onclick="if(event.target === this) closeEventTypeModal()">
+        <div class="relative top-10 mx-auto p-5 border w-auto max-w-3xl shadow-lg rounded-md bg-white">
+            <div class="mt-3">
+                <h3 id="event-type-modal-title" class="text-lg font-medium text-gray-900 mb-4">Add Event Type</h3>
+                <form id="event-type-form">
+                    <!-- Event Type Basic Info -->
+                    <div class="mb-4">
+                        <label for="event-type-name" class="block text-sm font-medium text-gray-700 mb-1">Event Type Name *</label>
+                        <input type="text" id="event-type-name" required
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="event-type-description" class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                        <textarea id="event-type-description" rows="2"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"></textarea>
+                    </div>
+
+                    <!-- Fields Section -->
+                    <div class="mb-4">
+                        <div class="flex justify-between items-center mb-2">
+                            <label class="block text-sm font-medium text-gray-700">Fields</label>
+                            <button type="button" onclick="addEventTypeField()" class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                                + Add Field
+                            </button>
+                        </div>
+                        <div id="event-type-fields" class="space-y-3">
+                            <!-- Fields will be added here dynamically -->
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end gap-2">
+                        <button type="button" onclick="closeEventTypeModal()" class="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300">
+                            Cancel
+                        </button>
+                        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                            Save Event Type
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <script src="/js/api.js"></script>
     <script src="/js/auth.js"></script>
     <script src="/js/router.js"></script>
@@ -218,12 +336,16 @@
         let organizationId = null;
         let projectId = null;
         let project = null;
+        let accessions = [];
         let fields = [];
         let plantFields = [];
+        let eventTypes = [];
         let editingFieldId = null;
         let editingPlantFieldId = null;
         let canManage = false;
         let isEditingPlantField = false;
+        let currentEventType = null;
+        let eventTypeFieldCounter = 0;
 
         async function init() {
             currentUser = await Auth.checkAuth();
@@ -238,8 +360,21 @@
                 return;
             }
 
+            // Fetch organization for navigation
+            let organizationName = null;
+            try {
+                const org = await api.getOrganization(organizationId);
+                organizationName = org.name;
+            } catch (error) {
+                console.error('Failed to load organization:', error);
+            }
+
             // Render navigation
-            document.getElementById('navigation').innerHTML = navigation.render({ showOrgDropdown: true });
+            document.getElementById('navigation').innerHTML = navigation.render({
+                showOrgDropdown: true,
+                orgDropdownId: organizationId,
+                organizationName: organizationName
+            });
             navigation.init(currentUser, {
                 showOrgDropdown: true,
                 orgDropdownId: organizationId
@@ -250,8 +385,10 @@
             document.getElementById('back-to-org').href = buildUrl('organizations', organizationId);
 
             await loadProject();
+            await loadAccessions();
             await loadFields();
             await loadPlantFields();
+            await loadEventTypes();
             setupFieldHandlers();
         }
 
@@ -286,6 +423,59 @@
                 document.getElementById('loading').classList.add('hidden');
                 showError(error.message || 'Failed to load project');
             }
+        }
+
+        async function loadAccessions() {
+            try {
+                accessions = await api.getProjectAccessions(organizationId, projectId);
+                renderAccessions();
+            } catch (error) {
+                showError('Failed to load accessions: ' + error.message);
+            } finally {
+                document.getElementById('accessions-loading').classList.add('hidden');
+                document.getElementById('accessions-content').classList.remove('hidden');
+            }
+        }
+
+        function renderAccessions() {
+            const tbody = document.getElementById('accessions-tbody');
+            const emptyDiv = document.getElementById('accessions-empty');
+            const table = document.getElementById('accessions-table');
+
+            if (accessions.length === 0) {
+                emptyDiv.classList.remove('hidden');
+                table.classList.add('hidden');
+                return;
+            }
+
+            emptyDiv.classList.add('hidden');
+            table.classList.remove('hidden');
+
+            tbody.innerHTML = accessions.map(accession => {
+                // Build species name
+                let speciesName = `${accession.species_genus} ${accession.species_name}`;
+                if (accession.species_variety) {
+                    speciesName += ` var. ${accession.species_variety}`;
+                }
+
+                const commonName = accession.species_common_name || '-';
+                const description = accession.description || '-';
+
+                // Build link to accession detail page
+                const accessionUrl = buildUrl('organizations', organizationId, 'accessions', accession.id);
+
+                return `
+                    <tr>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${accession.accession}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600 italic">${speciesName}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">${commonName}</td>
+                        <td class="px-6 py-4 text-sm text-gray-600">${description}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm">
+                            <a href="${accessionUrl}" class="text-blue-600 hover:underline">View</a>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
         }
 
         async function loadFields() {
@@ -600,6 +790,292 @@
                 showError('Failed to delete field: ' + error.message);
             }
         }
+
+        // Event Types Management
+        async function loadEventTypes() {
+            try {
+                eventTypes = await api.getProjectEventTypes(organizationId, projectId);
+                renderEventTypes(eventTypes);
+
+                document.getElementById('event-types-loading').classList.add('hidden');
+                document.getElementById('event-types-content').classList.remove('hidden');
+
+                if (eventTypes.length > 0) {
+                    document.getElementById('event-types-table').classList.remove('hidden');
+                    document.getElementById('event-types-empty').classList.add('hidden');
+                } else {
+                    document.getElementById('event-types-table').classList.add('hidden');
+                    document.getElementById('event-types-empty').classList.remove('hidden');
+                }
+
+                // Show add button if user can manage
+                if (canManage) {
+                    document.getElementById('add-event-type-btn').classList.remove('hidden');
+                }
+            } catch (error) {
+                console.error('Failed to load event types:', error);
+                document.getElementById('event-types-loading').classList.add('hidden');
+                document.getElementById('event-types-content').classList.remove('hidden');
+                document.getElementById('event-types-empty').classList.remove('hidden');
+            }
+        }
+
+        function renderEventTypes(types) {
+            const tbody = document.getElementById('event-types-tbody');
+            tbody.innerHTML = '';
+
+            types.forEach(eventType => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${eventType.event_name}</td>
+                    <td class="px-6 py-4 text-sm text-gray-600">${eventType.description || '-'}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">${eventType.fields ? eventType.fields.length : 0}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">${formatDate(eventType.created_at)}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        ${canManage ? `
+                            <button onclick="openEditEventTypeModal('${eventType.id}')" class="text-blue-600 hover:text-blue-800 mr-3">Edit</button>
+                            <button onclick="deleteEventType('${eventType.id}', '${eventType.event_name.replace(/'/g, "\\'")}')" class="text-red-600 hover:text-red-800">Delete</button>
+                        ` : '-'}
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        }
+
+        function openCreateEventTypeModal() {
+            currentEventType = null;
+            document.getElementById('event-type-modal-title').textContent = 'Add Event Type';
+            document.getElementById('event-type-name').value = '';
+            document.getElementById('event-type-description').value = '';
+            document.getElementById('event-type-fields').innerHTML = '';
+            eventTypeFieldCounter = 0;
+            document.getElementById('event-type-modal').classList.remove('hidden');
+        }
+
+        async function openEditEventTypeModal(eventTypeId) {
+            const eventType = eventTypes.find(et => et.id === eventTypeId);
+            if (!eventType) return;
+
+            currentEventType = eventType;
+            document.getElementById('event-type-modal-title').textContent = 'Edit Event Type';
+            document.getElementById('event-type-name').value = eventType.event_name;
+            document.getElementById('event-type-description').value = eventType.description || '';
+
+            document.getElementById('event-type-fields').innerHTML = '';
+            eventTypeFieldCounter = 0;
+
+            if (eventType.fields && eventType.fields.length > 0) {
+                eventType.fields.forEach(field => {
+                    addEventTypeField(field);
+                });
+            }
+
+            document.getElementById('event-type-modal').classList.remove('hidden');
+        }
+
+        function closeEventTypeModal() {
+            document.getElementById('event-type-modal').classList.add('hidden');
+            currentEventType = null;
+        }
+
+        function addEventTypeField(existingField = null) {
+            const fieldId = eventTypeFieldCounter++;
+            const fieldsContainer = document.getElementById('event-type-fields');
+
+            const fieldDiv = document.createElement('div');
+            fieldDiv.className = 'border border-gray-300 rounded p-3 bg-gray-50';
+            fieldDiv.dataset.fieldId = fieldId;
+            if (existingField) {
+                fieldDiv.dataset.dbFieldId = existingField.id;
+            }
+
+            fieldDiv.innerHTML = `
+                <div class="grid grid-cols-12 gap-2">
+                    <div class="col-span-4">
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Field Name *</label>
+                        <input type="text" class="field-name w-full px-2 py-1 text-sm border border-gray-300 rounded"
+                            value="${existingField ? existingField.field_name : ''}" required>
+                    </div>
+                    <div class="col-span-2">
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Type *</label>
+                        <select class="field-type w-full px-2 py-1 text-sm border border-gray-300 rounded" ${existingField && existingField.is_locked ? 'disabled' : ''}>
+                            <option value="string" ${existingField && existingField.field_type === 'string' ? 'selected' : ''}>String</option>
+                            <option value="number" ${existingField && existingField.field_type === 'number' ? 'selected' : ''}>Number</option>
+                        </select>
+                    </div>
+                    <div class="col-span-2">
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Required</label>
+                        <input type="checkbox" class="field-required mt-2" ${existingField && existingField.is_required ? 'checked' : ''}>
+                    </div>
+                    <div class="col-span-3">
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Validation</label>
+                        <button type="button" onclick="showFieldValidation(${fieldId})" class="text-xs text-blue-600 hover:text-blue-800">
+                            Configure
+                        </button>
+                    </div>
+                    <div class="col-span-1 flex items-end">
+                        <button type="button" onclick="removeEventTypeField(${fieldId})" class="text-red-600 hover:text-red-800 text-xs">
+                            Remove
+                        </button>
+                    </div>
+                </div>
+                <div class="field-validation hidden mt-2 p-2 bg-white rounded border border-gray-200">
+                    <div class="string-validation">
+                        <div class="grid grid-cols-2 gap-2 mb-2">
+                            <div>
+                                <label class="block text-xs text-gray-700 mb-1">Min Length</label>
+                                <input type="number" class="min-length w-full px-2 py-1 text-sm border border-gray-300 rounded"
+                                    value="${existingField && existingField.min_length || ''}" min="0">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-gray-700 mb-1">Max Length</label>
+                                <input type="number" class="max-length w-full px-2 py-1 text-sm border border-gray-300 rounded"
+                                    value="${existingField && existingField.max_length || ''}" min="0">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-700 mb-1">Regex Pattern</label>
+                            <input type="text" class="regex-pattern w-full px-2 py-1 text-sm border border-gray-300 rounded"
+                                value="${existingField && existingField.regex_pattern || ''}">
+                        </div>
+                    </div>
+                    <div class="number-validation hidden">
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-xs text-gray-700 mb-1">Min Value</label>
+                                <input type="number" class="min-value w-full px-2 py-1 text-sm border border-gray-300 rounded"
+                                    value="${existingField && existingField.min_value !== null ? existingField.min_value : ''}" step="any">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-gray-700 mb-1">Max Value</label>
+                                <input type="number" class="max-value w-full px-2 py-1 text-sm border border-gray-300 rounded"
+                                    value="${existingField && existingField.max_value !== null ? existingField.max_value : ''}" step="any">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            fieldsContainer.appendChild(fieldDiv);
+
+            const typeSelect = fieldDiv.querySelector('.field-type');
+            typeSelect.addEventListener('change', (e) => {
+                const validation = fieldDiv.querySelector('.field-validation');
+                const stringValidation = validation.querySelector('.string-validation');
+                const numberValidation = validation.querySelector('.number-validation');
+
+                if (e.target.value === 'string') {
+                    stringValidation.classList.remove('hidden');
+                    numberValidation.classList.add('hidden');
+                } else {
+                    stringValidation.classList.add('hidden');
+                    numberValidation.classList.remove('hidden');
+                }
+            });
+
+            if (existingField && existingField.field_type === 'number') {
+                const validation = fieldDiv.querySelector('.field-validation');
+                validation.querySelector('.string-validation').classList.add('hidden');
+                validation.querySelector('.number-validation').classList.remove('hidden');
+            }
+        }
+
+        function showFieldValidation(fieldId) {
+            const fieldDiv = document.querySelector(`[data-field-id="${fieldId}"]`);
+            const validation = fieldDiv.querySelector('.field-validation');
+            validation.classList.toggle('hidden');
+        }
+
+        function removeEventTypeField(fieldId) {
+            const fieldDiv = document.querySelector(`[data-field-id="${fieldId}"]`);
+            if (fieldDiv) {
+                fieldDiv.remove();
+            }
+        }
+
+        document.getElementById('event-type-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const name = document.getElementById('event-type-name').value.trim();
+            const description = document.getElementById('event-type-description').value.trim();
+
+            const fieldDivs = document.querySelectorAll('#event-type-fields > div');
+            const fields = [];
+
+            fieldDivs.forEach(fieldDiv => {
+                const fieldName = fieldDiv.querySelector('.field-name').value.trim();
+                const fieldType = fieldDiv.querySelector('.field-type').value;
+                const isRequired = fieldDiv.querySelector('.field-required').checked;
+
+                if (!fieldName) return;
+
+                const field = {
+                    field_name: fieldName,
+                    field_type: fieldType,
+                    is_required: isRequired
+                };
+
+                if (fieldType === 'string') {
+                    const minLength = fieldDiv.querySelector('.min-length').value;
+                    const maxLength = fieldDiv.querySelector('.max-length').value;
+                    const regexPattern = fieldDiv.querySelector('.regex-pattern').value.trim();
+
+                    if (minLength) field.min_length = parseInt(minLength);
+                    if (maxLength) field.max_length = parseInt(maxLength);
+                    if (regexPattern) field.regex_pattern = regexPattern;
+                } else if (fieldType === 'number') {
+                    const minValue = fieldDiv.querySelector('.min-value').value;
+                    const maxValue = fieldDiv.querySelector('.max-value').value;
+
+                    if (minValue) field.min_value = parseFloat(minValue);
+                    if (maxValue) field.max_value = parseFloat(maxValue);
+                }
+
+                if (fieldDiv.dataset.dbFieldId) {
+                    field.id = fieldDiv.dataset.dbFieldId;
+                }
+
+                fields.push(field);
+            });
+
+            const data = {
+                event_name: name,
+                description: description || null,
+                fields: fields
+            };
+
+            try {
+                if (currentEventType) {
+                    await api.updateProjectEventType(organizationId, projectId, currentEventType.id, data);
+                    showSuccess('Event type updated successfully!');
+                } else {
+                    await api.createProjectEventType(organizationId, projectId, data);
+                    showSuccess('Event type created successfully!');
+                }
+
+                closeEventTypeModal();
+                await loadEventTypes();
+            } catch (error) {
+                showError(error.message || 'Failed to save event type');
+            }
+        });
+
+        async function deleteEventType(eventTypeId, eventTypeName) {
+            if (!confirm(`Are you sure you want to delete the event type "${eventTypeName}"? This action cannot be undone.`)) {
+                return;
+            }
+
+            try {
+                await api.deleteProjectEventType(organizationId, projectId, eventTypeId);
+                showSuccess('Event type deleted successfully!');
+                await loadEventTypes();
+            } catch (error) {
+                showError(error.message || 'Failed to delete event type');
+            }
+        }
+
+        // Connect add button
+        document.getElementById('add-event-type-btn').addEventListener('click', openCreateEventTypeModal);
 
         init();
     </script>

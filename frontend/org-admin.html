@@ -33,59 +33,58 @@
                 <a href="#" id="back-to-org" class="text-blue-600 hover:underline">← Back to Organization</a>
             </div>
 
+            <!-- Manage Organization & Invites -->
             <div class="bg-white rounded-lg shadow-md p-6 mb-6">
-                <h2 class="text-3xl font-bold text-gray-800 mb-4">Manage Organization</h2>
+                <h2 class="text-2xl font-bold text-gray-800 mb-4">Manage Organization</h2>
 
-                <!-- Organization Name Display -->
-                <div id="org-name-display" class="mb-4">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <label class="block text-sm font-medium text-gray-700 mb-1">Organization Name</label>
-                            <p id="org-name-text" class="text-lg font-semibold text-gray-900"></p>
-                        </div>
-                        <button id="edit-org-name-btn" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-                            Edit
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Edit Organization Name Form -->
-                <form id="edit-org-form" class="hidden mb-4">
+                <div class="space-y-4">
+                    <!-- Organization Name Section -->
                     <div>
-                        <label for="org-name-input" class="block text-sm font-medium text-gray-700 mb-2">Organization Name</label>
+                        <!-- Organization Name Display -->
+                        <div id="org-name-display">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Organization Name</label>
+                            <div class="flex items-center gap-3">
+                                <p id="org-name-text" class="text-base font-semibold text-gray-900"></p>
+                                <button id="edit-org-name-btn" class="text-blue-600 hover:text-blue-700 text-sm font-medium">
+                                    Edit
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Edit Organization Name Form -->
+                        <form id="edit-org-form" class="hidden">
+                            <label for="org-name-input" class="block text-sm font-medium text-gray-700 mb-1">Organization Name</label>
+                            <div class="flex gap-2">
+                                <input type="text" id="org-name-input" required
+                                    class="flex-1 px-3 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500">
+                                <button type="submit" class="bg-blue-600 text-white px-3 py-1.5 text-sm rounded hover:bg-blue-700">
+                                    Save
+                                </button>
+                                <button type="button" id="cancel-org-name-btn" class="bg-gray-300 text-gray-800 px-3 py-1.5 text-sm rounded hover:bg-gray-400">
+                                    Cancel
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <!-- Create Invites Section -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Create Invite</label>
                         <div class="flex gap-2">
-                            <input type="text" id="org-name-input" required
-                                class="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
-                            <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-                                Save
-                            </button>
-                            <button type="button" id="cancel-org-name-btn" class="bg-gray-300 text-gray-800 px-4 py-2 rounded hover:bg-gray-400">
-                                Cancel
+                            <select id="invite-role" class="px-3 py-1.5 text-sm border border-gray-300 rounded">
+                                <option value="user">User</option>
+                                <option value="admin">Admin</option>
+                            </select>
+                            <button onclick="createInvite()" class="bg-blue-600 text-white px-3 py-1.5 text-sm rounded hover:bg-blue-700">
+                                Generate Invite
                             </button>
                         </div>
-                    </div>
-                </form>
-            </div>
-
-            <!-- Create Invites -->
-            <div class="bg-white rounded-lg shadow-md p-6 mb-6">
-                <h3 class="text-xl font-bold text-gray-800 mb-4">Create Invites</h3>
-                <div>
-                    <label for="invite-role" class="block text-sm font-medium text-gray-700 mb-2">Role</label>
-                    <div class="flex space-x-2">
-                        <select id="invite-role" class="flex-1 px-3 py-2 border border-gray-300 rounded-md">
-                            <option value="user">User</option>
-                            <option value="admin">Admin</option>
-                        </select>
-                        <button onclick="createInvite()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
-                            Generate Invite
-                        </button>
                     </div>
                 </div>
 
                 <!-- Active invites -->
-                <div id="invites-section" class="hidden mt-6">
-                    <h4 class="font-semibold text-gray-700 mb-2">Active Invites</h4>
+                <div id="invites-section" class="hidden mt-6 pt-4 border-t border-gray-200">
+                    <h4 class="text-sm font-semibold text-gray-700 mb-2">Active Invites</h4>
                     <div id="invites-table">
                         <!-- Invites table will be initialized here -->
                     </div>
@@ -93,10 +92,38 @@
             </div>
 
             <!-- Members table -->
-            <div class="bg-white rounded-lg shadow-md p-6">
+            <div class="bg-white rounded-lg shadow-md p-6 mb-6">
                 <h3 class="text-xl font-bold text-gray-800 mb-4">Members</h3>
                 <div id="members-table">
                     <!-- Members table will be initialized here -->
+                </div>
+            </div>
+
+            <!-- Event Types -->
+            <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-bold text-gray-800">Organization Event Types</h3>
+                    <button onclick="openCreateEventTypeModal()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+                        Add Event Type
+                    </button>
+                </div>
+                <p class="text-sm text-gray-600 mb-4">Event types defined here are available to all plants in the organization.</p>
+                <div id="event-types-table">
+                    <!-- Event types table will be initialized here -->
+                </div>
+            </div>
+
+            <!-- Location Types -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-xl font-bold text-gray-800">Organization Location Types</h3>
+                    <button onclick="openCreateLocationTypeModal()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+                        Add Location Type
+                    </button>
+                </div>
+                <p class="text-sm text-gray-600 mb-4">Location types define schemas for plant and accession locations.</p>
+                <div id="location-types-table">
+                    <!-- Location types table will be initialized here -->
                 </div>
             </div>
         </div>
@@ -141,6 +168,96 @@
         </div>
     </div>
 
+    <!-- Location Type Modal -->
+    <div id="location-type-modal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50" onclick="if(event.target === this) closeLocationTypeModal()">
+        <div class="relative top-10 mx-auto p-5 border w-auto max-w-3xl shadow-lg rounded-md bg-white">
+            <div class="mt-3">
+                <h3 id="location-type-modal-title" class="text-lg font-medium text-gray-900 mb-4">Add Location Type</h3>
+                <form id="location-type-form">
+                    <!-- Location Type Basic Info -->
+                    <div class="mb-4">
+                        <label for="location-type-name" class="block text-sm font-medium text-gray-700 mb-1">Location Type Name *</label>
+                        <input type="text" id="location-type-name" required
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="location-type-description" class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                        <textarea id="location-type-description" rows="2"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"></textarea>
+                    </div>
+
+                    <!-- Fields Section -->
+                    <div class="mb-4">
+                        <div class="flex justify-between items-center mb-2">
+                            <label class="block text-sm font-medium text-gray-700">Fields</label>
+                            <button type="button" onclick="addLocationTypeField()" class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                                + Add Field
+                            </button>
+                        </div>
+                        <div id="location-type-fields" class="space-y-3">
+                            <!-- Fields will be added here dynamically -->
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end gap-2">
+                        <button type="button" onclick="closeLocationTypeModal()" class="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300">
+                            Cancel
+                        </button>
+                        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                            Save Location Type
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Event Type Modal -->
+    <div id="event-type-modal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50" onclick="if(event.target === this) closeEventTypeModal()">
+        <div class="relative top-10 mx-auto p-5 border w-auto max-w-3xl shadow-lg rounded-md bg-white">
+            <div class="mt-3">
+                <h3 id="event-type-modal-title" class="text-lg font-medium text-gray-900 mb-4">Add Event Type</h3>
+                <form id="event-type-form">
+                    <!-- Event Type Basic Info -->
+                    <div class="mb-4">
+                        <label for="event-type-name" class="block text-sm font-medium text-gray-700 mb-1">Event Type Name *</label>
+                        <input type="text" id="event-type-name" required
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="event-type-description" class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                        <textarea id="event-type-description" rows="2"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"></textarea>
+                    </div>
+
+                    <!-- Fields Section -->
+                    <div class="mb-4">
+                        <div class="flex justify-between items-center mb-2">
+                            <label class="block text-sm font-medium text-gray-700">Fields</label>
+                            <button type="button" onclick="addEventTypeField()" class="text-blue-600 hover:text-blue-800 text-sm font-medium">
+                                + Add Field
+                            </button>
+                        </div>
+                        <div id="event-type-fields" class="space-y-3">
+                            <!-- Fields will be added here dynamically -->
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end gap-2">
+                        <button type="button" onclick="closeEventTypeModal()" class="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300">
+                            Cancel
+                        </button>
+                        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                            Save Event Type
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <script src="/js/api.js"></script>
     <script src="/js/auth.js"></script>
     <script src="/js/router.js"></script>
@@ -154,6 +271,12 @@
         let organization = null;
         let membersTable = null;
         let invitesTable = null;
+        let eventTypesTable = null;
+        let currentEventType = null;
+        let eventTypeFieldCounter = 0;
+        let locationTypesTable = null;
+        let currentLocationType = null;
+        let locationTypeFieldCounter = 0;
 
         async function init() {
             currentUser = await Auth.checkAuth();
@@ -167,8 +290,19 @@
                 return;
             }
 
+            // Fetch organization for navigation
+            let organizationName = null;
+            try {
+                const org = await api.getOrganization(organizationId);
+                organizationName = org.name;
+            } catch (error) {
+                console.error('Failed to load organization:', error);
+            }
+
             // Render navigation
-            document.getElementById('navigation').innerHTML = navigation.render();
+            document.getElementById('navigation').innerHTML = navigation.render({
+                organizationName: organizationName
+            });
             navigation.init(currentUser, {
                 orgPageLink: buildUrl('organizations', organizationId)
             });
@@ -203,6 +337,8 @@
                 }
 
                 await loadInvites();
+                await loadEventTypes();
+                await loadLocationTypes();
             } catch (error) {
                 document.getElementById('loading').classList.add('hidden');
                 showError(error.message || 'Failed to load organization');
@@ -556,12 +692,674 @@
             }
         });
 
+        // Event Types Management
+        async function loadEventTypes() {
+            try {
+                const eventTypes = await api.getOrganizationEventTypes(organizationId);
+                renderEventTypes(eventTypes);
+            } catch (error) {
+                console.error('Failed to load event types:', error);
+            }
+        }
+
+        function renderEventTypes(eventTypes) {
+            const columns = [
+                {
+                    field: 'event_name',
+                    label: 'Event Type',
+                    visible: true,
+                    sortable: true,
+                    width: 200,
+                    formatter: 'plaintext'
+                },
+                {
+                    field: 'description',
+                    label: 'Description',
+                    visible: true,
+                    sortable: false,
+                    width: 300,
+                    formatter: 'plaintext'
+                },
+                {
+                    field: 'fields',
+                    label: 'Fields',
+                    visible: true,
+                    sortable: false,
+                    width: 150,
+                    formatter: (cell) => {
+                        const eventType = cell.getData();
+                        return eventType.fields ? eventType.fields.length : 0;
+                    }
+                },
+                {
+                    field: 'created_at',
+                    label: 'Created',
+                    visible: true,
+                    sortable: true,
+                    width: 180,
+                    formatter: 'datetime'
+                },
+                {
+                    field: 'actions',
+                    label: 'Actions',
+                    visible: true,
+                    sortable: false,
+                    width: 150,
+                    formatter: (cell) => {
+                        const eventType = cell.getData();
+                        const container = document.createElement('div');
+                        container.className = 'flex gap-2';
+
+                        const editButton = document.createElement('button');
+                        editButton.className = 'text-blue-600 hover:text-blue-800 text-sm font-medium';
+                        editButton.textContent = 'Edit';
+                        editButton.onclick = () => openEditEventTypeModal(eventType);
+
+                        const deleteButton = document.createElement('button');
+                        deleteButton.className = 'text-red-600 hover:text-red-800 text-sm font-medium';
+                        deleteButton.textContent = 'Delete';
+                        deleteButton.onclick = () => deleteEventType(eventType.id, eventType.event_name);
+
+                        container.appendChild(editButton);
+                        container.appendChild(deleteButton);
+
+                        return container;
+                    }
+                }
+            ];
+
+            const config = {
+                visible_columns: columns,
+                default_sort: { field: 'event_name', dir: 'asc' }
+            };
+
+            if (!eventTypesTable) {
+                eventTypesTable = new DataTable('#event-types-table', {
+                    pageSize: 10
+                });
+            }
+
+            eventTypesTable.init(eventTypes, config);
+        }
+
+        function openCreateEventTypeModal() {
+            currentEventType = null;
+            document.getElementById('event-type-modal-title').textContent = 'Add Event Type';
+            document.getElementById('event-type-name').value = '';
+            document.getElementById('event-type-description').value = '';
+            document.getElementById('event-type-fields').innerHTML = '';
+            eventTypeFieldCounter = 0;
+            document.getElementById('event-type-modal').classList.remove('hidden');
+        }
+
+        async function openEditEventTypeModal(eventType) {
+            currentEventType = eventType;
+            document.getElementById('event-type-modal-title').textContent = 'Edit Event Type';
+            document.getElementById('event-type-name').value = eventType.event_name;
+            document.getElementById('event-type-description').value = eventType.description || '';
+
+            // Load fields
+            document.getElementById('event-type-fields').innerHTML = '';
+            eventTypeFieldCounter = 0;
+
+            if (eventType.fields && eventType.fields.length > 0) {
+                eventType.fields.forEach(field => {
+                    addEventTypeField(field);
+                });
+            }
+
+            document.getElementById('event-type-modal').classList.remove('hidden');
+        }
+
+        function closeEventTypeModal() {
+            document.getElementById('event-type-modal').classList.add('hidden');
+            currentEventType = null;
+        }
+
+        function addEventTypeField(existingField = null) {
+            const fieldId = eventTypeFieldCounter++;
+            const fieldsContainer = document.getElementById('event-type-fields');
+
+            const fieldDiv = document.createElement('div');
+            fieldDiv.className = 'border border-gray-300 rounded p-3 bg-gray-50';
+            fieldDiv.dataset.fieldId = fieldId;
+            if (existingField) {
+                fieldDiv.dataset.dbFieldId = existingField.id;
+            }
+
+            fieldDiv.innerHTML = `
+                <div class="grid grid-cols-12 gap-2">
+                    <div class="col-span-4">
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Field Name *</label>
+                        <input type="text" class="field-name w-full px-2 py-1 text-sm border border-gray-300 rounded"
+                            value="${existingField ? existingField.field_name : ''}" required>
+                    </div>
+                    <div class="col-span-2">
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Type *</label>
+                        <select class="field-type w-full px-2 py-1 text-sm border border-gray-300 rounded" ${existingField && existingField.is_locked ? 'disabled' : ''}>
+                            <option value="string" ${existingField && existingField.field_type === 'string' ? 'selected' : ''}>String</option>
+                            <option value="number" ${existingField && existingField.field_type === 'number' ? 'selected' : ''}>Number</option>
+                        </select>
+                    </div>
+                    <div class="col-span-2">
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Required</label>
+                        <input type="checkbox" class="field-required mt-2" ${existingField && existingField.is_required ? 'checked' : ''}>
+                    </div>
+                    <div class="col-span-3">
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Validation</label>
+                        <button type="button" onclick="showFieldValidation(${fieldId})" class="text-xs text-blue-600 hover:text-blue-800">
+                            Configure
+                        </button>
+                    </div>
+                    <div class="col-span-1 flex items-end">
+                        <button type="button" onclick="removeEventTypeField(${fieldId})" class="text-red-600 hover:text-red-800 text-xs">
+                            Remove
+                        </button>
+                    </div>
+                </div>
+                <div class="field-validation hidden mt-2 p-2 bg-white rounded border border-gray-200">
+                    <div class="string-validation">
+                        <div class="grid grid-cols-2 gap-2 mb-2">
+                            <div>
+                                <label class="block text-xs text-gray-700 mb-1">Min Length</label>
+                                <input type="number" class="min-length w-full px-2 py-1 text-sm border border-gray-300 rounded"
+                                    value="${existingField && existingField.min_length || ''}" min="0">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-gray-700 mb-1">Max Length</label>
+                                <input type="number" class="max-length w-full px-2 py-1 text-sm border border-gray-300 rounded"
+                                    value="${existingField && existingField.max_length || ''}" min="0">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-700 mb-1">Regex Pattern</label>
+                            <input type="text" class="regex-pattern w-full px-2 py-1 text-sm border border-gray-300 rounded"
+                                value="${existingField && existingField.regex_pattern || ''}">
+                        </div>
+                    </div>
+                    <div class="number-validation hidden">
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-xs text-gray-700 mb-1">Min Value</label>
+                                <input type="number" class="min-value w-full px-2 py-1 text-sm border border-gray-300 rounded"
+                                    value="${existingField && existingField.min_value !== null ? existingField.min_value : ''}" step="any">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-gray-700 mb-1">Max Value</label>
+                                <input type="number" class="max-value w-full px-2 py-1 text-sm border border-gray-300 rounded"
+                                    value="${existingField && existingField.max_value !== null ? existingField.max_value : ''}" step="any">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            fieldsContainer.appendChild(fieldDiv);
+
+            // Set up field type change handler
+            const typeSelect = fieldDiv.querySelector('.field-type');
+            typeSelect.addEventListener('change', (e) => {
+                const validation = fieldDiv.querySelector('.field-validation');
+                const stringValidation = validation.querySelector('.string-validation');
+                const numberValidation = validation.querySelector('.number-validation');
+
+                if (e.target.value === 'string') {
+                    stringValidation.classList.remove('hidden');
+                    numberValidation.classList.add('hidden');
+                } else {
+                    stringValidation.classList.add('hidden');
+                    numberValidation.classList.remove('hidden');
+                }
+            });
+
+            // Trigger initial state
+            if (existingField && existingField.field_type === 'number') {
+                const validation = fieldDiv.querySelector('.field-validation');
+                validation.querySelector('.string-validation').classList.add('hidden');
+                validation.querySelector('.number-validation').classList.remove('hidden');
+            }
+        }
+
+        function showFieldValidation(fieldId) {
+            const fieldDiv = document.querySelector(`[data-field-id="${fieldId}"]`);
+            const validation = fieldDiv.querySelector('.field-validation');
+            validation.classList.toggle('hidden');
+        }
+
+        function removeEventTypeField(fieldId) {
+            const fieldDiv = document.querySelector(`[data-field-id="${fieldId}"]`);
+            if (fieldDiv) {
+                fieldDiv.remove();
+            }
+        }
+
+        document.getElementById('event-type-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const name = document.getElementById('event-type-name').value.trim();
+            const description = document.getElementById('event-type-description').value.trim();
+
+            // Collect fields
+            const fieldDivs = document.querySelectorAll('#event-type-fields > div');
+            const fields = [];
+
+            fieldDivs.forEach(fieldDiv => {
+                const fieldName = fieldDiv.querySelector('.field-name').value.trim();
+                const fieldType = fieldDiv.querySelector('.field-type').value;
+                const isRequired = fieldDiv.querySelector('.field-required').checked;
+
+                if (!fieldName) return; // Skip empty fields
+
+                const field = {
+                    field_name: fieldName,
+                    field_type: fieldType,
+                    is_required: isRequired
+                };
+
+                // Add validation rules based on type
+                if (fieldType === 'string') {
+                    const minLength = fieldDiv.querySelector('.min-length').value;
+                    const maxLength = fieldDiv.querySelector('.max-length').value;
+                    const regexPattern = fieldDiv.querySelector('.regex-pattern').value.trim();
+
+                    if (minLength) field.min_length = parseInt(minLength);
+                    if (maxLength) field.max_length = parseInt(maxLength);
+                    if (regexPattern) field.regex_pattern = regexPattern;
+                } else if (fieldType === 'number') {
+                    const minValue = fieldDiv.querySelector('.min-value').value;
+                    const maxValue = fieldDiv.querySelector('.max-value').value;
+
+                    if (minValue) field.min_value = parseFloat(minValue);
+                    if (maxValue) field.max_value = parseFloat(maxValue);
+                }
+
+                // If editing existing field, include field ID
+                if (fieldDiv.dataset.dbFieldId) {
+                    field.id = fieldDiv.dataset.dbFieldId;
+                }
+
+                fields.push(field);
+            });
+
+            const data = {
+                event_name: name,
+                description: description || null,
+                fields: fields
+            };
+
+            try {
+                if (currentEventType) {
+                    // Update existing event type
+                    await api.updateOrganizationEventType(organizationId, currentEventType.id, data);
+                    showSuccess('Event type updated successfully!');
+                } else {
+                    // Create new event type
+                    await api.createOrganizationEventType(organizationId, data);
+                    showSuccess('Event type created successfully!');
+                }
+
+                closeEventTypeModal();
+                await loadEventTypes();
+            } catch (error) {
+                showError(error.message || 'Failed to save event type');
+            }
+        });
+
+        async function deleteEventType(eventTypeId, eventTypeName) {
+            if (!confirm(`Are you sure you want to delete the event type "${eventTypeName}"? This action cannot be undone.`)) {
+                return;
+            }
+
+            try {
+                await api.deleteOrganizationEventType(organizationId, eventTypeId);
+                showSuccess('Event type deleted successfully!');
+                await loadEventTypes();
+            } catch (error) {
+                showError(error.message || 'Failed to delete event type');
+            }
+        }
+
+        // Location Types Management
+        async function loadLocationTypes() {
+            try {
+                const locationTypes = await api.getOrganizationLocationTypes(organizationId);
+                renderLocationTypes(locationTypes);
+            } catch (error) {
+                console.error('Failed to load location types:', error);
+            }
+        }
+
+        function renderLocationTypes(locationTypes) {
+            const columns = [
+                {
+                    field: 'location_name',
+                    label: 'Location Type',
+                    visible: true,
+                    sortable: true,
+                    width: 200,
+                    formatter: 'plaintext'
+                },
+                {
+                    field: 'description',
+                    label: 'Description',
+                    visible: true,
+                    sortable: false,
+                    width: 300,
+                    formatter: 'plaintext'
+                },
+                {
+                    field: 'fields',
+                    label: 'Fields',
+                    visible: true,
+                    sortable: false,
+                    width: 150,
+                    formatter: (cell) => {
+                        const locationType = cell.getData();
+                        return locationType.fields ? locationType.fields.length : 0;
+                    }
+                },
+                {
+                    field: 'created_at',
+                    label: 'Created',
+                    visible: true,
+                    sortable: true,
+                    width: 180,
+                    formatter: 'datetime'
+                },
+                {
+                    field: 'actions',
+                    label: 'Actions',
+                    visible: true,
+                    sortable: false,
+                    width: 150,
+                    formatter: (cell) => {
+                        const locationType = cell.getData();
+                        const container = document.createElement('div');
+                        container.className = 'flex gap-2';
+
+                        const editButton = document.createElement('button');
+                        editButton.className = 'text-blue-600 hover:text-blue-800 text-sm font-medium';
+                        editButton.textContent = 'Edit';
+                        editButton.onclick = () => openEditLocationTypeModal(locationType);
+
+                        const deleteButton = document.createElement('button');
+                        deleteButton.className = 'text-red-600 hover:text-red-800 text-sm font-medium';
+                        deleteButton.textContent = 'Delete';
+                        deleteButton.onclick = () => deleteLocationType(locationType.id, locationType.location_name);
+
+                        container.appendChild(editButton);
+                        container.appendChild(deleteButton);
+
+                        return container;
+                    }
+                }
+            ];
+
+            const config = {
+                visible_columns: columns,
+                default_sort: { field: 'location_name', dir: 'asc' }
+            };
+
+            if (!locationTypesTable) {
+                locationTypesTable = new DataTable('#location-types-table', {
+                    pageSize: 10
+                });
+            }
+
+            locationTypesTable.init(locationTypes, config);
+        }
+
+        function openCreateLocationTypeModal() {
+            currentLocationType = null;
+            document.getElementById('location-type-modal-title').textContent = 'Add Location Type';
+            document.getElementById('location-type-name').value = '';
+            document.getElementById('location-type-description').value = '';
+            document.getElementById('location-type-fields').innerHTML = '';
+            locationTypeFieldCounter = 0;
+            document.getElementById('location-type-modal').classList.remove('hidden');
+        }
+
+        async function openEditLocationTypeModal(locationType) {
+            currentLocationType = locationType;
+            document.getElementById('location-type-modal-title').textContent = 'Edit Location Type';
+            document.getElementById('location-type-name').value = locationType.location_name;
+            document.getElementById('location-type-description').value = locationType.description || '';
+
+            // Load fields
+            document.getElementById('location-type-fields').innerHTML = '';
+            locationTypeFieldCounter = 0;
+
+            if (locationType.fields && locationType.fields.length > 0) {
+                locationType.fields.forEach(field => {
+                    addLocationTypeField(field);
+                });
+            }
+
+            document.getElementById('location-type-modal').classList.remove('hidden');
+        }
+
+        function closeLocationTypeModal() {
+            document.getElementById('location-type-modal').classList.add('hidden');
+            currentLocationType = null;
+        }
+
+        function addLocationTypeField(existingField = null) {
+            const fieldId = locationTypeFieldCounter++;
+            const fieldsContainer = document.getElementById('location-type-fields');
+
+            const fieldDiv = document.createElement('div');
+            fieldDiv.className = 'border border-gray-300 rounded p-3 bg-gray-50';
+            fieldDiv.dataset.fieldId = fieldId;
+            if (existingField) {
+                fieldDiv.dataset.dbFieldId = existingField.id;
+            }
+
+            fieldDiv.innerHTML = `
+                <div class="grid grid-cols-12 gap-2">
+                    <div class="col-span-4">
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Field Name *</label>
+                        <input type="text" class="loc-field-name w-full px-2 py-1 text-sm border border-gray-300 rounded"
+                            value="${existingField ? existingField.field_name : ''}" required>
+                    </div>
+                    <div class="col-span-2">
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Type *</label>
+                        <select class="loc-field-type w-full px-2 py-1 text-sm border border-gray-300 rounded" ${existingField && existingField.is_locked ? 'disabled' : ''}>
+                            <option value="string" ${existingField && existingField.field_type === 'string' ? 'selected' : ''}>String</option>
+                            <option value="number" ${existingField && existingField.field_type === 'number' ? 'selected' : ''}>Number</option>
+                        </select>
+                    </div>
+                    <div class="col-span-2">
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Required</label>
+                        <input type="checkbox" class="loc-field-required mt-2" ${existingField && existingField.is_required ? 'checked' : ''}>
+                    </div>
+                    <div class="col-span-3">
+                        <label class="block text-xs font-medium text-gray-700 mb-1">Validation</label>
+                        <button type="button" onclick="showLocationFieldValidation(${fieldId})" class="text-xs text-blue-600 hover:text-blue-800">
+                            Configure
+                        </button>
+                    </div>
+                    <div class="col-span-1 flex items-end">
+                        <button type="button" onclick="removeLocationTypeField(${fieldId})" class="text-red-600 hover:text-red-800 text-xs">
+                            Remove
+                        </button>
+                    </div>
+                </div>
+                <div class="loc-field-validation hidden mt-2 p-2 bg-white rounded border border-gray-200">
+                    <div class="loc-string-validation">
+                        <div class="grid grid-cols-2 gap-2 mb-2">
+                            <div>
+                                <label class="block text-xs text-gray-700 mb-1">Min Length</label>
+                                <input type="number" class="loc-min-length w-full px-2 py-1 text-sm border border-gray-300 rounded"
+                                    value="${existingField && existingField.min_length || ''}" min="0">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-gray-700 mb-1">Max Length</label>
+                                <input type="number" class="loc-max-length w-full px-2 py-1 text-sm border border-gray-300 rounded"
+                                    value="${existingField && existingField.max_length || ''}" min="0">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-gray-700 mb-1">Regex Pattern</label>
+                            <input type="text" class="loc-regex-pattern w-full px-2 py-1 text-sm border border-gray-300 rounded"
+                                value="${existingField && existingField.regex_pattern || ''}">
+                        </div>
+                    </div>
+                    <div class="loc-number-validation hidden">
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="block text-xs text-gray-700 mb-1">Min Value</label>
+                                <input type="number" class="loc-min-value w-full px-2 py-1 text-sm border border-gray-300 rounded"
+                                    value="${existingField && existingField.min_value !== null ? existingField.min_value : ''}" step="any">
+                            </div>
+                            <div>
+                                <label class="block text-xs text-gray-700 mb-1">Max Value</label>
+                                <input type="number" class="loc-max-value w-full px-2 py-1 text-sm border border-gray-300 rounded"
+                                    value="${existingField && existingField.max_value !== null ? existingField.max_value : ''}" step="any">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            fieldsContainer.appendChild(fieldDiv);
+
+            // Set up field type change handler
+            const typeSelect = fieldDiv.querySelector('.loc-field-type');
+            typeSelect.addEventListener('change', (e) => {
+                const validation = fieldDiv.querySelector('.loc-field-validation');
+                const stringValidation = validation.querySelector('.loc-string-validation');
+                const numberValidation = validation.querySelector('.loc-number-validation');
+
+                if (e.target.value === 'string') {
+                    stringValidation.classList.remove('hidden');
+                    numberValidation.classList.add('hidden');
+                } else {
+                    stringValidation.classList.add('hidden');
+                    numberValidation.classList.remove('hidden');
+                }
+            });
+
+            // Trigger initial state
+            if (existingField && existingField.field_type === 'number') {
+                const validation = fieldDiv.querySelector('.loc-field-validation');
+                validation.querySelector('.loc-string-validation').classList.add('hidden');
+                validation.querySelector('.loc-number-validation').classList.remove('hidden');
+            }
+        }
+
+        function showLocationFieldValidation(fieldId) {
+            const fieldDiv = document.querySelector(`[data-field-id="${fieldId}"]`);
+            const validation = fieldDiv.querySelector('.loc-field-validation');
+            validation.classList.toggle('hidden');
+        }
+
+        function removeLocationTypeField(fieldId) {
+            const fieldDiv = document.querySelector(`[data-field-id="${fieldId}"]`);
+            if (fieldDiv) {
+                fieldDiv.remove();
+            }
+        }
+
+        document.getElementById('location-type-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const name = document.getElementById('location-type-name').value.trim();
+            const description = document.getElementById('location-type-description').value.trim();
+
+            // Collect fields
+            const fieldDivs = document.querySelectorAll('#location-type-fields > div');
+            const fields = [];
+
+            fieldDivs.forEach(fieldDiv => {
+                const fieldName = fieldDiv.querySelector('.loc-field-name').value.trim();
+                const fieldType = fieldDiv.querySelector('.loc-field-type').value;
+                const isRequired = fieldDiv.querySelector('.loc-field-required').checked;
+
+                if (!fieldName) return; // Skip empty fields
+
+                const field = {
+                    field_name: fieldName,
+                    field_type: fieldType,
+                    is_required: isRequired
+                };
+
+                // Add validation rules based on type
+                if (fieldType === 'string') {
+                    const minLength = fieldDiv.querySelector('.loc-min-length').value;
+                    const maxLength = fieldDiv.querySelector('.loc-max-length').value;
+                    const regexPattern = fieldDiv.querySelector('.loc-regex-pattern').value.trim();
+
+                    if (minLength) field.min_length = parseInt(minLength);
+                    if (maxLength) field.max_length = parseInt(maxLength);
+                    if (regexPattern) field.regex_pattern = regexPattern;
+                } else if (fieldType === 'number') {
+                    const minValue = fieldDiv.querySelector('.loc-min-value').value;
+                    const maxValue = fieldDiv.querySelector('.loc-max-value').value;
+
+                    if (minValue) field.min_value = parseFloat(minValue);
+                    if (maxValue) field.max_value = parseFloat(maxValue);
+                }
+
+                // If editing existing field, include field ID
+                if (fieldDiv.dataset.dbFieldId) {
+                    field.id = fieldDiv.dataset.dbFieldId;
+                }
+
+                fields.push(field);
+            });
+
+            const data = {
+                location_name: name,
+                description: description || null,
+                fields: fields
+            };
+
+            try {
+                if (currentLocationType) {
+                    // Update existing location type
+                    await api.updateOrganizationLocationType(organizationId, currentLocationType.id, data);
+                    showSuccess('Location type updated successfully!');
+                } else {
+                    // Create new location type
+                    await api.createOrganizationLocationType(organizationId, data);
+                    showSuccess('Location type created successfully!');
+                }
+
+                closeLocationTypeModal();
+                await loadLocationTypes();
+            } catch (error) {
+                showError(error.message || 'Failed to save location type');
+            }
+        });
+
+        async function deleteLocationType(locationTypeId, locationTypeName) {
+            if (!confirm(`Are you sure you want to delete the location type "${locationTypeName}"? This action cannot be undone.`)) {
+                return;
+            }
+
+            try {
+                await api.deleteOrganizationLocationType(organizationId, locationTypeId);
+                showSuccess('Location type deleted successfully!');
+                await loadLocationTypes();
+            } catch (error) {
+                showError(error.message || 'Failed to delete location type');
+            }
+        }
+
         // Close modal on Escape key
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') {
                 const inviteModal = document.getElementById('invite-modal');
                 if (!inviteModal.classList.contains('hidden')) {
                     closeInviteModal();
+                }
+                const eventTypeModal = document.getElementById('event-type-modal');
+                if (!eventTypeModal.classList.contains('hidden')) {
+                    closeEventTypeModal();
+                }
+                const locationTypeModal = document.getElementById('location-type-modal');
+                if (!locationTypeModal.classList.contains('hidden')) {
+                    closeLocationTypeModal();
                 }
                 const editForm = document.getElementById('edit-org-form');
                 if (!editForm.classList.contains('hidden')) {

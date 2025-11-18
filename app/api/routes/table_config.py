@@ -4,7 +4,7 @@ API routes for retrieving table configuration from models.
 from fastapi import APIRouter, HTTPException, status
 from typing import Dict, Any
 
-from app.models import User, Organization, OrganizationMembership, Invite
+from app.models import User, Organization, OrganizationMembership, Invite, Project, Species, Accession
 from app.logging_config import get_logger
 
 router = APIRouter()
@@ -17,6 +17,9 @@ ALLOWED_MODELS = {
     'Organization': Organization,
     'OrganizationMembership': OrganizationMembership,
     'Invite': Invite,
+    'Project': Project,
+    'Species': Species,
+    'Accession': Accession,
 }
 
 

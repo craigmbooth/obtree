@@ -41,15 +41,18 @@ class Plant(Base):
         ForeignKey("accessions.id", ondelete="CASCADE"),
         nullable=False,
     )
+    location_id = Column(GUID, ForeignKey("locations.id"), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     created_by = Column(GUID, ForeignKey("users.id"), nullable=False)
 
     # Relationships
     accession = relationship("Accession", back_populates="plants")
     creator = relationship("User")
+    location = relationship("Location", back_populates="plants")
     field_values = relationship(
         "PlantFieldValue", back_populates="plant", cascade="all, delete-orphan"
     )
+    events = relationship("PlantEvent", back_populates="plant", cascade="all, delete-orphan")
 
     def __repr__(self) -> str:
         """Return string representation of the plant."""

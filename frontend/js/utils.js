@@ -38,18 +38,17 @@ function formatDate(dateString) {
     // Parse as UTC and convert to local timezone
     const date = new Date(utcString);
 
-    // Format in user's local timezone with a clear format
+    // Format in MM/DD/YYYY HH:mm AM/PM format
     const options = {
         year: 'numeric',
-        month: 'short',
-        day: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
         hour: '2-digit',
         minute: '2-digit',
-        second: '2-digit',
         hour12: true
     };
 
-    return date.toLocaleString(undefined, options);
+    return date.toLocaleString('en-US', options);
 }
 
 function copyToClipboard(text) {

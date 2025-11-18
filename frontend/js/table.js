@@ -38,13 +38,13 @@ class DataTable {
                     }
                     // Parse as UTC and convert to local timezone
                     const date = new Date(utcString);
-                    return date.toLocaleString(undefined, {
+                    // Format in MM/DD/YYYY HH:mm AM/PM format
+                    return date.toLocaleString('en-US', {
                         year: 'numeric',
-                        month: 'short',
-                        day: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
                         hour: '2-digit',
                         minute: '2-digit',
-                        second: '2-digit',
                         hour12: true
                     });
                 } catch (e) {

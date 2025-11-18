@@ -28,12 +28,14 @@ class Accession(Base, TableConfigMixin):
     accession = Column(String, nullable=False)
     description = Column(Text, nullable=True)
     species_id = Column(GUID, ForeignKey("species.id"), nullable=False)
+    location_id = Column(GUID, ForeignKey("locations.id"), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     created_by = Column(GUID, ForeignKey("users.id"), nullable=False)
 
     # Relationships
     species = relationship("Species", back_populates="accessions")
     creator = relationship("User")
+    location = relationship("Location", back_populates="accessions")
     projects = relationship("Project", secondary=projects_accessions, back_populates="accessions")
     field_values = relationship("AccessionFieldValue", back_populates="accession", cascade="all, delete-orphan")
     plants = relationship("Plant", back_populates="accession", cascade="all, delete-orphan")

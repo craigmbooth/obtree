@@ -209,6 +209,10 @@ class ApiClient {
         });
     }
 
+    async getProjectAccessions(organizationId, projectId) {
+        return this.request(`/api/organizations/${organizationId}/projects/${projectId}/accessions`);
+    }
+
     // Project Field endpoints
     async getProjectFields(organizationId, projectId, includeDeleted = false) {
         const params = includeDeleted ? '?include_deleted=true' : '';
@@ -303,6 +307,13 @@ class ApiClient {
         return this.request(`/api/organizations/${organizationId}/plants/${plantId}`);
     }
 
+    async updateOrgPlant(organizationId, plantId, data) {
+        return this.request(`/api/organizations/${organizationId}/plants/${plantId}`, {
+            method: 'PATCH',
+            body: JSON.stringify(data)
+        });
+    }
+
     async createOrgAccession(organizationId, data) {
         return this.request(`/api/organizations/${organizationId}/accessions`, {
             method: 'POST',
@@ -379,6 +390,198 @@ class ApiClient {
         return this.request(`/api/organizations/${organizationId}/species/${speciesId}/accessions/${accessionId}/plants/${plantId}`, {
             method: 'DELETE'
         });
+    }
+
+    // Organization Event Type endpoints
+    async getOrganizationEventTypes(organizationId, includeDeleted = false) {
+        const params = includeDeleted ? '?include_deleted=true' : '';
+        return this.request(`/api/organizations/${organizationId}/event-types${params}`);
+    }
+
+    async getOrganizationEventType(organizationId, eventTypeId) {
+        return this.request(`/api/organizations/${organizationId}/event-types/${eventTypeId}`);
+    }
+
+    async createOrganizationEventType(organizationId, data) {
+        return this.request(`/api/organizations/${organizationId}/event-types`, {
+            method: 'POST',
+            body: JSON.stringify(data)
+        });
+    }
+
+    async updateOrganizationEventType(organizationId, eventTypeId, data) {
+        return this.request(`/api/organizations/${organizationId}/event-types/${eventTypeId}`, {
+            method: 'PATCH',
+            body: JSON.stringify(data)
+        });
+    }
+
+    async deleteOrganizationEventType(organizationId, eventTypeId) {
+        return this.request(`/api/organizations/${organizationId}/event-types/${eventTypeId}`, {
+            method: 'DELETE'
+        });
+    }
+
+    async addOrganizationEventTypeField(organizationId, eventTypeId, data) {
+        return this.request(`/api/organizations/${organizationId}/event-types/${eventTypeId}/fields`, {
+            method: 'POST',
+            body: JSON.stringify(data)
+        });
+    }
+
+    async updateOrganizationEventTypeField(organizationId, eventTypeId, fieldId, data) {
+        return this.request(`/api/organizations/${organizationId}/event-types/${eventTypeId}/fields/${fieldId}`, {
+            method: 'PATCH',
+            body: JSON.stringify(data)
+        });
+    }
+
+    async deleteOrganizationEventTypeField(organizationId, eventTypeId, fieldId) {
+        return this.request(`/api/organizations/${organizationId}/event-types/${eventTypeId}/fields/${fieldId}`, {
+            method: 'DELETE'
+        });
+    }
+
+    // Organization Location Type endpoints
+    async getOrganizationLocationTypes(organizationId, includeDeleted = false) {
+        const params = includeDeleted ? '?include_deleted=true' : '';
+        return this.request(`/api/organizations/${organizationId}/location-types${params}`);
+    }
+
+    async getOrganizationLocationType(organizationId, locationTypeId) {
+        return this.request(`/api/organizations/${organizationId}/location-types/${locationTypeId}`);
+    }
+
+    async createOrganizationLocationType(organizationId, data) {
+        return this.request(`/api/organizations/${organizationId}/location-types`, {
+            method: 'POST',
+            body: JSON.stringify(data)
+        });
+    }
+
+    async updateOrganizationLocationType(organizationId, locationTypeId, data) {
+        return this.request(`/api/organizations/${organizationId}/location-types/${locationTypeId}`, {
+            method: 'PATCH',
+            body: JSON.stringify(data)
+        });
+    }
+
+    async deleteOrganizationLocationType(organizationId, locationTypeId) {
+        return this.request(`/api/organizations/${organizationId}/location-types/${locationTypeId}`, {
+            method: 'DELETE'
+        });
+    }
+
+    // Location endpoints
+    async getLocations(organizationId) {
+        return this.request(`/api/organizations/${organizationId}/locations`);
+    }
+
+    async getLocation(organizationId, locationId) {
+        return this.request(`/api/organizations/${organizationId}/locations/${locationId}`);
+    }
+
+    async createLocation(organizationId, data) {
+        return this.request(`/api/organizations/${organizationId}/locations`, {
+            method: 'POST',
+            body: JSON.stringify(data)
+        });
+    }
+
+    async updateLocation(organizationId, locationId, data) {
+        return this.request(`/api/organizations/${organizationId}/locations/${locationId}`, {
+            method: 'PATCH',
+            body: JSON.stringify(data)
+        });
+    }
+
+    async deleteLocation(organizationId, locationId) {
+        return this.request(`/api/organizations/${organizationId}/locations/${locationId}`, {
+            method: 'DELETE'
+        });
+    }
+
+    // Project Event Type endpoints
+    async getProjectEventTypes(organizationId, projectId, includeDeleted = false) {
+        const params = includeDeleted ? '?include_deleted=true' : '';
+        return this.request(`/api/organizations/${organizationId}/projects/${projectId}/event-types${params}`);
+    }
+
+    async getProjectEventType(organizationId, projectId, eventTypeId) {
+        return this.request(`/api/organizations/${organizationId}/projects/${projectId}/event-types/${eventTypeId}`);
+    }
+
+    async createProjectEventType(organizationId, projectId, data) {
+        return this.request(`/api/organizations/${organizationId}/projects/${projectId}/event-types`, {
+            method: 'POST',
+            body: JSON.stringify(data)
+        });
+    }
+
+    async updateProjectEventType(organizationId, projectId, eventTypeId, data) {
+        return this.request(`/api/organizations/${organizationId}/projects/${projectId}/event-types/${eventTypeId}`, {
+            method: 'PATCH',
+            body: JSON.stringify(data)
+        });
+    }
+
+    async deleteProjectEventType(organizationId, projectId, eventTypeId) {
+        return this.request(`/api/organizations/${organizationId}/projects/${projectId}/event-types/${eventTypeId}`, {
+            method: 'DELETE'
+        });
+    }
+
+    async addProjectEventTypeField(organizationId, projectId, eventTypeId, data) {
+        return this.request(`/api/organizations/${organizationId}/projects/${projectId}/event-types/${eventTypeId}/fields`, {
+            method: 'POST',
+            body: JSON.stringify(data)
+        });
+    }
+
+    async updateProjectEventTypeField(organizationId, projectId, eventTypeId, fieldId, data) {
+        return this.request(`/api/organizations/${organizationId}/projects/${projectId}/event-types/${eventTypeId}/fields/${fieldId}`, {
+            method: 'PATCH',
+            body: JSON.stringify(data)
+        });
+    }
+
+    async deleteProjectEventTypeField(organizationId, projectId, eventTypeId, fieldId) {
+        return this.request(`/api/organizations/${organizationId}/projects/${projectId}/event-types/${eventTypeId}/fields/${fieldId}`, {
+            method: 'DELETE'
+        });
+    }
+
+    // Plant Event endpoints
+    async getPlantEvents(organizationId, speciesId, accessionId, plantId) {
+        return this.request(`/api/organizations/${organizationId}/species/${speciesId}/accessions/${accessionId}/plants/${plantId}/events`);
+    }
+
+    async getPlantEvent(organizationId, speciesId, accessionId, plantId, eventId) {
+        return this.request(`/api/organizations/${organizationId}/species/${speciesId}/accessions/${accessionId}/plants/${plantId}/events/${eventId}`);
+    }
+
+    async createPlantEvent(organizationId, speciesId, accessionId, plantId, data) {
+        return this.request(`/api/organizations/${organizationId}/species/${speciesId}/accessions/${accessionId}/plants/${plantId}/events`, {
+            method: 'POST',
+            body: JSON.stringify(data)
+        });
+    }
+
+    async updatePlantEvent(organizationId, speciesId, accessionId, plantId, eventId, data) {
+        return this.request(`/api/organizations/${organizationId}/species/${speciesId}/accessions/${accessionId}/plants/${plantId}/events/${eventId}`, {
+            method: 'PATCH',
+            body: JSON.stringify(data)
+        });
+    }
+
+    async deletePlantEvent(organizationId, speciesId, accessionId, plantId, eventId) {
+        return this.request(`/api/organizations/${organizationId}/species/${speciesId}/accessions/${accessionId}/plants/${plantId}/events/${eventId}`, {
+            method: 'DELETE'
+        });
+    }
+
+    async getAccessibleEventTypes(organizationId, speciesId, accessionId, plantId) {
+        return this.request(`/api/organizations/${organizationId}/species/${speciesId}/accessions/${accessionId}/plants/${plantId}/events/accessible-types`);
     }
 }
 

@@ -8,7 +8,25 @@ import structlog
 
 from app.config import settings
 from app.logging_config import configure_logging, get_logger
-from app.api.routes import auth, organizations, invites, table_config, projects, species, accessions, org_accessions, project_fields, project_plant_fields, plants, org_plants
+from app.api.routes import (
+    auth,
+    organizations,
+    invites,
+    table_config,
+    projects,
+    species,
+    accessions,
+    org_accessions,
+    project_fields,
+    project_plant_fields,
+    plants,
+    org_plants,
+    organization_event_types,
+    project_event_types,
+    plant_events,
+    organization_location_types,
+    locations,
+)
 
 # Configure logging first
 configure_logging()
@@ -74,6 +92,11 @@ app.include_router(org_accessions.router, prefix="/api/organizations/{organizati
 app.include_router(accessions.router, prefix="/api/organizations/{organization_id}/species/{species_id}/accessions", tags=["accessions"])
 app.include_router(org_plants.router, prefix="/api/organizations/{organization_id}/plants", tags=["plants"])
 app.include_router(plants.router, prefix="/api/organizations/{organization_id}/species/{species_id}/accessions/{accession_id}/plants", tags=["plants"])
+app.include_router(organization_event_types.router, prefix="/api/organizations/{organization_id}/event-types", tags=["event-types"])
+app.include_router(project_event_types.router, prefix="/api/organizations/{organization_id}/projects/{project_id}/event-types", tags=["event-types"])
+app.include_router(plant_events.router, prefix="/api/organizations/{organization_id}/species/{species_id}/accessions/{accession_id}/plants/{plant_id}/events", tags=["events"])
+app.include_router(organization_location_types.router, prefix="/api/organizations/{organization_id}/location-types", tags=["location-types"])
+app.include_router(locations.router, prefix="/api/organizations/{organization_id}/locations", tags=["locations"])
 app.include_router(table_config.router, prefix="/api", tags=["tables"])
 
 
@@ -147,6 +170,24 @@ def organization_page(organization_id: str):
 def org_admin_page(organization_id: str):
     """Serve organization admin page."""
     return Path("frontend/org-admin.html").read_text()
+
+
+@app.get("/organizations/{organization_id}/projects", response_class=HTMLResponse)
+def projects_list_page(organization_id: str):
+    """Serve projects list page."""
+    return Path("frontend/projects.html").read_text()
+
+
+@app.get("/organizations/{organization_id}/species", response_class=HTMLResponse)
+def species_list_page(organization_id: str):
+    """Serve species list page."""
+    return Path("frontend/species-list.html").read_text()
+
+
+@app.get("/organizations/{organization_id}/accessions", response_class=HTMLResponse)
+def accessions_list_page(organization_id: str):
+    """Serve accessions list page."""
+    return Path("frontend/accessions-list.html").read_text()
 
 
 @app.get("/organizations/{organization_id}/projects/{project_id}", response_class=HTMLResponse)

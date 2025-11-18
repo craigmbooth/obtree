@@ -10,6 +10,14 @@ from app.models.accession_field_value import AccessionFieldValue
 from app.models.project_plant_field import ProjectPlantField
 from app.models.plant_field_value import PlantFieldValue
 from app.models.plant import Plant
+from app.models.event_type import EventType
+from app.models.event_type_field import EventTypeField
+from app.models.plant_event import PlantEvent
+from app.models.event_field_value import EventFieldValue
+from app.models.location_type import LocationType
+from app.models.location_type_field import LocationTypeField
+from app.models.location import Location
+from app.models.location_field_value import LocationFieldValue
 
 __all__ = [
     "User",
@@ -29,4 +37,12 @@ __all__ = [
     "ProjectPlantField",
     "PlantFieldValue",
     "Plant",
+    "EventType",
+    "EventTypeField",
+    "PlantEvent",
+    "EventFieldValue",
+    "LocationType",
+    "LocationTypeField",
+    "Location",
+    "LocationFieldValue",
 ]

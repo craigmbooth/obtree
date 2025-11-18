@@ -1,7 +1,6 @@
 from datetime import datetime
-import enum
 import uuid as uuid_lib
-from sqlalchemy import Column, DateTime, String, ForeignKey, Text, Enum
+from sqlalchemy import Column, DateTime, String, ForeignKey, Text, Integer, Boolean
 from sqlalchemy.orm import relationship
 
 from app.database import Base
@@ -9,31 +8,30 @@ from app.models.types import GUID
 from app.models.mixins import TableConfigMixin
 
 
-class ProjectStatus(str, enum.Enum):
-    """Status of a project."""
-    ACTIVE = "active"
-    ARCHIVED = "archived"
-    DELETED = "deleted"
+class LocationType(Base, TableConfigMixin):
+    """Location type model - defines location schemas at org level.
 
+    Location types are scoped to organizations and define the structure
+    of location data (e.g., nursery blocks, greenhouse sections, etc).
+    """
 
-class Project(Base, TableConfigMixin):
-    """Project model - projects belong to organizations."""
-
-    __tablename__ = "projects"
+    __tablename__ = "location_types"
 
     id = Column(GUID, primary_key=True, default=uuid_lib.uuid4, index=True)
-    title = Column(String, nullable=False)
+    location_name = Column(String(255), nullable=False)
     description = Column(Text, nullable=True)
     organization_id = Column(GUID, ForeignKey("organizations.id"), nullable=False)
-    status = Column(Enum(ProjectStatus), nullable=False, default=ProjectStatus.ACTIVE)
+    display_order = Column(Integer, default=0, nullable=False)
+    is_deleted = Column(Boolean, default=False, nullable=False)
+    deleted_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     created_by = Column(GUID, ForeignKey("users.id"), nullable=False)
 
     # Relationships
-    organization = relationship("Organization", back_populates="projects")
+    organization = relationship("Organization", back_populates="location_types")
     creator = relationship("User")
-    accessions = relationship("Accession", secondary="projects_accessions", back_populates="projects")
-    event_types = relationship("EventType", back_populates="project")
+    fields = relationship("LocationTypeField", back_populates="location_type", cascade="all, delete-orphan")
+    locations = relationship("Location", back_populates="location_type")
 
     # Table configuration for frontend display
     __table_config__ = {
@@ -46,11 +44,11 @@ class Project(Base, TableConfigMixin):
                 'formatter': 'plaintext'
             },
             {
-                'field': 'title',
-                'label': 'Project Title',
+                'field': 'location_name',
+                'label': 'Location Type',
                 'visible': True,
                 'sortable': True,
-                'width': 300,
+                'width': 200,
                 'formatter': 'plaintext'
             },
             {
@@ -58,7 +56,15 @@ class Project(Base, TableConfigMixin):
                 'label': 'Description',
                 'visible': True,
                 'sortable': False,
-                'width': 400,
+                'width': 300,
+                'formatter': 'plaintext'
+            },
+            {
+                'field': 'display_order',
+                'label': 'Order',
+                'visible': True,
+                'sortable': True,
+                'width': 100,
                 'formatter': 'plaintext'
             },
             {
@@ -70,5 +76,5 @@ class Project(Base, TableConfigMixin):
                 'formatter': 'datetime'
             }
         ],
-        'default_sort': {'field': 'created_at', 'dir': 'desc'}
+        'default_sort': {'field': 'display_order', 'dir': 'asc'}
     }

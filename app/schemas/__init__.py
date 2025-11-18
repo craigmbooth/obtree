@@ -58,6 +58,44 @@ from app.schemas.plant_field_value import (
     PlantFieldValueCreate,
     PlantFieldValueResponse,
 )
+from app.schemas.event_type import (
+    EventTypeCreate,
+    EventTypeUpdate,
+    EventTypeResponse,
+)
+from app.schemas.event_type_field import (
+    EventTypeFieldCreate,
+    EventTypeFieldUpdate,
+    EventTypeFieldResponse,
+)
+from app.schemas.plant_event import (
+    PlantEventCreate,
+    PlantEventUpdate,
+    PlantEventResponse,
+)
+from app.schemas.event_field_value import (
+    EventFieldValueCreate,
+    EventFieldValueResponse,
+)
+from app.schemas.location_type import (
+    LocationTypeCreate,
+    LocationTypeUpdate,
+    LocationTypeResponse,
+)
+from app.schemas.location_type_field import (
+    LocationTypeFieldCreate,
+    LocationTypeFieldUpdate,
+    LocationTypeFieldResponse,
+)
+from app.schemas.location import (
+    LocationCreate,
+    LocationUpdate,
+    LocationResponse,
+)
+from app.schemas.location_field_value import (
+    LocationFieldValueCreate,
+    LocationFieldValueResponse,
+)
 
 __all__ = [
     "UserCreate",
@@ -98,4 +136,26 @@ __all__ = [
     "ProjectPlantFieldResponse",
     "PlantFieldValueCreate",
     "PlantFieldValueResponse",
+    "EventTypeCreate",
+    "EventTypeUpdate",
+    "EventTypeResponse",
+    "EventTypeFieldCreate",
+    "EventTypeFieldUpdate",
+    "EventTypeFieldResponse",
+    "PlantEventCreate",
+    "PlantEventUpdate",
+    "PlantEventResponse",
+    "EventFieldValueCreate",
+    "EventFieldValueResponse",
+    "LocationTypeCreate",
+    "LocationTypeUpdate",
+    "LocationTypeResponse",
+    "LocationTypeFieldCreate",
+    "LocationTypeFieldUpdate",
+    "LocationTypeFieldResponse",
+    "LocationCreate",
+    "LocationUpdate",
+    "LocationResponse",
+    "LocationFieldValueCreate",
+    "LocationFieldValueResponse",
 ]

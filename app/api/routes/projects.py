@@ -4,11 +4,12 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import Organization, Project, ProjectStatus, User
+from app.models import Organization, Project, ProjectStatus, User, Accession, Species
 from app.schemas import (
     ProjectCreate,
     ProjectUpdate,
     ProjectResponse,
+    AccessionWithSpeciesResponse,
 )
 from app.api.deps import get_current_user
 from app.core.permissions import is_org_member, can_manage_organization
@@ -407,3 +408,94 @@ def undelete_project(
 
     logger.info("project_undeleted", project_id=project_id)
     return project
+
+
+@router.get("/{project_id}/accessions", response_model=List[AccessionWithSpeciesResponse])
+def get_project_accessions(
+    organization_id: UUID,
+    project_id: UUID,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get all accessions associated with a project.
+
+    Args:
+        organization_id: Organization UUID.
+        project_id: Project UUID.
+        current_user: Authenticated user.
+        db: Database session.
+
+    Returns:
+        List[AccessionWithSpeciesResponse]: List of accessions with species info.
+
+    Raises:
+        HTTPException: If user is not a member or project not found.
+    """
+    logger.info(
+        "get_project_accessions_started",
+        organization_id=organization_id,
+        project_id=project_id,
+        user_id=current_user.id
+    )
+
+    # Check if user is a member of the organization
+    if not is_org_member(db, current_user, organization_id):
+        logger.warning(
+            "get_project_accessions_forbidden",
+            organization_id=organization_id,
+            user_id=current_user.id
+        )
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not a member of this organization"
+        )
+
+    # Verify project exists and belongs to organization
+    project = db.query(Project).filter(
+        Project.id == project_id,
+        Project.organization_id == organization_id
+    ).first()
+
+    if not project:
+        logger.warning("project_not_found", project_id=project_id)
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Project not found"
+        )
+
+    # Get accessions with species information via the many-to-many relationship
+    accessions = (
+        db.query(Accession, Species)
+        .join(Species, Accession.species_id == Species.id)
+        .filter(Accession.projects.any(id=project_id))
+        .order_by(Accession.accession)
+        .all()
+    )
+
+    # Build response with species information
+    result = []
+    for accession, species in accessions:
+        accession_data = AccessionWithSpeciesResponse(
+            id=accession.id,
+            accession=accession.accession,
+            description=accession.description,
+            species_id=accession.species_id,
+            created_at=accession.created_at,
+            created_by=accession.created_by,
+            species_genus=species.genus,
+            species_name=species.species_name,
+            species_variety=species.variety,
+            species_common_name=species.common_name,
+            project_id=project_id,
+            project_title=project.title,
+            field_values=[]
+        )
+        result.append(accession_data)
+
+    logger.info(
+        "project_accessions_retrieved",
+        project_id=project_id,
+        accession_count=len(result)
+    )
+
+    return result

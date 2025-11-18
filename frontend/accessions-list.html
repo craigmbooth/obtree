@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="icon" type="image/png" href="/assets/images/favicon.png">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Accessions - RedBuds App</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tabulator CSS and JS -->
+    <link href="https://unpkg.com/tabulator-tables@6.2.5/dist/css/tabulator.min.css" rel="stylesheet">
+    <link href="/css/table-custom.css" rel="stylesheet">
+    <script src="https://unpkg.com/tabulator-tables@6.2.5/dist/js/tabulator.min.js"></script>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div id="navigation"></div>
+
+    <div class="container mx-auto px-4 py-8">
+        <!-- Error Message -->
+        <div id="error-message" class="hidden bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4"></div>
+
+        <!-- Success Message -->
+        <div id="success-message" class="hidden bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4"></div>
+
+        <!-- Page Header -->
+        <div class="mb-6">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-800" id="org-name">Accessions</h1>
+                    <p class="text-gray-600 mt-1">View all accessions across all species in this organization</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Accessions Table -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <div id="accessions-table"></div>
+        </div>
+    </div>
+
+    <div id="footer"></div>
+
+    <script src="/js/auth.js"></script>
+    <script src="/js/api.js"></script>
+    <script src="/js/utils.js"></script>
+    <script src="/js/router.js"></script>
+    <script src="/js/navigation.js"></script>
+    <script src="/js/table.js"></script>
+    <script src="/js/tablebuilder.js"></script>
+
+    <script>
+        let currentUser = null;
+        let organizationId = null;
+        let accessionsTable = null;
+
+        async function init() {
+            currentUser = await Auth.checkAuth();
+            if (!currentUser) return;
+
+            // Get organization ID from URL path
+            const pathSegments = window.location.pathname.split('/').filter(s => s);
+            organizationId = pathSegments[1]; // /organizations/{id}/accessions
+
+            if (!organizationId) {
+                showError('No organization ID provided');
+                return;
+            }
+
+            try {
+                // Fetch organization for navigation and title
+                const org = await api.getOrganization(organizationId);
+                document.getElementById('org-name').textContent = `Accessions - ${org.name}`;
+
+                // Render navigation
+                document.getElementById('navigation').innerHTML = navigation.render({
+                    showOrgDropdown: true,
+                    orgDropdownId: organizationId
+                });
+                navigation.init(currentUser, {
+                    showOrgDropdown: true,
+                    orgDropdownId: organizationId
+                });
+                document.getElementById('footer').innerHTML = navigation.renderFooter();
+
+                await loadAccessions();
+            } catch (error) {
+                console.error('Failed to load organization:', error);
+                showError('Failed to load organization');
+            }
+        }
+
+        async function loadAccessions() {
+            try {
+                const accessions = await api.getAllAccessions(organizationId);
+
+                // Define columns
+                const columns = [
+                    {
+                        field: 'accession',
+                        label: 'Accession',
+                        visible: true,
+                        sortable: true,
+                        width: 150,
+                        formatter: (cell) => {
+                            const data = cell.getData();
+                            const link = document.createElement('a');
+                            link.href = buildUrl('organizations', organizationId, 'accessions', data.id);
+                            link.className = 'text-blue-600 hover:underline font-medium';
+                            link.textContent = data.accession;
+                            return link;
+                        }
+                    },
+                    {
+                        field: 'species_genus',
+                        label: 'Species',
+                        visible: true,
+                        sortable: true,
+                        width: 200,
+                        formatter: (cell) => {
+                            const data = cell.getData();
+                            let text = `${data.species_genus} ${data.species_name}`;
+                            if (data.species_variety) {
+                                text += ` var. ${data.species_variety}`;
+                            }
+                            return text;
+                        }
+                    },
+                    {
+                        field: 'source_location',
+                        label: 'Source',
+                        visible: true,
+                        sortable: true,
+                        width: 200,
+                        formatter: 'plaintext'
+                    },
+                    {
+                        field: 'acquisition_date',
+                        label: 'Acquired',
+                        visible: true,
+                        sortable: true,
+                        width: 180,
+                        formatter: 'date'
+                    },
+                    {
+                        field: 'created_at',
+                        label: 'Created',
+                        visible: true,
+                        sortable: true,
+                        width: 180,
+                        formatter: 'datetime'
+                    }
+                ];
+
+                const tableConfig = {
+                    visible_columns: columns,
+                    default_sort: { field: 'accession', dir: 'asc' }
+                };
+
+                if (!accessionsTable) {
+                    accessionsTable = new DataTable('#accessions-table', {
+                        pageSize: 100
+                    });
+                }
+
+                accessionsTable.init(accessions, tableConfig);
+
+            } catch (error) {
+                console.error('Failed to load accessions:', error);
+                showError('Failed to load accessions');
+            }
+        }
+
+        init();
+    </script>
+</body>
+</html>
