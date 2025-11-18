@@ -446,13 +446,14 @@ def create_accessions(db, species, users, projects):
         accessions[3].projects.append(morton_projects[0])  # QUA-RUB-0012
 
         # Ash Tree Recovery Initiative - gets Fraxinus americana accessions
-        accessions[4].projects.append(morton_projects[1])  # FRA-AME-0021
-        accessions[5].projects.append(morton_projects[1])  # FRA-AME-0022
-        accessions[6].projects.append(morton_projects[1])  # FRA-AME-0023
+        accessions[5].projects.append(morton_projects[1])  # FRA-AME-0021
+        accessions[6].projects.append(morton_projects[1])  # FRA-AME-0022
 
         # Elm Breeding for Urban Resilience - gets Ulmus americana accessions (if we get more)
-        if len(accessions) >= 9:
-            accessions[7].projects.append(morton_projects[2])
+        if len(accessions) >= 10:
+            accessions[7].projects.append(morton_projects[2])  # ULM-AME-0031
+            accessions[8].projects.append(morton_projects[2])  # ULM-AME-0032
+            accessions[9].projects.append(morton_projects[2])  # ULM-AME-0033
 
     db.commit()
     print(f"✓ Created {len(accessions)} accessions")
@@ -460,8 +461,15 @@ def create_accessions(db, species, users, projects):
     return accessions
 
 
-def create_plants(db, accessions, users):
-    """Create plants from accessions."""
+def create_plants(db, accessions, users, locations=None):
+    """Create plants from accessions.
+
+    Args:
+        db: Database session
+        accessions: List of accessions to create plants for
+        users: List of users for created_by
+        locations: Optional list of locations to assign to plants
+    """
     print("\nCreating plants...")
 
     plants = []
@@ -469,9 +477,16 @@ def create_plants(db, accessions, users):
     for i, acc in enumerate(accessions):
         num_plants = 2 if i % 3 == 0 else (3 if i % 3 == 1 else 4)
         for j in range(num_plants):
+            # Assign location to plants from Ash Tree Recovery Initiative (accessions 5-6)
+            location_id = None
+            if locations and len(locations) >= 2 and i >= 5 and i <= 6:
+                # Distribute ash plants across first 2 locations (North Field sections)
+                location_id = locations[i - 5].id
+
             plant = Plant(
                 plant_id=f"{acc.accession}-P{j+1:02d}",
                 accession_id=acc.id,
+                location_id=location_id,
                 created_by=acc.created_by,
                 created_at=datetime.utcnow() - timedelta(days=150 - (i * 5))
             )
@@ -479,7 +494,10 @@ def create_plants(db, accessions, users):
             plants.append(plant)
 
     db.commit()
-    print(f"✓ Created {len(plants)} plants")
+
+    # Count plants with locations
+    plants_with_locations = sum(1 for p in plants if p.location_id is not None)
+    print(f"✓ Created {len(plants)} plants ({plants_with_locations} with locations)")
     return plants
 
 
@@ -847,11 +865,11 @@ def seed_database():
         projects = create_projects(db, orgs, users)
         species = create_species(db, orgs, users)
         accessions = create_accessions(db, species, users, projects)
-        plants = create_plants(db, accessions, users)
-        event_types = create_event_types(db, orgs, projects, users)
-        plant_events = create_plant_events(db, plants, event_types, users)
         location_types = create_location_types(db, orgs, users)
         locations = create_locations(db, location_types, orgs, users)
+        plants = create_plants(db, accessions, users, locations)
+        event_types = create_event_types(db, orgs, projects, users)
+        plant_events = create_plant_events(db, plants, event_types, users)
 
         print("\n" + "=" * 60)
         print("✓ Database seeding completed successfully!")
