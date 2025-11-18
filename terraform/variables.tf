@@ -50,3 +50,30 @@ variable "container_image" {
   type        = string
   default     = "us-docker.pkg.dev/cloudrun/container/hello"
 }
+
+variable "initial_admin_email" {
+  description = "Email for the initial admin user. Only used on first deployment when database is empty. Leave empty to skip bootstrap."
+  type        = string
+  default     = ""
+  sensitive   = false
+}
+
+variable "initial_admin_password" {
+  description = "Password for the initial admin user. Stored securely in Secret Manager. Only used when database is empty."
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "custom_domain" {
+  description = "Custom domain for the application (e.g., 'redbudsapp.com' or 'app.redbudsapp.com'). Leave empty to skip domain mapping."
+  type        = string
+  default     = ""
+}
+
+variable "domain_verification_code" {
+  description = "Domain verification code from Google Search Console. Required for root domain mapping. Leave empty for subdomains."
+  type        = string
+  default     = ""
+  sensitive   = false
+}

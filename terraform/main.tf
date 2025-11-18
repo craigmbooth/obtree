@@ -204,6 +204,42 @@ resource "google_secret_manager_secret_version" "secret_key" {
   secret_data = random_password.secret_key.result
 }
 
+# Store initial admin email in Secret Manager (optional - for bootstrap)
+resource "google_secret_manager_secret" "admin_email" {
+  count     = var.initial_admin_email != "" ? 1 : 0
+  secret_id = "${var.service_name}-admin-email"
+
+  replication {
+    auto {}
+  }
+
+  depends_on = [google_project_service.required_apis]
+}
+
+resource "google_secret_manager_secret_version" "admin_email" {
+  count       = var.initial_admin_email != "" ? 1 : 0
+  secret      = google_secret_manager_secret.admin_email[0].id
+  secret_data = var.initial_admin_email
+}
+
+# Store initial admin password in Secret Manager (optional - for bootstrap)
+resource "google_secret_manager_secret" "admin_password" {
+  count     = var.initial_admin_password != "" ? 1 : 0
+  secret_id = "${var.service_name}-admin-password"
+
+  replication {
+    auto {}
+  }
+
+  depends_on = [google_project_service.required_apis]
+}
+
+resource "google_secret_manager_secret_version" "admin_password" {
+  count       = var.initial_admin_password != "" ? 1 : 0
+  secret      = google_secret_manager_secret.admin_password[0].id
+  secret_data = var.initial_admin_password
+}
+
 # Artifact Registry Repository for Docker images
 resource "google_artifact_registry_repository" "repo" {
   location      = var.region
@@ -236,6 +272,22 @@ resource "google_secret_manager_secret_iam_member" "db_password_access" {
 
 resource "google_secret_manager_secret_iam_member" "secret_key_access" {
   secret_id = google_secret_manager_secret.secret_key.id
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${google_service_account.cloudrun_sa.email}"
+}
+
+# Grant Secret Manager access to admin email (if created)
+resource "google_secret_manager_secret_iam_member" "admin_email_access" {
+  count     = var.initial_admin_email != "" ? 1 : 0
+  secret_id = google_secret_manager_secret.admin_email[0].id
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${google_service_account.cloudrun_sa.email}"
+}
+
+# Grant Secret Manager access to admin password (if created)
+resource "google_secret_manager_secret_iam_member" "admin_password_access" {
+  count     = var.initial_admin_password != "" ? 1 : 0
+  secret_id = google_secret_manager_secret.admin_password[0].id
   role      = "roles/secretmanager.secretAccessor"
   member    = "serviceAccount:${google_service_account.cloudrun_sa.email}"
 }
@@ -324,6 +376,34 @@ resource "google_cloud_run_v2_service" "app" {
         value = "7"
       }
 
+      # Admin bootstrap credentials (optional - only used if database is empty)
+      # These are used by the automatic bootstrap script on container startup
+      dynamic "env" {
+        for_each = var.initial_admin_email != "" ? [1] : []
+        content {
+          name = "ADMIN_EMAIL"
+          value_source {
+            secret_key_ref {
+              secret  = google_secret_manager_secret.admin_email[0].secret_id
+              version = "latest"
+            }
+          }
+        }
+      }
+
+      dynamic "env" {
+        for_each = var.initial_admin_password != "" ? [1] : []
+        content {
+          name = "ADMIN_PASSWORD"
+          value_source {
+            secret_key_ref {
+              secret  = google_secret_manager_secret.admin_password[0].secret_id
+              version = "latest"
+            }
+          }
+        }
+      }
+
       # Health check configuration
       startup_probe {
         http_get {
@@ -372,4 +452,28 @@ resource "google_cloud_run_v2_service_iam_member" "public_access" {
   name     = google_cloud_run_v2_service.app.name
   role     = "roles/run.invoker"
   member   = "allUsers"
+}
+
+# Custom Domain Mapping for Cloud Run
+# Note: This uses Cloud Run v1 API as v2 doesn't support domain mapping yet
+resource "google_cloud_run_domain_mapping" "domain" {
+  count    = var.custom_domain != "" ? 1 : 0
+  location = var.region
+  name     = var.custom_domain
+
+  metadata {
+    namespace = var.project_id
+    annotations = {
+      "run.googleapis.com/launch-stage" = "BETA"
+    }
+  }
+
+  spec {
+    route_name = google_cloud_run_v2_service.app.name
+  }
+
+  depends_on = [
+    google_cloud_run_v2_service.app,
+    google_project_service.required_apis
+  ]
 }

@@ -216,6 +216,170 @@ psql "host=127.0.0.1 port=5432 dbname=obtree user=obtree_user"
 # Password is stored in Secret Manager
 ```
 
+## Admin User Bootstrap
+
+This Terraform configuration includes an **automatic admin user bootstrap** feature that securely creates the initial administrator account.
+
+### How It Works
+
+1. Set admin credentials in `terraform.tfvars`:
+   ```hcl
+   initial_admin_email    = "admin@yourdomain.com"
+   initial_admin_password = "your-secure-password-12345"
+   ```
+
+2. Terraform stores credentials securely in Google Secret Manager
+3. Cloud Run receives them as environment variables
+4. On container startup, the bootstrap script runs automatically
+5. **Only creates admin if database is empty** (safe and idempotent)
+
+### Initial Setup with Admin Bootstrap
+
+Edit `terraform.tfvars`:
+
+```hcl
+project_id = "your-gcp-project-id"
+region     = "us-central1"
+
+# Admin Bootstrap (Recommended for first deployment)
+initial_admin_email    = "admin@yourdomain.com"
+initial_admin_password = "SecureP@ssw0rd!2024"  # Use 12+ characters
+```
+
+Deploy:
+
+```bash
+terraform apply
+```
+
+After infrastructure is created, deploy your application:
+
+```bash
+cd ..  # Go to project root
+./deploy.sh
+```
+
+The bootstrap script will automatically create the admin user on first startup.
+
+### Security Features
+
+✅ **Passwords stored in Secret Manager** (not plain text)
+✅ **IAM-controlled access** (only Cloud Run can read)
+✅ **Idempotent** (safe to run multiple times)
+✅ **Optional** (leave empty to skip)
+
+### After Successful Deployment
+
+1. **Login** to your application with the admin credentials
+2. **Create additional admin users** through the web interface
+3. **Disable bootstrap** to remove credentials from infrastructure
+
+Edit `terraform.tfvars`:
+
+```hcl
+# Disable bootstrap by removing or setting to empty
+initial_admin_email    = ""
+initial_admin_password = ""
+```
+
+Apply changes:
+
+```bash
+terraform apply
+```
+
+This will:
+- Remove secrets from Secret Manager
+- Remove environment variables from Cloud Run
+- Stop future bootstrap attempts
+
+### Check Bootstrap Status
+
+```bash
+# View outputs
+terraform output bootstrap_enabled  # true or false
+terraform output admin_email_secret  # Secret ID or "not-created"
+
+# View Cloud Run logs for bootstrap events
+gcloud logging read "resource.type=cloud_run_revision AND jsonPayload.event=bootstrap_started" \
+  --project=$PROJECT_ID --limit=10
+```
+
+### Why Disable After Setup?
+
+- **Security**: Removes bootstrap credentials from infrastructure
+- **Compliance**: Follows principle of least privilege
+- **Clean state**: No unnecessary secrets in production
+
+For more details, see [Admin Setup Documentation](../docs/ADMIN_SETUP_QUICK_REFERENCE.md).
+
+## Custom Domain Setup
+
+You can configure a custom domain (e.g., `redbudsapp.com` or `app.redbudsapp.com`) for your Cloud Run service.
+
+### Quick Setup
+
+**Option 1: Subdomain (Recommended - No verification needed)**
+
+Edit `terraform.tfvars`:
+
+```hcl
+custom_domain = "app.redbudsapp.com"
+```
+
+**Option 2: Root Domain (Requires Google Search Console verification)**
+
+Edit `terraform.tfvars`:
+
+```hcl
+custom_domain = "redbudsapp.com"
+```
+
+Then verify your domain at [Google Search Console](https://search.google.com/search-console).
+
+### Apply and Get DNS Records
+
+```bash
+terraform apply
+
+# Get DNS records to add to your registrar
+terraform output dns_records_instructions
+```
+
+This will show you exactly which DNS records to add (CNAME for subdomain, A/AAAA for root domain).
+
+### Add DNS Records
+
+Add the records shown in the output to your domain registrar (GoDaddy, Namecheap, Google Domains, etc.).
+
+**Example output for subdomain:**
+```
+Type: CNAME
+Name: app
+Value: ghs.googlehosted.com
+```
+
+### Features
+
+✅ **Automatic SSL certificate** (Google-managed)
+✅ **Free** (no additional cost)
+✅ **Auto-renewal** (certificates renew automatically)
+✅ **Simple setup** (just add DNS records)
+
+### Verify Setup
+
+```bash
+# Check domain status
+terraform output domain_mapping_status
+
+# Test domain (after DNS propagates)
+curl https://app.redbudsapp.com/health
+```
+
+DNS propagation can take 5-30 minutes (up to 48 hours in rare cases).
+
+For detailed instructions, see [Custom Domain Setup Guide](../docs/CUSTOM_DOMAIN_SETUP.md).
+
 ## Running Database Migrations
 
 Migrations run automatically on Cloud Run startup via the Dockerfile CMD. If you need to run them manually:

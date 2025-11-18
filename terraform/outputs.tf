@@ -52,3 +52,47 @@ output "vpc_connector_name" {
   description = "VPC Access Connector name"
   value       = google_vpc_access_connector.connector.name
 }
+
+output "admin_email_secret" {
+  description = "Secret Manager secret ID for admin email (if created)"
+  value       = var.initial_admin_email != "" ? google_secret_manager_secret.admin_email[0].secret_id : "not-created"
+}
+
+output "admin_password_secret" {
+  description = "Secret Manager secret ID for admin password (if created)"
+  value       = var.initial_admin_password != "" ? google_secret_manager_secret.admin_password[0].secret_id : "not-created"
+  sensitive   = true  # Marked sensitive because the resource uses sensitive input variable
+}
+
+output "bootstrap_enabled" {
+  description = "Whether admin bootstrap is enabled"
+  value       = var.initial_admin_email != "" && var.initial_admin_password != "" ? true : false
+  sensitive   = true  # Marked sensitive because it references sensitive variable
+}
+
+output "custom_domain" {
+  description = "Custom domain configured for the application"
+  value       = var.custom_domain != "" ? var.custom_domain : "not-configured"
+}
+
+output "domain_mapping_status" {
+  description = "Status of the domain mapping"
+  value       = var.custom_domain != "" ? google_cloud_run_domain_mapping.domain[0].status[0].conditions : []
+}
+
+output "dns_records_instructions" {
+  description = "DNS records to add to your domain registrar"
+  value = var.custom_domain != "" ? {
+    message = "Add the following DNS records to your domain registrar (${var.custom_domain}):"
+    records = [
+      for record in google_cloud_run_domain_mapping.domain[0].status[0].resource_records : {
+        type  = record.type
+        name  = record.name
+        value = record.rrdata
+      }
+    ]
+  } : {
+    message = "No custom domain configured"
+    records = []
+  }
+}

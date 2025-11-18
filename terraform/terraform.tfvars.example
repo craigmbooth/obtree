@@ -19,3 +19,16 @@ max_instances = 2
 # After deployment, update the image using: gcloud run deploy obtree --image=YOUR_IMAGE
 # Terraform will ignore subsequent image changes (managed outside of Terraform)
 # container_image = "us-central1-docker.pkg.dev/your-project-id/obtree/obtree:latest"
+
+# Initial Admin User (Optional - for automatic bootstrap on first deployment)
+# The bootstrap script only creates the admin if the database is empty
+# After successful deployment, remove these variables and re-apply to disable bootstrap
+# To disable bootstrap after initial deployment, comment out or remove the above lines:
+initial_admin_email    = "administrator@redbudsapp.com"
+initial_admin_password = "tr33str33str33str33s"
+
+
+# Custom Domain Configuration (Optional)
+# Set your domain here and Terraform will output the DNS records to add
+# After applying, run 'terraform output dns_records_instructions' to see required DNS records
+custom_domain = "redbudsapp.com" 

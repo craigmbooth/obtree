@@ -1,4 +1,4 @@
-.PHONY: help install run migrate seed-admin seed shell upgrade downgrade reset db-create
+.PHONY: help install run migrate seed-admin create-admin create-admin-env seed shell upgrade downgrade reset db-create
 .PHONY: docker-up docker-down docker-restart docker-logs docker-logs-app docker-logs-db
 .PHONY: docker-build docker-shell docker-db-shell docker-migrate docker-seed-admin docker-reset docker-clean
 
@@ -9,8 +9,10 @@ help:
 	@echo "  make migrate      - Create a new migration (usage: make migrate MSG='message')"
 	@echo "  make upgrade      - Run pending migrations"
 	@echo "  make downgrade    - Rollback last migration"
-	@echo "  make seed-admin   - Create a site admin user"
-	@echo "  make seed         - Seed database with sample data (WARNING: clears existing data)"
+	@echo "  make seed-admin      - Create a site admin user (legacy)"
+	@echo "  make create-admin    - Create a site admin user (interactive, recommended)"
+	@echo "  make create-admin-env - Create admin from ADMIN_EMAIL and ADMIN_PASSWORD env vars"
+	@echo "  make seed            - Seed database with sample data (WARNING: clears existing data)"
 	@echo "  make shell        - Open a poetry shell"
 	@echo "  make db-create    - Create database tables (upgrade to latest migration)"
 	@echo "  make reset        - Reset database (WARNING: deletes all data)"
@@ -50,7 +52,19 @@ downgrade:
 	poetry run alembic downgrade -1
 
 seed-admin:
+	@echo "⚠️  This command is deprecated. Use 'make create-admin' instead."
 	poetry run python scripts/seed_admin.py
+
+create-admin:
+	poetry run python scripts/create_admin.py
+
+create-admin-env:
+	@if [ -z "$$ADMIN_EMAIL" ] || [ -z "$$ADMIN_PASSWORD" ]; then \
+		echo "Error: ADMIN_EMAIL and ADMIN_PASSWORD environment variables must be set"; \
+		echo "Usage: ADMIN_EMAIL=admin@example.com ADMIN_PASSWORD=password make create-admin-env"; \
+		exit 1; \
+	fi
+	poetry run python scripts/create_admin.py --from-env
 
 seed:
 	poetry run python scripts/seed.py

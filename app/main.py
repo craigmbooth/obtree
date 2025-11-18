@@ -2,9 +2,10 @@ import time
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse, HTMLResponse
+from fastapi.responses import FileResponse, HTMLResponse, Response
 from pathlib import Path
 import structlog
+from starlette.types import Scope, Receive, Send
 
 from app.config import settings
 from app.logging_config import configure_logging, get_logger
@@ -37,6 +38,20 @@ app = FastAPI(
     title=settings.APP_NAME,
     debug=settings.DEBUG,
 )
+
+
+# Middleware to handle X-Forwarded-Proto from Cloud Run proxy
+@app.middleware("http")
+async def proxy_headers_middleware(request: Request, call_next):
+    """Handle X-Forwarded-Proto header from reverse proxy to ensure redirects use HTTPS."""
+    # If behind a proxy that sets X-Forwarded-Proto, use that for scheme
+    forwarded_proto = request.headers.get("X-Forwarded-Proto")
+    if forwarded_proto:
+        # Override the request scope to use the forwarded protocol
+        request.scope["scheme"] = forwarded_proto
+
+    response = await call_next(request)
+    return response
 
 
 # Request logging middleware
