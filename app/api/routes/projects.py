@@ -120,13 +120,31 @@ def list_projects(
 
     projects = query.all()
 
+    # Build response with accession counts
+    from app.schemas.project import ProjectResponse
+    result = []
+    for project in projects:
+        # Count accessions for this project
+        accession_count = len(project.accessions)
+
+        result.append(ProjectResponse(
+            id=project.id,
+            title=project.title,
+            description=project.description,
+            organization_id=project.organization_id,
+            status=project.status,
+            created_at=project.created_at,
+            created_by=project.created_by,
+            accession_count=accession_count
+        ))
+
     logger.info(
         "projects_listed",
         organization_id=organization_id,
-        project_count=len(projects)
+        project_count=len(result)
     )
 
-    return projects
+    return result
 
 
 @router.get("/{project_id}", response_model=ProjectResponse)
@@ -168,8 +186,22 @@ def get_project(
             detail="Project not found"
         )
 
+    # Count accessions for this project
+    accession_count = len(project.accessions)
+
     logger.info("project_retrieved", project_id=project_id)
-    return project
+
+    from app.schemas.project import ProjectResponse
+    return ProjectResponse(
+        id=project.id,
+        title=project.title,
+        description=project.description,
+        organization_id=project.organization_id,
+        status=project.status,
+        created_at=project.created_at,
+        created_by=project.created_by,
+        accession_count=accession_count
+    )
 
 
 @router.patch("/{project_id}", response_model=ProjectResponse)
@@ -475,6 +507,9 @@ def get_project_accessions(
     # Build response with species information
     result = []
     for accession, species in accessions:
+        # Count plants for this accession
+        plant_count = len(accession.plants)
+
         accession_data = AccessionWithSpeciesResponse(
             id=accession.id,
             accession=accession.accession,
@@ -488,7 +523,8 @@ def get_project_accessions(
             species_common_name=species.common_name,
             project_id=project_id,
             project_title=project.title,
-            field_values=[]
+            field_values=[],
+            plant_count=plant_count
         )
         result.append(accession_data)
 

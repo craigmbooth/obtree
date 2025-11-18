@@ -273,6 +273,9 @@ def list_accessions(
                     updated_at=fv.updated_at
                 ))
 
+        # Count plants for this accession
+        plant_count = len(accession.plants)
+
         result.append(AccessionWithSpeciesResponse(
             id=accession.id,
             accession=accession.accession,
@@ -286,7 +289,8 @@ def list_accessions(
             species_common_name=species.common_name,
             project_id=project_id,
             project_title=project_title,
-            field_values=field_values
+            field_values=field_values,
+            plant_count=plant_count
         ))
 
     logger.info(

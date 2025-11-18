@@ -47,6 +47,7 @@ class AccessionWithSpeciesResponse(AccessionResponse):
     species_common_name: Optional[str]
     project_id: Optional[UUID] = None
     project_title: Optional[str] = None
+    plant_count: int = Field(0, description="Number of plants in this accession")
 
     class Config:
         from_attributes = True

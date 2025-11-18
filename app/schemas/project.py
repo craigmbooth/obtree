@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Optional
 from uuid import UUID
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.models.project import ProjectStatus
 
@@ -30,6 +30,7 @@ class ProjectResponse(ProjectBase):
     status: ProjectStatus
     created_at: datetime
     created_by: UUID
+    accession_count: int = Field(0, description="Number of accessions in this project")
 
     class Config:
         from_attributes = True

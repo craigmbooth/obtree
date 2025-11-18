@@ -454,6 +454,14 @@
                         }
                     },
                     {
+                        field: 'accession_count',
+                        label: 'Accessions',
+                        visible: true,
+                        sortable: true,
+                        width: 120,
+                        formatter: 'plaintext'
+                    },
+                    {
                         field: 'description',
                         label: 'Description',
                         visible: true,
@@ -881,6 +889,14 @@
                             const data = cell.getData();
                             return data.project_title || '-';
                         }
+                    },
+                    {
+                        field: 'plant_count',
+                        label: 'Plants',
+                        visible: true,
+                        sortable: true,
+                        width: 100,
+                        formatter: 'plaintext'
                     },
                     {
                         field: 'description',
