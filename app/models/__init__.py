@@ -14,6 +14,10 @@ from app.models.event_type import EventType
 from app.models.event_type_field import EventTypeField
 from app.models.plant_event import PlantEvent
 from app.models.event_field_value import EventFieldValue
+from app.models.location_type import LocationType
+from app.models.location_type_field import LocationTypeField
+from app.models.location import Location
+from app.models.location_field_value import LocationFieldValue
 
 __all__ = [
     "User",
@@ -37,4 +41,8 @@ __all__ = [
     "EventTypeField",
     "PlantEvent",
     "EventFieldValue",
+    "LocationType",
+    "LocationTypeField",
+    "Location",
+    "LocationFieldValue",
 ]

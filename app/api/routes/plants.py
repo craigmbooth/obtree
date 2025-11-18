@@ -120,10 +120,24 @@ def create_plant(
             detail="Accession ID in request body must match URL parameter",
         )
 
+    # Verify location if provided
+    if plant_data.location_id:
+        from app.models import Location
+        location = db.query(Location).filter(
+            Location.id == plant_data.location_id,
+            Location.organization_id == organization_id
+        ).first()
+        if not location:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Location not found in this organization"
+            )
+
     # Create new plant
     new_plant = Plant(
         plant_id=plant_data.plant_id,
         accession_id=accession_id,
+        location_id=plant_data.location_id,
         created_by=current_user.id,
     )
 

@@ -30,7 +30,12 @@
             </div>
 
             <div class="bg-white rounded-lg shadow-md p-6 mb-6">
-                <h2 id="plant-id" class="text-3xl font-bold text-gray-800 mb-4"></h2>
+                <div class="flex justify-between items-start mb-4">
+                    <h2 id="plant-id" class="text-3xl font-bold text-gray-800"></h2>
+                    <button id="edit-plant-btn" onclick="openEditPlantModal()" class="hidden bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+                        Edit Plant
+                    </button>
+                </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
@@ -52,6 +57,14 @@
                                 <span id="accession-name"></span>
                             </a>
                         </p>
+                    </div>
+                </div>
+
+                <!-- Location Section (Compact) -->
+                <div id="location-section" class="hidden mt-6 pt-6 border-t border-gray-200">
+                    <h3 class="text-lg font-semibold text-gray-700 mb-3">Location</h3>
+                    <div id="location-content" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <!-- Location info will be rendered here -->
                     </div>
                 </div>
 
@@ -93,6 +106,55 @@
                         <!-- Events will be rendered here as timeline -->
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Plant Modal -->
+    <div id="edit-plant-modal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50" onclick="if(event.target === this) closeEditPlantModal()">
+        <div class="relative top-10 mx-auto p-5 border w-auto max-w-2xl shadow-lg rounded-md bg-white">
+            <div class="mt-3">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">Edit Plant</h3>
+                <form id="edit-plant-form">
+                    <!-- Plant ID -->
+                    <div class="mb-4">
+                        <label for="edit-plant-id" class="block text-sm font-medium text-gray-700 mb-1">Plant ID *</label>
+                        <input type="text" id="edit-plant-id" required
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+
+                    <!-- Location Type Selection -->
+                    <div class="mb-4">
+                        <label for="edit-location-type-select" class="block text-sm font-medium text-gray-700 mb-1">Location Type</label>
+                        <select id="edit-location-type-select" onchange="handleLocationTypeChange()"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                            <option value="">No location assigned</option>
+                        </select>
+                        <p class="mt-1 text-xs text-gray-500">Select a location type and fill in the details</p>
+                    </div>
+
+                    <!-- Location Fields (dynamic based on selected type) -->
+                    <div id="edit-location-fields-container" class="hidden mb-4">
+                        <h4 class="text-sm font-medium text-gray-700 mb-2">Location Details</h4>
+                        <div class="mb-3">
+                            <label for="edit-location-notes" class="block text-xs font-medium text-gray-700 mb-1">Notes</label>
+                            <textarea id="edit-location-notes" rows="2"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"></textarea>
+                        </div>
+                        <div id="edit-location-fields" class="space-y-3">
+                            <!-- Dynamic fields will be added here -->
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end gap-2">
+                        <button type="button" onclick="closeEditPlantModal()" class="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300">
+                            Cancel
+                        </button>
+                        <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                            Save Changes
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
@@ -162,6 +224,8 @@
         let events = [];
         let accessibleEventTypes = [];
         let selectedEventType = null;
+        let locationTypes = [];
+        let selectedLocationType = null;
 
         async function init() {
             currentUser = await Auth.checkAuth();
@@ -199,9 +263,16 @@
 
             await loadPlant();
             await loadEvents();
+            await loadLocationTypes();
 
             // Set back link (after loading plant to get accessionId)
             document.getElementById('back-to-accession').href = buildUrl('organizations', organizationId, 'accessions', accessionId);
+
+            // Check for query parameter to auto-open Add Event modal (for QR code scanning)
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('addEvent') === 'true') {
+                openAddEventModal();
+            }
         }
 
         async function loadPlant() {
@@ -242,14 +313,100 @@
                 // Display created date
                 document.getElementById('plant-created').textContent = formatDate(plant.created_at);
 
+                // Display location if present
+                if (plant.location) {
+                    renderLocation(plant.location);
+                }
+
                 // Display custom fields if present
                 if (plant.field_values && plant.field_values.length > 0) {
                     renderCustomFields(plant.field_values);
+                }
+
+                // Show edit button if user is admin or site admin
+                const org = await api.getOrganization(organizationId);
+                const isAdmin = org.members.some(m => m.user_id === currentUser.id && m.role === 'admin' && m.status === 'Active');
+                if (currentUser.is_site_admin || isAdmin) {
+                    document.getElementById('edit-plant-btn').classList.remove('hidden');
                 }
             } catch (error) {
                 document.getElementById('loading').classList.add('hidden');
                 showError(error.message || 'Failed to load plant');
             }
+        }
+
+        function renderLocation(location) {
+            const section = document.getElementById('location-section');
+            const content = document.getElementById('location-content');
+
+            section.classList.remove('hidden');
+
+            // Extract latitude and longitude for Google Maps link
+            let latitude = null;
+            let longitude = null;
+            let html = '';
+
+            // Render location type badge
+            html += `
+                <div class="col-span-full mb-2">
+                    <span class="inline-block bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded">
+                        ${location.location_type_name}
+                    </span>
+                </div>
+            `;
+
+            // Render field values in compact grid
+            if (location.field_values && location.field_values.length > 0) {
+                location.field_values.forEach(field => {
+                    // Track latitude and longitude
+                    if (field.field_name === 'Latitude' && field.value) {
+                        latitude = field.value;
+                    }
+                    if (field.field_name === 'Longitude' && field.value) {
+                        longitude = field.value;
+                    }
+
+                    const displayValue = field.value !== null && field.value !== undefined
+                        ? field.value
+                        : '<span class="text-gray-400 italic">Not set</span>';
+
+                    html += `
+                        <div>
+                            <p class="text-xs font-medium text-gray-500">${field.field_name}</p>
+                            <p class="text-sm text-gray-900">${displayValue}</p>
+                        </div>
+                    `;
+                });
+            }
+
+            // Add notes if present
+            if (location.notes) {
+                html += `
+                    <div class="col-span-full">
+                        <p class="text-xs font-medium text-gray-500">Notes</p>
+                        <p class="text-sm text-gray-900">${location.notes}</p>
+                    </div>
+                `;
+            }
+
+            // Add Google Maps link if we have both latitude and longitude
+            if (latitude !== null && longitude !== null) {
+                const mapsUrl = `https://www.google.com/maps?q=${latitude},${longitude}`;
+                html += `
+                    <div class="col-span-full">
+                        <a href="${mapsUrl}" target="_blank" rel="noopener noreferrer"
+                           class="inline-flex items-center text-sm text-blue-600 hover:text-blue-800">
+                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                            </svg>
+                            View on Google Maps
+                        </a>
+                    </div>
+                `;
+            }
+
+            content.innerHTML = html;
         }
 
         function renderCustomFields(fieldValues) {
@@ -494,6 +651,185 @@
                 showError(error.message || 'Failed to delete event');
             }
         }
+
+        // Load all location types for the organization
+        async function loadLocationTypes() {
+            try {
+                locationTypes = await api.getOrganizationLocationTypes(organizationId);
+            } catch (error) {
+                console.error('Failed to load location types:', error);
+            }
+        }
+
+        // Handle location type change
+        function handleLocationTypeChange() {
+            const locationTypeId = document.getElementById('edit-location-type-select').value;
+            const fieldsContainer = document.getElementById('edit-location-fields-container');
+            const fieldsDiv = document.getElementById('edit-location-fields');
+
+            if (!locationTypeId) {
+                fieldsContainer.classList.add('hidden');
+                fieldsDiv.innerHTML = '';
+                selectedLocationType = null;
+                return;
+            }
+
+            selectedLocationType = locationTypes.find(lt => lt.id === locationTypeId);
+            if (!selectedLocationType) return;
+
+            fieldsContainer.classList.remove('hidden');
+            fieldsDiv.innerHTML = '';
+
+            // Render fields for this location type
+            selectedLocationType.fields.forEach(field => {
+                const fieldDiv = document.createElement('div');
+                fieldDiv.className = 'mb-2';
+
+                const label = document.createElement('label');
+                label.className = 'block text-xs font-medium text-gray-700 mb-1';
+                label.textContent = field.field_name + (field.is_required ? ' *' : '');
+
+                const input = document.createElement('input');
+                input.type = field.field_type === 'NUMBER' ? 'number' : 'text';
+                input.id = `location-field-${field.id}`;
+                input.dataset.fieldId = field.id;
+                input.dataset.fieldType = field.field_type;
+                input.className = 'w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500';
+
+                if (field.is_required) {
+                    input.required = true;
+                }
+
+                if (field.field_type === 'NUMBER') {
+                    if (field.min_value !== null) input.min = field.min_value;
+                    if (field.max_value !== null) input.max = field.max_value;
+                    input.step = 'any';
+                } else {
+                    if (field.min_length) input.minLength = field.min_length;
+                    if (field.max_length) input.maxLength = field.max_length;
+                }
+
+                fieldDiv.appendChild(label);
+                fieldDiv.appendChild(input);
+                fieldsDiv.appendChild(fieldDiv);
+            });
+        }
+
+        // Open edit plant modal
+        function openEditPlantModal() {
+            // Populate form with current plant data
+            document.getElementById('edit-plant-id').value = plant.plant_id;
+
+            // Populate location types dropdown
+            const locationTypeSelect = document.getElementById('edit-location-type-select');
+            locationTypeSelect.innerHTML = '<option value="">No location assigned</option>';
+
+            locationTypes.forEach(locationType => {
+                const option = document.createElement('option');
+                option.value = locationType.id;
+                option.textContent = locationType.location_name;
+                locationTypeSelect.appendChild(option);
+            });
+
+            // If plant has a location, populate the fields
+            if (plant.location) {
+                locationTypeSelect.value = plant.location.location_type_id;
+                handleLocationTypeChange();
+
+                // Wait for next tick to populate fields
+                setTimeout(() => {
+                    document.getElementById('edit-location-notes').value = plant.location.notes || '';
+
+                    plant.location.field_values.forEach(fv => {
+                        const input = document.getElementById(`location-field-${fv.field_id}`);
+                        if (input) {
+                            input.value = fv.value;
+                        }
+                    });
+                }, 0);
+            }
+
+            document.getElementById('edit-plant-modal').classList.remove('hidden');
+        }
+
+        function closeEditPlantModal() {
+            document.getElementById('edit-plant-modal').classList.add('hidden');
+        }
+
+        // Handle edit plant form submission
+        document.getElementById('edit-plant-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const plantIdValue = document.getElementById('edit-plant-id').value.trim();
+            const locationTypeId = document.getElementById('edit-location-type-select').value;
+
+            try {
+                let locationId = null;
+
+                // If a location type is selected, create or update the location
+                if (locationTypeId && selectedLocationType) {
+                    // Auto-generate location name from plant ID
+                    const locationName = `Location for ${plantIdValue}`;
+                    const locationNotes = document.getElementById('edit-location-notes').value.trim();
+
+                    // Collect field values
+                    const fieldValues = [];
+                    selectedLocationType.fields.forEach(field => {
+                        const input = document.getElementById(`location-field-${field.id}`);
+                        if (input) {
+                            const value = input.value.trim();
+                            if (value) {
+                                fieldValues.push({
+                                    field_id: field.id,
+                                    value: field.field_type === 'NUMBER' ? parseFloat(value) : value
+                                });
+                            } else if (field.is_required) {
+                                throw new Error(`${field.field_name} is required`);
+                            }
+                        }
+                    });
+
+                    // Check if plant already has a location
+                    if (plant.location) {
+                        // Update existing location
+                        await api.updateLocation(organizationId, plant.location.id, {
+                            location_type_id: locationTypeId,
+                            location_name: locationName,
+                            notes: locationNotes || null,
+                            field_values: fieldValues
+                        });
+                        locationId = plant.location.id;
+                    } else {
+                        // Create new location
+                        const newLocation = await api.createLocation(organizationId, {
+                            location_type_id: locationTypeId,
+                            location_name: locationName,
+                            notes: locationNotes || null,
+                            field_values: fieldValues
+                        });
+                        locationId = newLocation.id;
+                    }
+                } else if (plant.location) {
+                    // Location type was cleared - set location_id to null
+                    locationId = null;
+                }
+
+                // Update plant with new location_id
+                const updateData = {
+                    plant_id: plantIdValue,
+                    location_id: locationId
+                };
+
+                await api.updateOrgPlant(organizationId, plantId, updateData);
+                showSuccess('Plant updated successfully!');
+                closeEditPlantModal();
+
+                // Reload plant data
+                await loadPlant();
+            } catch (error) {
+                showError(error.message || 'Failed to update plant');
+            }
+        });
 
         init();
     </script>

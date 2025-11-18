@@ -24,6 +24,8 @@ from app.api.routes import (
     organization_event_types,
     project_event_types,
     plant_events,
+    organization_location_types,
+    locations,
 )
 
 # Configure logging first
@@ -93,6 +95,8 @@ app.include_router(plants.router, prefix="/api/organizations/{organization_id}/s
 app.include_router(organization_event_types.router, prefix="/api/organizations/{organization_id}/event-types", tags=["event-types"])
 app.include_router(project_event_types.router, prefix="/api/organizations/{organization_id}/projects/{project_id}/event-types", tags=["event-types"])
 app.include_router(plant_events.router, prefix="/api/organizations/{organization_id}/species/{species_id}/accessions/{accession_id}/plants/{plant_id}/events", tags=["events"])
+app.include_router(organization_location_types.router, prefix="/api/organizations/{organization_id}/location-types", tags=["location-types"])
+app.include_router(locations.router, prefix="/api/organizations/{organization_id}/locations", tags=["locations"])
 app.include_router(table_config.router, prefix="/api", tags=["tables"])
 
 

@@ -16,7 +16,8 @@ sys.path.insert(0, '.')
 from app.database import SessionLocal
 from app.models import (
     User, Organization, OrganizationMembership, Project, Species,
-    Accession, Plant, EventType, PlantEvent, EventFieldValue
+    Accession, Plant, EventType, PlantEvent, EventFieldValue,
+    LocationType, LocationTypeField, Location, LocationFieldValue
 )
 from app.models.membership import OrganizationRole
 from app.models.project import ProjectStatus
@@ -412,8 +413,8 @@ def create_species(db, orgs, users):
     return species
 
 
-def create_accessions(db, species, users):
-    """Create accessions for species."""
+def create_accessions(db, species, users, projects):
+    """Create accessions for species and link some to projects."""
     print("\nCreating accessions...")
 
     accessions = []
@@ -430,8 +431,31 @@ def create_accessions(db, species, users):
             db.add(accession)
             accessions.append(accession)
 
+    db.flush()  # Flush to get IDs
+
+    # Link accessions to projects
+    # Morton Arboretum accessions (first 3 species = 7 accessions) go to various projects
+    morton_projects = [p for p in projects if str(p.organization_id) == str(species[0].organization_id)]
+
+    if len(accessions) >= 7 and len(morton_projects) >= 3:
+        # Oak Disease Resistance Program - gets Quercus alba and rubra accessions
+        accessions[0].projects.append(morton_projects[0])  # QUA-ALB-0001
+        accessions[1].projects.append(morton_projects[0])  # QUA-ALB-0002
+        accessions[2].projects.append(morton_projects[0])  # QUA-RUB-0011
+        accessions[3].projects.append(morton_projects[0])  # QUA-RUB-0012
+
+        # Ash Tree Recovery Initiative - gets Fraxinus americana accessions
+        accessions[4].projects.append(morton_projects[1])  # FRA-AME-0021
+        accessions[5].projects.append(morton_projects[1])  # FRA-AME-0022
+        accessions[6].projects.append(morton_projects[1])  # FRA-AME-0023
+
+        # Elm Breeding for Urban Resilience - gets Ulmus americana accessions (if we get more)
+        if len(accessions) >= 9:
+            accessions[7].projects.append(morton_projects[2])
+
     db.commit()
     print(f"✓ Created {len(accessions)} accessions")
+    print(f"✓ Linked accessions to projects")
     return accessions
 
 
@@ -618,6 +642,185 @@ def create_plant_events(db, plants, event_types, users):
     return events
 
 
+def create_location_types(db, orgs, users):
+    """Create organization-level location types."""
+    print("\nCreating location types...")
+
+    location_types = []
+
+    # Tree Breeding Nursery location type for Morton Arboretum (orgs[0])
+    location_type = LocationType(
+        location_name="Tree Breeding Nursery",
+        description="Location schema for tree breeding nursery with block, row, and coordinate data",
+        organization_id=orgs[0].id,
+        display_order=0,
+        created_by=users[0].id,
+        created_at=datetime.utcnow() - timedelta(days=120)
+    )
+    db.add(location_type)
+    db.flush()  # Get the ID
+
+    # Add fields for Tree Breeding Nursery
+    fields_data = [
+        {"field_name": "Blocks", "field_type": FieldType.STRING, "is_required": True, "max_length": 100, "display_order": 0},
+        {"field_name": "Rows", "field_type": FieldType.NUMBER, "is_required": True, "min_value": 1.0, "max_value": 1000.0, "display_order": 1},
+        {"field_name": "Row Feet", "field_type": FieldType.NUMBER, "is_required": False, "min_value": 0.0, "max_value": 10000.0, "display_order": 2},
+        {"field_name": "Latitude", "field_type": FieldType.NUMBER, "is_required": False, "min_value": -90.0, "max_value": 90.0, "display_order": 3},
+        {"field_name": "Longitude", "field_type": FieldType.NUMBER, "is_required": False, "min_value": -180.0, "max_value": 180.0, "display_order": 4},
+    ]
+
+    for field_data in fields_data:
+        field = LocationTypeField(
+            location_type_id=location_type.id,
+            field_name=field_data["field_name"],
+            field_type=field_data["field_type"],
+            is_required=field_data["is_required"],
+            display_order=field_data["display_order"],
+            min_value=field_data.get("min_value"),
+            max_value=field_data.get("max_value"),
+            max_length=field_data.get("max_length"),
+            created_by=users[0].id
+        )
+        db.add(field)
+
+    location_types.append(location_type)
+
+    db.commit()
+    print(f"✓ Created {len(location_types)} location types")
+    return location_types
+
+
+def create_locations(db, location_types, orgs, users):
+    """Create location instances based on location types."""
+    print("\nCreating locations...")
+
+    locations = []
+
+    # Create locations for Tree Breeding Nursery location type
+    if len(location_types) > 0:
+        nursery_type = location_types[0]  # Tree Breeding Nursery
+
+        # Get the fields for this location type
+        blocks_field = None
+        rows_field = None
+        row_feet_field = None
+        lat_field = None
+        lon_field = None
+
+        for field in nursery_type.fields:
+            if field.field_name == "Blocks":
+                blocks_field = field
+            elif field.field_name == "Rows":
+                rows_field = field
+            elif field.field_name == "Row Feet":
+                row_feet_field = field
+            elif field.field_name == "Latitude":
+                lat_field = field
+            elif field.field_name == "Longitude":
+                lon_field = field
+
+        # Create several location instances
+        # Base coordinates: 41.813400, -88.054775
+        # 400 feet ≈ 0.00109 degrees latitude, 0.00145 degrees longitude (at this latitude)
+        locations_data = [
+            {
+                "name": "North Field Section A",
+                "notes": "Primary breeding block for oak varieties",
+                "blocks": "Block A",
+                "rows": 12,
+                "row_feet": 150.5,
+                "lat": 41.813500,
+                "lon": -88.054900
+            },
+            {
+                "name": "North Field Section B",
+                "notes": "Secondary breeding block for ash varieties",
+                "blocks": "Block B",
+                "rows": 10,
+                "row_feet": 125.0,
+                "lat": 41.813650,
+                "lon": -88.054650
+            },
+            {
+                "name": "South Greenhouse Complex",
+                "notes": "Climate-controlled environment for seedling development",
+                "blocks": "GH-1",
+                "rows": 8,
+                "row_feet": 75.0,
+                "lat": 41.813200,
+                "lon": -88.054850
+            },
+            {
+                "name": "East Propagation Area",
+                "notes": "Rooting and grafting station",
+                "blocks": "Block C",
+                "rows": 6,
+                "row_feet": 100.0,
+                "lat": 41.813550,
+                "lon": -88.054600
+            },
+        ]
+
+        for loc_data in locations_data:
+            location = Location(
+                organization_id=orgs[0].id,
+                location_type_id=nursery_type.id,
+                location_name=loc_data["name"],
+                notes=loc_data["notes"],
+                created_by=users[0].id,
+                created_at=datetime.utcnow() - timedelta(days=100)
+            )
+            db.add(location)
+            db.flush()  # Get the ID
+
+            # Add field values
+            if blocks_field:
+                field_value = LocationFieldValue(
+                    location_id=location.id,
+                    field_id=blocks_field.id,
+                    value_string=loc_data["blocks"]
+                )
+                db.add(field_value)
+
+            if rows_field:
+                field_value = LocationFieldValue(
+                    location_id=location.id,
+                    field_id=rows_field.id,
+                    value_number=float(loc_data["rows"])
+                )
+                db.add(field_value)
+
+            if row_feet_field and loc_data.get("row_feet"):
+                field_value = LocationFieldValue(
+                    location_id=location.id,
+                    field_id=row_feet_field.id,
+                    value_number=loc_data["row_feet"]
+                )
+                db.add(field_value)
+
+            if lat_field and loc_data.get("lat"):
+                field_value = LocationFieldValue(
+                    location_id=location.id,
+                    field_id=lat_field.id,
+                    value_number=loc_data["lat"]
+                )
+                db.add(field_value)
+
+            if lon_field and loc_data.get("lon"):
+                field_value = LocationFieldValue(
+                    location_id=location.id,
+                    field_id=lon_field.id,
+                    value_number=loc_data["lon"]
+                )
+                db.add(field_value)
+
+            locations.append(location)
+
+    db.commit()
+    print(f"✓ Created {len(locations)} locations")
+    return locations
+
+
 def seed_database():
     """Main seeding function."""
     print("=" * 60)
@@ -636,10 +839,12 @@ def seed_database():
         memberships = create_memberships(db, users, orgs)
         projects = create_projects(db, orgs, users)
         species = create_species(db, orgs, users)
-        accessions = create_accessions(db, species, users)
+        accessions = create_accessions(db, species, users, projects)
         plants = create_plants(db, accessions, users)
         event_types = create_event_types(db, orgs, projects, users)
         plant_events = create_plant_events(db, plants, event_types, users)
+        location_types = create_location_types(db, orgs, users)
+        locations = create_locations(db, location_types, orgs, users)
 
         print("\n" + "=" * 60)
         print("✓ Database seeding completed successfully!")
@@ -654,6 +859,8 @@ def seed_database():
         print(f"  Plants: {len(plants)}")
         print(f"  Event Types: {len(event_types)}")
         print(f"  Plant Events: {len(plant_events)}")
+        print(f"  Location Types: {len(location_types)}")
+        print(f"  Locations: {len(locations)}")
         print(f"\nDefault login credentials:")
         print(f"  Site Admin    -> username: siteadmin@redbudsapp.com | password: siteadmin")
         print(f"  Site Admin    -> username: s@o.com                  | password: susie")

@@ -70,29 +70,9 @@
                 <div id="plants-section" class="mt-6 pt-6 border-t border-gray-200">
                     <div class="flex justify-between items-center mb-4">
                         <h3 class="text-lg font-semibold text-gray-700">Plants</h3>
-                        <button id="add-plant-btn" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded">
+                        <button onclick="openAddPlantModal()" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded">
                             Add Plant
                         </button>
-                    </div>
-
-                    <!-- Add Plant Form (hidden by default) -->
-                    <div id="add-plant-form" class="hidden mb-4 p-4 bg-gray-50 rounded-lg">
-                        <h4 class="font-semibold text-gray-700 mb-3">Add New Plant</h4>
-                        <form id="plant-form" class="space-y-4">
-                            <div>
-                                <label for="plant_id" class="block text-sm font-medium text-gray-700 mb-1">Plant ID</label>
-                                <input type="text" id="plant_id" name="plant_id" required
-                                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500">
-                            </div>
-                            <div class="flex gap-2">
-                                <button type="submit" class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded">
-                                    Save Plant
-                                </button>
-                                <button type="button" id="cancel-plant-btn" class="bg-gray-300 hover:bg-gray-400 text-gray-700 px-4 py-2 rounded">
-                                    Cancel
-                                </button>
-                            </div>
-                        </form>
                     </div>
 
                     <!-- Plants List -->
@@ -110,6 +90,55 @@
         </div>
     </div>
 
+    <!-- Add Plant Modal -->
+    <div id="add-plant-modal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50" onclick="if(event.target === this) closeAddPlantModal()">
+        <div class="relative top-10 mx-auto p-5 border w-auto max-w-2xl shadow-lg rounded-md bg-white">
+            <div class="mt-3">
+                <h3 class="text-lg font-medium text-gray-900 mb-4">Add New Plant</h3>
+                <form id="add-plant-form">
+                    <!-- Plant ID -->
+                    <div class="mb-4">
+                        <label for="new-plant-id" class="block text-sm font-medium text-gray-700 mb-1">Plant ID *</label>
+                        <input type="text" id="new-plant-id" required
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+
+                    <!-- Location Type Selection -->
+                    <div class="mb-4">
+                        <label for="new-location-type-select" class="block text-sm font-medium text-gray-700 mb-1">Location Type (Optional)</label>
+                        <select id="new-location-type-select" onchange="handleNewPlantLocationTypeChange()"
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                            <option value="">No location assigned</option>
+                        </select>
+                        <p class="mt-1 text-xs text-gray-500">Select a location type and fill in the details</p>
+                    </div>
+
+                    <!-- Location Fields (dynamic based on selected type) -->
+                    <div id="new-location-fields-container" class="hidden mb-4">
+                        <h4 class="text-sm font-medium text-gray-700 mb-2">Location Details</h4>
+                        <div id="new-location-fields" class="space-y-3 mb-3">
+                            <!-- Dynamic fields will be added here -->
+                        </div>
+                        <div>
+                            <label for="new-location-notes" class="block text-xs font-medium text-gray-700 mb-1">Notes</label>
+                            <textarea id="new-location-notes" rows="2"
+                                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-end gap-2">
+                        <button type="button" onclick="closeAddPlantModal()" class="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300">
+                            Cancel
+                        </button>
+                        <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+                            Add Plant
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <script src="/js/api.js"></script>
     <script src="/js/auth.js"></script>
     <script src="/js/router.js"></script>
@@ -121,6 +150,8 @@
         let speciesId = null;
         let accessionId = null;
         let accession = null;
+        let locationTypes = [];
+        let selectedLocationTypeForNewPlant = null;
 
         async function init() {
             currentUser = await Auth.checkAuth();
@@ -162,7 +193,7 @@
             document.getElementById('back-to-species').href = buildUrl('organizations', organizationId, 'species', speciesId);
 
             await loadPlants();
-            setupPlantHandlers();
+            await loadLocationTypes();
         }
 
         async function loadAccession() {
@@ -278,58 +309,160 @@
             `;
         }
 
-        function setupPlantHandlers() {
-            const addPlantBtn = document.getElementById('add-plant-btn');
-            const cancelPlantBtn = document.getElementById('cancel-plant-btn');
-            const plantForm = document.getElementById('plant-form');
-            const addPlantFormContainer = document.getElementById('add-plant-form');
+        async function loadLocationTypes() {
+            try {
+                locationTypes = await api.getOrganizationLocationTypes(organizationId);
+            } catch (error) {
+                console.error('Failed to load location types:', error);
+            }
+        }
 
-            addPlantBtn.addEventListener('click', () => {
-                addPlantFormContainer.classList.remove('hidden');
-                addPlantBtn.classList.add('hidden');
+        function openAddPlantModal() {
+            // Clear form
+            document.getElementById('new-plant-id').value = '';
+            document.getElementById('new-location-notes').value = '';
+            document.getElementById('new-location-fields').innerHTML = '';
+            document.getElementById('new-location-fields-container').classList.add('hidden');
+            selectedLocationTypeForNewPlant = null;
+
+            // Populate location type dropdown
+            const locationTypeSelect = document.getElementById('new-location-type-select');
+            locationTypeSelect.innerHTML = '<option value="">No location assigned</option>';
+
+            locationTypes.forEach(locationType => {
+                const option = document.createElement('option');
+                option.value = locationType.id;
+                option.textContent = locationType.location_name;
+                locationTypeSelect.appendChild(option);
             });
 
-            cancelPlantBtn.addEventListener('click', () => {
-                addPlantFormContainer.classList.add('hidden');
-                addPlantBtn.classList.remove('hidden');
-                plantForm.reset();
-            });
+            // Show modal
+            document.getElementById('add-plant-modal').classList.remove('hidden');
+        }
 
-            plantForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                console.log('Plant form submitted');
+        function closeAddPlantModal() {
+            document.getElementById('add-plant-modal').classList.add('hidden');
+            selectedLocationTypeForNewPlant = null;
+        }
 
-                const plantId = document.getElementById('plant_id').value.trim();
-                console.log('Plant ID:', plantId);
+        function handleNewPlantLocationTypeChange() {
+            const locationTypeId = document.getElementById('new-location-type-select').value;
+            const fieldsContainer = document.getElementById('new-location-fields-container');
+            const fieldsDiv = document.getElementById('new-location-fields');
 
-                if (!plantId) {
-                    showError('Plant ID is required');
-                    return;
+            if (!locationTypeId) {
+                fieldsContainer.classList.add('hidden');
+                fieldsDiv.innerHTML = '';
+                selectedLocationTypeForNewPlant = null;
+                return;
+            }
+
+            selectedLocationTypeForNewPlant = locationTypes.find(lt => lt.id === locationTypeId);
+            if (!selectedLocationTypeForNewPlant) return;
+
+            fieldsContainer.classList.remove('hidden');
+            fieldsDiv.innerHTML = '';
+
+            // Render fields for this location type
+            selectedLocationTypeForNewPlant.fields.forEach(field => {
+                const fieldDiv = document.createElement('div');
+                fieldDiv.className = 'mb-2';
+
+                const label = document.createElement('label');
+                label.className = 'block text-xs font-medium text-gray-700 mb-1';
+                label.textContent = field.field_name + (field.is_required ? ' *' : '');
+
+                const input = document.createElement('input');
+                input.type = field.field_type === 'NUMBER' ? 'number' : 'text';
+                input.id = `new-location-field-${field.id}`;
+                input.dataset.fieldId = field.id;
+                input.dataset.fieldType = field.field_type;
+                input.className = 'w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500';
+
+                if (field.is_required) {
+                    input.required = true;
                 }
 
-                try {
-                    console.log('Creating plant with data:', {
-                        plant_id: plantId,
-                        accession_id: accessionId
-                    });
-
-                    const result = await api.createPlant(organizationId, speciesId, accessionId, {
-                        plant_id: plantId,
-                        accession_id: accessionId
-                    });
-
-                    console.log('Plant created successfully:', result);
-                    showSuccess('Plant added successfully');
-                    plantForm.reset();
-                    addPlantFormContainer.classList.add('hidden');
-                    addPlantBtn.classList.remove('hidden');
-                    await loadPlants();
-                } catch (error) {
-                    console.error('Error creating plant:', error);
-                    showError(error.message || 'Failed to add plant');
+                if (field.field_type === 'NUMBER') {
+                    if (field.min_value !== null) input.min = field.min_value;
+                    if (field.max_value !== null) input.max = field.max_value;
+                    input.step = 'any';
+                } else {
+                    if (field.min_length) input.minLength = field.min_length;
+                    if (field.max_length) input.maxLength = field.max_length;
                 }
+
+                fieldDiv.appendChild(label);
+                fieldDiv.appendChild(input);
+                fieldsDiv.appendChild(fieldDiv);
             });
         }
+
+        // Handle add plant form submission
+        document.getElementById('add-plant-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const plantIdValue = document.getElementById('new-plant-id').value.trim();
+            const locationTypeId = document.getElementById('new-location-type-select').value;
+
+            if (!plantIdValue) {
+                showError('Plant ID is required');
+                return;
+            }
+
+            try {
+                let locationId = null;
+
+                // If a location type is selected, create the location
+                if (locationTypeId && selectedLocationTypeForNewPlant) {
+                    // Auto-generate location name from plant ID
+                    const locationName = `Location for ${plantIdValue}`;
+                    const locationNotes = document.getElementById('new-location-notes').value.trim();
+
+                    // Collect field values
+                    const fieldValues = [];
+                    selectedLocationTypeForNewPlant.fields.forEach(field => {
+                        const input = document.getElementById(`new-location-field-${field.id}`);
+                        if (input) {
+                            const value = input.value.trim();
+                            if (value) {
+                                fieldValues.push({
+                                    field_id: field.id,
+                                    value: field.field_type === 'NUMBER' ? parseFloat(value) : value
+                                });
+                            } else if (field.is_required) {
+                                throw new Error(`${field.field_name} is required`);
+                            }
+                        }
+                    });
+
+                    // Create new location
+                    const newLocation = await api.createLocation(organizationId, {
+                        location_type_id: locationTypeId,
+                        location_name: locationName,
+                        notes: locationNotes || null,
+                        field_values: fieldValues
+                    });
+                    locationId = newLocation.id;
+                }
+
+                // Create plant with location_id
+                const plantData = {
+                    plant_id: plantIdValue,
+                    accession_id: accessionId,
+                    location_id: locationId
+                };
+
+                await api.createPlant(organizationId, speciesId, accessionId, plantData);
+                showSuccess('Plant added successfully!');
+                closeAddPlantModal();
+
+                // Reload plants
+                await loadPlants();
+            } catch (error) {
+                showError(error.message || 'Failed to add plant');
+            }
+        });
 
         init();
     </script>

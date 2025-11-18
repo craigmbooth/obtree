@@ -77,6 +77,25 @@ from app.schemas.event_field_value import (
     EventFieldValueCreate,
     EventFieldValueResponse,
 )
+from app.schemas.location_type import (
+    LocationTypeCreate,
+    LocationTypeUpdate,
+    LocationTypeResponse,
+)
+from app.schemas.location_type_field import (
+    LocationTypeFieldCreate,
+    LocationTypeFieldUpdate,
+    LocationTypeFieldResponse,
+)
+from app.schemas.location import (
+    LocationCreate,
+    LocationUpdate,
+    LocationResponse,
+)
+from app.schemas.location_field_value import (
+    LocationFieldValueCreate,
+    LocationFieldValueResponse,
+)
 
 __all__ = [
     "UserCreate",
@@ -128,4 +147,15 @@ __all__ = [
     "PlantEventResponse",
     "EventFieldValueCreate",
     "EventFieldValueResponse",
+    "LocationTypeCreate",
+    "LocationTypeUpdate",
+    "LocationTypeResponse",
+    "LocationTypeFieldCreate",
+    "LocationTypeFieldUpdate",
+    "LocationTypeFieldResponse",
+    "LocationCreate",
+    "LocationUpdate",
+    "LocationResponse",
+    "LocationFieldValueCreate",
+    "LocationFieldValueResponse",
 ]
