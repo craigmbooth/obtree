@@ -4,9 +4,9 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import Invite, Organization, User
-from app.schemas import InviteCreate, InviteResponse, InviteValidateResponse
-from app.api.deps import get_current_user
+from app.models import Invite, InviteType, Organization, User
+from app.schemas import InviteCreate, SiteAdminInviteCreate, InviteResponse, InviteValidateResponse
+from app.api.deps import get_current_user, get_current_site_admin
 from app.core.permissions import can_manage_organization
 from app.logging_config import get_logger
 
@@ -53,6 +53,7 @@ def create_invite(
 
     # Create invite
     new_invite = Invite(
+        invite_type=InviteType.ORGANIZATION,
         organization_id=invite_data.organization_id,
         role=invite_data.role.value,
         created_by=current_user.id
@@ -114,6 +115,64 @@ def list_organization_invites(
     return invites
 
 
+@router.post("/site-admin", response_model=InviteResponse, status_code=status.HTTP_201_CREATED)
+def create_site_admin_invite(
+    invite_data: SiteAdminInviteCreate,
+    current_user: User = Depends(get_current_site_admin),
+    db: Session = Depends(get_db)
+):
+    """Create a new site admin invite (site admin only).
+
+    Site admin invites expire after 24 hours for security purposes.
+    """
+    from datetime import datetime, timedelta
+
+    logger.info(
+        "site_admin_invite_create_started",
+        created_by=current_user.id
+    )
+
+    # Create invite with 24-hour expiration for security
+    new_invite = Invite(
+        invite_type=InviteType.SITE_ADMIN,
+        organization_id=None,
+        role="SITE_ADMIN",
+        created_by=current_user.id,
+        expires_at=datetime.utcnow() + timedelta(hours=24)
+    )
+    db.add(new_invite)
+    db.commit()
+    db.refresh(new_invite)
+
+    logger.info(
+        "site_admin_invite_created",
+        invite_id=new_invite.id,
+        invite_uuid=new_invite.uuid,
+        expires_at=new_invite.expires_at.isoformat()
+    )
+
+    return new_invite
+
+
+@router.get("/site-admin/list", response_model=List[InviteResponse])
+def list_site_admin_invites(
+    current_user: User = Depends(get_current_site_admin),
+    db: Session = Depends(get_db)
+):
+    """List all active site admin invites (site admin only)."""
+    logger.info("list_site_admin_invites", user_id=current_user.id)
+
+    # Get all active site admin invites
+    invites = db.query(Invite).filter(
+        Invite.invite_type == InviteType.SITE_ADMIN,
+        Invite.is_active == True
+    ).all()
+
+    logger.info("site_admin_invites_listed", invite_count=len(invites))
+
+    return invites
+
+
 @router.get("/validate/{invite_uuid}", response_model=InviteValidateResponse)
 def validate_invite(invite_uuid: str, db: Session = Depends(get_db)):
     """Validate an invite code (public endpoint)."""
@@ -141,6 +200,23 @@ def validate_invite(invite_uuid: str, db: Session = Depends(get_db)):
             message="Invite has expired or already been used"
         )
 
+    # Handle site admin invites differently
+    if invite.invite_type == InviteType.SITE_ADMIN:
+        logger.info(
+            "site_admin_invite_validated_success",
+            invite_uuid=invite_uuid,
+            role=invite.role
+        )
+        return InviteValidateResponse(
+            valid=True,
+            invite_type=invite.invite_type.value,
+            organization_name=None,
+            role=invite.role,
+            expires_at=invite.expires_at,
+            message="Site admin invite is valid"
+        )
+
+    # Handle organization invites
     organization = db.query(Organization).filter(
         Organization.id == invite.organization_id
     ).first()
@@ -154,6 +230,7 @@ def validate_invite(invite_uuid: str, db: Session = Depends(get_db)):
 
     return InviteValidateResponse(
         valid=True,
+        invite_type=invite.invite_type.value,
         organization_name=organization.name if organization else None,
         role=invite.role,
         expires_at=invite.expires_at,
@@ -179,18 +256,33 @@ def revoke_invite(
             detail="Invite not found"
         )
 
-    # Check if user can manage this organization
-    if not can_manage_organization(db, current_user, invite.organization_id):
-        logger.warning(
-            "revoke_invite_forbidden",
-            invite_uuid=invite_uuid,
-            organization_id=invite.organization_id,
-            user_id=current_user.id
-        )
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not enough permissions to revoke this invite"
-        )
+    # Check if user can revoke this invite
+    if invite.invite_type == InviteType.SITE_ADMIN:
+        # Site admin invites can only be revoked by site admins
+        if not current_user.is_site_admin:
+            logger.warning(
+                "revoke_invite_forbidden",
+                invite_uuid=invite_uuid,
+                invite_type=invite.invite_type.value,
+                user_id=current_user.id
+            )
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Only site admins can revoke site admin invites"
+            )
+    else:
+        # Organization invites can be revoked by site admins or org admins
+        if not can_manage_organization(db, current_user, invite.organization_id):
+            logger.warning(
+                "revoke_invite_forbidden",
+                invite_uuid=invite_uuid,
+                organization_id=invite.organization_id,
+                user_id=current_user.id
+            )
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Not enough permissions to revoke this invite"
+            )
 
     # Revoke the invite by setting is_active to False
     invite.is_active = False

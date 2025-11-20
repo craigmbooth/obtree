@@ -1,9 +1,13 @@
 // API Client for RedBuds App backend
-const API_BASE_URL = 'http://localhost:8000';
+// Version: 2.0 - Using relative URLs
+// Use relative URLs to automatically inherit the page's protocol (HTTP or HTTPS)
+// This prevents mixed content errors and works in all environments
+const API_BASE_URL = '';  // Empty string means relative to current origin
 
 class ApiClient {
     constructor() {
         this.baseUrl = API_BASE_URL;
+        console.log('ApiClient initialized - Version 2.0 - Base URL:', this.baseUrl || '(relative)');
     }
 
     getAuthHeaders() {
@@ -92,15 +96,15 @@ class ApiClient {
 
     // Organization endpoints
     async getOrganizations() {
-        return this.request('/api/organizations');
+        return this.request('/api/organizations/');
     }
 
     async getOrganization(id) {
-        return this.request(`/api/organizations/${id}`);
+        return this.request(`/api/organizations/${id}/`);
     }
 
     async createOrganization(name) {
-        return this.request('/api/organizations', {
+        return this.request('/api/organizations/', {
             method: 'POST',
             body: JSON.stringify({ name })
         });

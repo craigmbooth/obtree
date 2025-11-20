@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
+import enum
 import uuid as uuid_lib
-from sqlalchemy import Boolean, Column, DateTime, ForeignKey, String
+from sqlalchemy import Boolean, Column, DateTime, Enum, ForeignKey, String
 from sqlalchemy.orm import relationship
 
 from app.database import Base
@@ -9,15 +10,22 @@ from app.config import settings
 from app.models.mixins import TableConfigMixin
 
 
+class InviteType(str, enum.Enum):
+    """Type of invitation."""
+    ORGANIZATION = "ORGANIZATION"
+    SITE_ADMIN = "SITE_ADMIN"
+
+
 class Invite(Base, TableConfigMixin):
-    """Invitation model for organization membership."""
+    """Invitation model for organization membership or site admin access."""
 
     __tablename__ = "invites"
 
     id = Column(GUID, primary_key=True, default=uuid_lib.uuid4, index=True)
     uuid = Column(String, unique=True, index=True, nullable=False, default=lambda: str(uuid_lib.uuid4()))
-    organization_id = Column(GUID, ForeignKey("organizations.id"), nullable=False)
-    role = Column(String, nullable=False)  # Will store OrganizationRole enum value
+    invite_type = Column(Enum(InviteType), nullable=False, default=InviteType.ORGANIZATION)
+    organization_id = Column(GUID, ForeignKey("organizations.id"), nullable=True)
+    role = Column(String, nullable=False)  # Will store OrganizationRole enum value or 'SITE_ADMIN'
     created_by = Column(GUID, ForeignKey("users.id"), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     expires_at = Column(
@@ -60,6 +68,14 @@ class Invite(Base, TableConfigMixin):
                 'sortable': False,
                 'width': 280,
                 'formatter': 'plaintext'
+            },
+            {
+                'field': 'invite_type',
+                'label': 'Type',
+                'visible': True,
+                'sortable': True,
+                'width': 120,
+                'formatter': 'badge'
             },
             {
                 'field': 'organization_id',

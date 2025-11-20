@@ -4,7 +4,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import User, Invite, OrganizationMembership
+from app.models import User, Invite, InviteType, OrganizationMembership
 from app.schemas import UserCreate, UserLogin, UserResponse, Token
 from app.core.security import verify_password, get_password_hash, create_access_token
 from app.api.deps import get_current_user, get_current_site_admin
@@ -60,36 +60,55 @@ def signup(user_data: UserCreate, db: Session = Depends(get_db)):
 
     # Create new user
     hashed_password = get_password_hash(user_data.password)
+
+    # Determine if user should be site admin based on invite type
+    is_site_admin = invite and invite.invite_type == InviteType.SITE_ADMIN
+
     new_user = User(
         email=user_data.email,
         hashed_password=hashed_password,
-        is_site_admin=False
+        is_site_admin=is_site_admin
     )
     db.add(new_user)
     db.flush()  # Flush to get the user ID
 
-    logger.info("user_created", user_id=new_user.id, email=new_user.email)
+    logger.info(
+        "user_created",
+        user_id=new_user.id,
+        email=new_user.email,
+        is_site_admin=is_site_admin
+    )
 
-    # If invite was used, create organization membership and mark invite as used
+    # If invite was used, handle based on invite type
     if invite:
-        membership = OrganizationMembership(
-            user_id=new_user.id,
-            organization_id=invite.organization_id,
-            role=invite.role
-        )
-        db.add(membership)
+        if invite.invite_type == InviteType.SITE_ADMIN:
+            # Site admin invite - user is already marked as site admin
+            logger.info(
+                "site_admin_invite_used",
+                user_id=new_user.id,
+                invite_code=user_data.invite_code
+            )
+        else:
+            # Organization invite - create membership
+            membership = OrganizationMembership(
+                user_id=new_user.id,
+                organization_id=invite.organization_id,
+                role=invite.role
+            )
+            db.add(membership)
 
+            logger.info(
+                "org_invite_used",
+                user_id=new_user.id,
+                invite_code=user_data.invite_code,
+                organization_id=invite.organization_id,
+                role=invite.role
+            )
+
+        # Mark invite as used
         invite.used_by = new_user.id
         invite.used_at = datetime.utcnow()
         invite.is_active = False
-
-        logger.info(
-            "invite_used",
-            user_id=new_user.id,
-            invite_code=user_data.invite_code,
-            organization_id=invite.organization_id,
-            role=invite.role
-        )
 
     db.commit()
     db.refresh(new_user)
