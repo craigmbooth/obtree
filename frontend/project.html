@@ -33,6 +33,9 @@
                 <div class="flex justify-between items-start mb-4">
                     <h2 id="project-title" class="text-3xl font-bold text-gray-800"></h2>
                     <div class="flex gap-2">
+                        <button id="download-csv-btn" onclick="downloadCSV()" class="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
+                            Download Data
+                        </button>
                         <button id="edit-project-btn" onclick="openEditProjectModal()" class="hidden bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
                             Edit
                         </button>
@@ -374,7 +377,7 @@
         </div>
     </div>
 
-    <script src="/js/api.js"></script>
+    <script src="/js/api.js?v=3"></script>
     <script src="/js/auth.js"></script>
     <script src="/js/router.js"></script>
     <script src="/js/utils.js"></script>
@@ -558,6 +561,15 @@
                 window.location.href = buildUrl('organizations', organizationId);
             } catch (error) {
                 showError(error.message || 'Failed to delete project');
+            }
+        }
+
+        async function downloadCSV() {
+            try {
+                await api.downloadProjectCSV(organizationId, projectId);
+                showSuccess('CSV download started!');
+            } catch (error) {
+                showError(error.message || 'Failed to download CSV');
             }
         }
 

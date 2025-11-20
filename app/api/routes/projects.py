@@ -1,10 +1,25 @@
-from typing import List
+from typing import List, Iterator
 from uuid import UUID
+import csv
+import io
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from fastapi.responses import StreamingResponse
+from sqlalchemy.orm import Session, joinedload
 
 from app.database import get_db
-from app.models import Organization, Project, ProjectStatus, User, Accession, Species
+from app.models import (
+    Organization,
+    Project,
+    ProjectStatus,
+    User,
+    Accession,
+    Species,
+    Plant,
+    PlantEvent,
+    Location,
+    ProjectAccessionField,
+    ProjectPlantField,
+)
 from app.schemas import (
     ProjectCreate,
     ProjectUpdate,
@@ -535,3 +550,281 @@ def get_project_accessions(
     )
 
     return result
+
+
+def generate_project_csv(
+    db: Session,
+    project: Project,
+    accession_fields: List[ProjectAccessionField],
+    plant_fields: List[ProjectPlantField]
+) -> Iterator[str]:
+    """Generate CSV data for a project with all related data.
+
+    Yields CSV rows one at a time for memory efficiency. Each row represents
+    a single plant with events spread horizontally (Event 1, Event 2, etc.).
+
+    Args:
+        db: Database session.
+        project: Project instance.
+        accession_fields: List of custom accession fields for the project.
+        plant_fields: List of custom plant fields for the project.
+
+    Yields:
+        str: CSV-formatted strings, one row at a time.
+    """
+    # First pass: determine maximum number of events any plant has
+    max_events = 0
+    for accession in project.accessions:
+        for plant in accession.plants:
+            event_count = len(plant.events)
+            if event_count > max_events:
+                max_events = event_count
+
+    # Build CSV header
+    header = [
+        "Project Title",
+        "Project Description",
+        "Accession",
+        "Accession Description",
+        "Species Genus",
+        "Species Name",
+        "Species Variety",
+        "Common Name",
+        "Accession Location",
+    ]
+
+    # Add accession custom field columns
+    accession_field_names = [f.field_name for f in accession_fields]
+    header.extend([f"Accession: {name}" for name in accession_field_names])
+
+    # Add plant columns
+    header.extend([
+        "Plant ID",
+        "Plant Location",
+    ])
+
+    # Add plant custom field columns
+    plant_field_names = [f.field_name for f in plant_fields]
+    header.extend([f"Plant: {name}" for name in plant_field_names])
+
+    # Add event columns (horizontal expansion)
+    for i in range(1, max_events + 1):
+        header.extend([
+            f"Event {i} Type",
+            f"Event {i} Date",
+            f"Event {i} Notes",
+        ])
+
+    # Write header
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(header)
+    yield output.getvalue()
+    output.close()
+
+    # Generate data rows (one per plant)
+    for accession in project.accessions:
+        # Get species info
+        species = accession.species
+        species_genus = species.genus if species else ""
+        species_name = species.species_name if species else ""
+        species_variety = species.variety if species else ""
+        common_name = species.common_name if species else ""
+
+        # Get accession location
+        acc_location = accession.location.location_name if accession.location else ""
+
+        # Get accession custom field values
+        acc_field_values = {}
+        for fv in accession.field_values:
+            field_name = fv.field.field_name
+            if fv.field.field_type.value == "string":
+                acc_field_values[field_name] = fv.value_string or ""
+            else:
+                acc_field_values[field_name] = str(fv.value_number) if fv.value_number is not None else ""
+
+        for plant in accession.plants:
+            output = io.StringIO()
+            writer = csv.writer(output)
+
+            # Get plant location
+            plant_location = plant.location.location_name if plant.location else ""
+
+            # Get plant custom field values
+            plant_field_values = {}
+            for fv in plant.field_values:
+                field_name = fv.field.field_name
+                if fv.field.field_type.value == "string":
+                    plant_field_values[field_name] = fv.value_string or ""
+                else:
+                    plant_field_values[field_name] = str(fv.value_number) if fv.value_number is not None else ""
+
+            # Build base row
+            row = [
+                project.title,
+                project.description or "",
+                accession.accession,
+                accession.description or "",
+                species_genus,
+                species_name,
+                species_variety,
+                common_name,
+                acc_location,
+            ]
+
+            # Add accession field values
+            for field_name in accession_field_names:
+                row.append(acc_field_values.get(field_name, ""))
+
+            # Add plant data
+            row.extend([
+                plant.plant_id,
+                plant_location,
+            ])
+
+            # Add plant field values
+            for field_name in plant_field_names:
+                row.append(plant_field_values.get(field_name, ""))
+
+            # Sort events by date (oldest first)
+            events = sorted(plant.events, key=lambda e: e.event_date if e.event_date else "")
+
+            # Add event data (horizontal expansion)
+            for i in range(max_events):
+                if i < len(events):
+                    event = events[i]
+                    row.extend([
+                        event.event_type.event_name,
+                        event.event_date.isoformat() if event.event_date else "",
+                        event.notes or "",
+                    ])
+                else:
+                    # Empty columns for plants with fewer events
+                    row.extend(["", "", ""])
+
+            writer.writerow(row)
+            yield output.getvalue()
+            output.close()
+
+
+@router.get("/{project_id}/export/csv")
+def export_project_csv(
+    organization_id: UUID,
+    project_id: UUID,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Export project data as CSV.
+
+    Returns a streaming CSV file containing project, accession, plant,
+    event, and location data. The CSV format uses one row per plant-event
+    combination for comprehensive data export.
+
+    Args:
+        organization_id: Organization UUID.
+        project_id: Project UUID.
+        current_user: Authenticated user.
+        db: Database session.
+
+    Returns:
+        StreamingResponse: CSV file download.
+
+    Raises:
+        HTTPException: If user is not a member or project not found.
+    """
+    logger.info(
+        "export_project_csv_started",
+        organization_id=organization_id,
+        project_id=project_id,
+        user_id=current_user.id
+    )
+
+    # Check if user is a member of the organization
+    if not is_org_member(db, current_user, organization_id):
+        logger.warning(
+            "export_project_csv_forbidden",
+            organization_id=organization_id,
+            user_id=current_user.id
+        )
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not a member of this organization"
+        )
+
+    # Fetch project with all related data using eager loading
+    project = (
+        db.query(Project)
+        .filter(
+            Project.id == project_id,
+            Project.organization_id == organization_id
+        )
+        .options(
+            joinedload(Project.accessions)
+            .joinedload(Accession.species),
+            joinedload(Project.accessions)
+            .joinedload(Accession.location),
+            joinedload(Project.accessions)
+            .joinedload(Accession.field_values),
+            joinedload(Project.accessions)
+            .joinedload(Accession.plants)
+            .joinedload(Plant.location),
+            joinedload(Project.accessions)
+            .joinedload(Accession.plants)
+            .joinedload(Plant.field_values),
+            joinedload(Project.accessions)
+            .joinedload(Accession.plants)
+            .joinedload(Plant.events)
+            .joinedload(PlantEvent.event_type),
+            joinedload(Project.accessions)
+            .joinedload(Accession.plants)
+            .joinedload(Plant.events)
+            .joinedload(PlantEvent.field_values),
+        )
+        .first()
+    )
+
+    if not project:
+        logger.warning("project_not_found", project_id=project_id)
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Project not found"
+        )
+
+    # Get accession and plant custom fields for this project
+    accession_fields = (
+        db.query(ProjectAccessionField)
+        .filter(
+            ProjectAccessionField.project_id == project_id,
+            ProjectAccessionField.is_deleted == False
+        )
+        .order_by(ProjectAccessionField.display_order, ProjectAccessionField.field_name)
+        .all()
+    )
+
+    plant_fields = (
+        db.query(ProjectPlantField)
+        .filter(
+            ProjectPlantField.project_id == project_id,
+            ProjectPlantField.is_deleted == False
+        )
+        .order_by(ProjectPlantField.display_order, ProjectPlantField.field_name)
+        .all()
+    )
+
+    logger.info(
+        "export_project_csv_success",
+        project_id=project_id,
+        accession_count=len(project.accessions)
+    )
+
+    # Generate filename
+    filename = f"{project.title.replace(' ', '_')}_export.csv"
+
+    # Return streaming response
+    return StreamingResponse(
+        generate_project_csv(db, project, accession_fields, plant_fields),
+        media_type="text/csv",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"'
+        }
+    )

@@ -217,6 +217,45 @@ class ApiClient {
         return this.request(`/api/organizations/${organizationId}/projects/${projectId}/accessions`);
     }
 
+    async downloadProjectCSV(organizationId, projectId) {
+        const url = `${this.baseUrl}/api/organizations/${organizationId}/projects/${projectId}/export/csv`;
+        const token = localStorage.getItem('token');
+
+        const response = await fetch(url, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        if (!response.ok) {
+            const data = await response.json();
+            throw new Error(data.detail || 'Failed to download CSV');
+        }
+
+        const blob = await response.blob();
+        const downloadUrl = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = downloadUrl;
+
+        // Get filename from Content-Disposition header if available
+        const contentDisposition = response.headers.get('Content-Disposition');
+        let filename = 'project_export.csv';
+        if (contentDisposition) {
+            const filenameMatch = contentDisposition.match(/filename="([^"]+)"/);
+            if (filenameMatch) {
+                filename = filenameMatch[1];
+            }
+        }
+        a.download = filename;
+
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(downloadUrl);
+        document.body.removeChild(a);
+    }
+
     // Project Field endpoints
     async getProjectFields(organizationId, projectId, includeDeleted = false) {
         const params = includeDeleted ? '?include_deleted=true' : '';
