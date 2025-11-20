@@ -1,6 +1,6 @@
 .PHONY: help install run migrate seed-admin create-admin create-admin-env seed shell upgrade downgrade reset db-create
 .PHONY: docker-up docker-down docker-restart docker-logs docker-logs-app docker-logs-db
-.PHONY: docker-build docker-shell docker-db-shell docker-migrate docker-seed-admin docker-reset docker-clean
+.PHONY: docker-build docker-shell docker-db-shell docker-migrate docker-seed-admin docker-seed docker-reset docker-clean
 
 help:
 	@echo "=== Local Development (Poetry) ==="
@@ -29,6 +29,7 @@ help:
 	@echo "  make docker-db-shell   - Open PostgreSQL shell"
 	@echo "  make docker-migrate    - Run migrations in container"
 	@echo "  make docker-seed-admin - Create admin user in container"
+	@echo "  make docker-seed       - Seed database with sample data in container"
 	@echo "  make docker-reset      - Reset Docker database (WARNING: deletes all data)"
 	@echo "  make docker-clean      - Remove all containers and volumes"
 
@@ -157,6 +158,10 @@ else: \
     db.commit(); \
     print('Admin user created: admin@example.com / admin123'); \
 db.close();"
+
+docker-seed:
+	@echo "Seeding database with sample data..."
+	docker exec obtree-app python scripts/seed.py
 
 docker-reset:
 	@echo "WARNING: This will delete all Docker data!"

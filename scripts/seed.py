@@ -32,25 +32,15 @@ def clear_database():
     """Clear the existing database and recreate tables."""
     print("Clearing existing database...")
 
-    db_path = "obtree.db"
+    from app.database import engine, Base
 
-    # Remove the database file if it exists
-    if os.path.exists(db_path):
-        os.remove(db_path)
-        print(f"✓ Deleted existing database: {db_path}")
+    # Drop all tables
+    Base.metadata.drop_all(bind=engine)
+    print("✓ Dropped all existing tables")
 
-    # Run migrations to recreate tables
+    # Recreate all tables
     print("Recreating database tables...")
-    result = subprocess.run(
-        ["poetry", "run", "alembic", "upgrade", "head"],
-        capture_output=True,
-        text=True
-    )
-
-    if result.returncode != 0:
-        print(f"Error running migrations: {result.stderr}")
-        sys.exit(1)
-
+    Base.metadata.create_all(bind=engine)
     print("✓ Database tables recreated")
 
 
@@ -571,7 +561,7 @@ def create_event_types(db, orgs, projects, users):
             field = EventTypeField(
                 event_type_id=event_type.id,
                 field_name=field_data["field_name"],
-                field_type=field_data["field_type"],
+                field_type=field_data["field_type"].value,  # Use .value to get lowercase string
                 is_required=field_data["is_required"],
                 min_value=field_data.get("min_value"),
                 max_value=field_data.get("max_value"),
@@ -600,7 +590,7 @@ def create_event_types(db, orgs, projects, users):
             field = EventTypeField(
                 event_type_id=event_type.id,
                 field_name=field_data["field_name"],
-                field_type=field_data["field_type"],
+                field_type=field_data["field_type"].value,  # Use .value to get lowercase string
                 is_required=field_data["is_required"],
                 min_value=field_data.get("min_value"),
                 max_value=field_data.get("max_value"),
@@ -697,7 +687,7 @@ def create_location_types(db, orgs, users):
         field = LocationTypeField(
             location_type_id=location_type.id,
             field_name=field_data["field_name"],
-            field_type=field_data["field_type"],
+            field_type=field_data["field_type"].value,  # Use .value to get lowercase string
             is_required=field_data["is_required"],
             display_order=field_data["display_order"],
             min_value=field_data.get("min_value"),
