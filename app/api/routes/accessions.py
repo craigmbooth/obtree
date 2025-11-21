@@ -43,32 +43,69 @@ def create_accession(
             detail="Not enough permissions to create accessions in this organization"
         )
 
-    # Verify species exists and belongs to this organization
-    species = db.query(Species).filter(Species.id == species_id).first()
-    if not species:
-        logger.warning("accession_create_species_not_found", species_id=species_id)
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Species not found"
-        )
+    # Validate that either species_id OR hybrid parents are provided
+    if accession_data.is_hybrid:
+        # For hybrids, require both parent species
+        if not accession_data.parent_species_1_id or not accession_data.parent_species_2_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Both parent species are required for hybrid accessions"
+            )
+    else:
+        # For non-hybrids, require species_id
+        if not accession_data.species_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Species ID is required for non-hybrid accessions"
+            )
 
-    if str(species.organization_id) != str(organization_id):
-        logger.warning(
-            "accession_create_species_org_mismatch",
-            species_id=species_id,
-            species_org_id=species.organization_id,
-            organization_id=organization_id
-        )
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Species does not belong to this organization"
-        )
+    # Verify species exists and belongs to this organization (if provided)
+    if accession_data.species_id:
+        species = db.query(Species).filter(Species.id == accession_data.species_id).first()
+        if not species:
+            logger.warning("accession_create_species_not_found", species_id=accession_data.species_id)
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Species not found"
+            )
+
+        if str(species.organization_id) != str(organization_id):
+            logger.warning(
+                "accession_create_species_org_mismatch",
+                species_id=accession_data.species_id,
+                species_org_id=species.organization_id,
+                organization_id=organization_id
+            )
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Species does not belong to this organization"
+            )
+
+    # Verify hybrid parent species exist and belong to the organization
+    if accession_data.is_hybrid:
+        parent_species_1 = db.query(Species).filter(
+            Species.id == accession_data.parent_species_1_id,
+            Species.organization_id == organization_id
+        ).first()
+        parent_species_2 = db.query(Species).filter(
+            Species.id == accession_data.parent_species_2_id,
+            Species.organization_id == organization_id
+        ).first()
+
+        if not parent_species_1 or not parent_species_2:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="One or both parent species not found in this organization"
+            )
 
     # Create new accession
     new_accession = Accession(
         accession=accession_data.accession,
         description=accession_data.description,
-        species_id=species_id,
+        species_id=accession_data.species_id if not accession_data.is_hybrid else None,
+        is_hybrid=accession_data.is_hybrid,
+        parent_species_1_id=accession_data.parent_species_1_id if accession_data.is_hybrid else None,
+        parent_species_2_id=accession_data.parent_species_2_id if accession_data.is_hybrid else None,
         created_by=current_user.id
     )
 
@@ -206,8 +243,17 @@ def list_accessions(
             detail="Species does not belong to this organization"
         )
 
-    # Get all accessions for this species
-    accessions = db.query(Accession).filter(Accession.species_id == species_id).all()
+    # Get all accessions for this species with parent species loaded
+    from sqlalchemy.orm import joinedload
+    accessions = (
+        db.query(Accession)
+        .filter(Accession.species_id == species_id)
+        .options(
+            joinedload(Accession.parent_species_1),
+            joinedload(Accession.parent_species_2)
+        )
+        .all()
+    )
 
     # Transform to include species and project information
     from app.schemas.accession_field_value import AccessionFieldValueResponse
@@ -281,6 +327,12 @@ def list_accessions(
             accession=accession.accession,
             description=accession.description,
             species_id=accession.species_id,
+            is_hybrid=accession.is_hybrid,
+            parent_species_1_id=accession.parent_species_1_id,
+            parent_species_2_id=accession.parent_species_2_id,
+            parent_species_1_name=accession.parent_species_1.formatted_name if accession.parent_species_1 else None,
+            parent_species_2_name=accession.parent_species_2.formatted_name if accession.parent_species_2 else None,
+            hybrid_display_name=accession.hybrid_display_name,
             created_at=accession.created_at,
             created_by=accession.created_by,
             species_genus=species.genus,
@@ -332,8 +384,17 @@ def get_accession(
             detail="Not enough permissions to view accessions in this organization"
         )
 
-    # Get the accession
-    accession = db.query(Accession).filter(Accession.id == accession_id).first()
+    # Get the accession with parent species loaded
+    from sqlalchemy.orm import joinedload
+    accession = (
+        db.query(Accession)
+        .filter(Accession.id == accession_id)
+        .options(
+            joinedload(Accession.parent_species_1),
+            joinedload(Accession.parent_species_2)
+        )
+        .first()
+    )
     if not accession:
         logger.warning("accession_get_not_found", accession_id=accession_id)
         raise HTTPException(
@@ -341,26 +402,29 @@ def get_accession(
             detail="Accession not found"
         )
 
-    # Verify species
-    if str(accession.species_id) != str(species_id):
-        logger.warning(
-            "accession_get_species_mismatch",
-            accession_id=accession_id,
-            accession_species_id=accession.species_id,
-            requested_species_id=species_id
-        )
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Accession does not belong to this species"
-        )
+    # Verify species (only for non-hybrids)
+    if not accession.is_hybrid:
+        if str(accession.species_id) != str(species_id):
+            logger.warning(
+                "accession_get_species_mismatch",
+                accession_id=accession_id,
+                accession_species_id=accession.species_id,
+                requested_species_id=species_id
+            )
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Accession does not belong to this species"
+            )
 
-    # Get species
-    species = db.query(Species).filter(Species.id == species_id).first()
-    if not species or str(species.organization_id) != str(organization_id):
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Species not found in this organization"
-        )
+    # Get species (only if not hybrid)
+    species = None
+    if accession.species_id:
+        species = db.query(Species).filter(Species.id == species_id).first()
+        if not species or str(species.organization_id) != str(organization_id):
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Species not found in this organization"
+            )
 
     # Get project association if exists
     project_id = None
@@ -423,20 +487,30 @@ def get_accession(
                 updated_at=fv.updated_at
             ))
 
+    # Count plants in this accession
+    plant_count = len(accession.plants) if accession.plants else 0
+
     # Transform to include species and project information
     result = AccessionWithSpeciesResponse(
         id=accession.id,
         accession=accession.accession,
         description=accession.description,
         species_id=accession.species_id,
+        is_hybrid=accession.is_hybrid,
+        parent_species_1_id=accession.parent_species_1_id,
+        parent_species_2_id=accession.parent_species_2_id,
+        parent_species_1_name=accession.parent_species_1.formatted_name if accession.parent_species_1 else None,
+        parent_species_2_name=accession.parent_species_2.formatted_name if accession.parent_species_2 else None,
+        hybrid_display_name=accession.hybrid_display_name,
         created_at=accession.created_at,
         created_by=accession.created_by,
-        species_genus=species.genus,
-        species_name=species.species_name,
-        species_variety=species.variety,
-        species_common_name=species.common_name,
+        species_genus=species.genus if species else None,
+        species_name=species.species_name if species else None,
+        species_variety=species.variety if species else None,
+        species_common_name=species.common_name if species else None,
         project_id=project_id,
         project_title=project_title,
+        plant_count=plant_count,
         field_values=field_values
     )
 
@@ -484,31 +558,66 @@ def update_accession(
             detail="Accession not found"
         )
 
-    # Verify species
-    if str(accession.species_id) != str(species_id):
-        logger.warning(
-            "accession_update_species_mismatch",
-            accession_id=accession_id,
-            accession_species_id=accession.species_id,
-            requested_species_id=species_id
-        )
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Accession does not belong to this species"
-        )
+    # Verify species (only for non-hybrids)
+    if not accession.is_hybrid:
+        if str(accession.species_id) != str(species_id):
+            logger.warning(
+                "accession_update_species_mismatch",
+                accession_id=accession_id,
+                accession_species_id=accession.species_id,
+                requested_species_id=species_id
+            )
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Accession does not belong to this species"
+            )
 
-    # Verify species belongs to organization
-    species = db.query(Species).filter(Species.id == species_id).first()
-    if not species or str(species.organization_id) != str(organization_id):
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Species not found in this organization"
-        )
+        # Verify species belongs to organization
+        species = db.query(Species).filter(Species.id == species_id).first()
+        if not species or str(species.organization_id) != str(organization_id):
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Species not found in this organization"
+            )
 
-    # Update fields (exclude project_id as it's handled separately)
-    update_data = accession_update.model_dump(exclude_unset=True, exclude={'project_id'})
-    for field, value in update_data.items():
+    # Validate hybrid updates if provided
+    update_data_dict = accession_update.model_dump(exclude_unset=True, exclude={'project_id', 'field_values'})
+
+    if "is_hybrid" in update_data_dict and update_data_dict["is_hybrid"]:
+        # If setting to hybrid, ensure both parent species IDs are provided
+        parent_1_id = update_data_dict.get("parent_species_1_id", accession.parent_species_1_id)
+        parent_2_id = update_data_dict.get("parent_species_2_id", accession.parent_species_2_id)
+
+        if not parent_1_id or not parent_2_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Both parent species are required for hybrid accessions"
+            )
+
+        # Verify parent species exist and belong to the organization
+        parent_species_1 = db.query(Species).filter(
+            Species.id == parent_1_id,
+            Species.organization_id == organization_id
+        ).first()
+        parent_species_2 = db.query(Species).filter(
+            Species.id == parent_2_id,
+            Species.organization_id == organization_id
+        ).first()
+
+        if not parent_species_1 or not parent_species_2:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="One or both parent species not found in this organization"
+            )
+
+    # Update fields (exclude project_id and field_values as they're handled separately)
+    for field, value in update_data_dict.items():
         setattr(accession, field, value)
+
+    # Clear parent species if is_hybrid is set to False
+    if "is_hybrid" in update_data_dict and not update_data_dict["is_hybrid"]:
+        accession.parent_species_1_id = None
+        accession.parent_species_2_id = None
 
     db.commit()
     db.refresh(accession)

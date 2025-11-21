@@ -620,13 +620,19 @@
             table.classList.remove('hidden');
 
             tbody.innerHTML = accessions.map(accession => {
-                // Build species name
-                let speciesName = `${accession.species_genus} ${accession.species_name}`;
-                if (accession.species_variety) {
-                    speciesName += ` var. ${accession.species_variety}`;
+                // Build species name (use hybrid display name for hybrids)
+                let speciesName;
+                if (accession.is_hybrid) {
+                    speciesName = accession.hybrid_display_name || 'Hybrid';
+                } else {
+                    speciesName = `${accession.species_genus} ${accession.species_name}`;
+                    if (accession.species_variety) {
+                        speciesName += ` var. ${accession.species_variety}`;
+                    }
                 }
 
-                const commonName = accession.species_common_name || '-';
+                // Common name (hybrids don't have a single common name)
+                const commonName = accession.is_hybrid ? '-' : (accession.species_common_name || '-');
                 const description = accession.description || '-';
 
                 // Build link to accession detail page

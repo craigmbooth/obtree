@@ -511,9 +511,15 @@ def get_project_accessions(
         )
 
     # Get accessions with species information via the many-to-many relationship
+    # Use joinedload to eagerly load species (including for hybrids with NULL species_id)
+    from sqlalchemy.orm import joinedload
     accessions = (
-        db.query(Accession, Species)
-        .join(Species, Accession.species_id == Species.id)
+        db.query(Accession)
+        .options(
+            joinedload(Accession.species),
+            joinedload(Accession.parent_species_1),
+            joinedload(Accession.parent_species_2)
+        )
         .filter(Accession.projects.any(id=project_id))
         .order_by(Accession.accession)
         .all()
@@ -521,21 +527,47 @@ def get_project_accessions(
 
     # Build response with species information
     result = []
-    for accession, species in accessions:
+    for accession in accessions:
         # Count plants for this accession
         plant_count = len(accession.plants)
+
+        # Get species info (None for hybrids)
+        species_genus = None
+        species_name = None
+        species_variety = None
+        species_common_name = None
+        if accession.species:
+            species_genus = accession.species.genus
+            species_name = accession.species.species_name
+            species_variety = accession.species.variety
+            species_common_name = accession.species.common_name
+
+        # Get parent species names for hybrids
+        parent_species_1_name = None
+        parent_species_2_name = None
+        if accession.is_hybrid:
+            if accession.parent_species_1:
+                parent_species_1_name = accession.parent_species_1.formatted_name
+            if accession.parent_species_2:
+                parent_species_2_name = accession.parent_species_2.formatted_name
 
         accession_data = AccessionWithSpeciesResponse(
             id=accession.id,
             accession=accession.accession,
             description=accession.description,
             species_id=accession.species_id,
+            is_hybrid=accession.is_hybrid,
+            parent_species_1_id=accession.parent_species_1_id,
+            parent_species_2_id=accession.parent_species_2_id,
+            hybrid_display_name=accession.hybrid_display_name,
             created_at=accession.created_at,
             created_by=accession.created_by,
-            species_genus=species.genus,
-            species_name=species.species_name,
-            species_variety=species.variety,
-            species_common_name=species.common_name,
+            species_genus=species_genus,
+            species_name=species_name,
+            species_variety=species_variety,
+            species_common_name=species_common_name,
+            parent_species_1_name=parent_species_1_name,
+            parent_species_2_name=parent_species_2_name,
             project_id=project_id,
             project_title=project.title,
             field_values=[],

@@ -88,17 +88,33 @@ def create_plant(
             status_code=status.HTTP_404_NOT_FOUND, detail="Accession not found"
         )
 
-    if str(accession.species_id) != str(species_id):
-        logger.warning(
-            "plant_create_species_mismatch",
-            accession_id=accession_id,
-            accession_species_id=accession.species_id,
-            requested_species_id=species_id,
-        )
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Accession does not belong to this species",
-        )
+    # For hybrid accessions, check if species_id matches one of the parent species
+    # For non-hybrid accessions, check if species_id matches the accession's species_id
+    if accession.is_hybrid:
+        if str(species_id) not in [str(accession.parent_species_1_id), str(accession.parent_species_2_id)]:
+            logger.warning(
+                "plant_create_hybrid_species_mismatch",
+                accession_id=accession_id,
+                parent_species_1_id=accession.parent_species_1_id,
+                parent_species_2_id=accession.parent_species_2_id,
+                requested_species_id=species_id,
+            )
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Species must be one of the hybrid's parent species",
+            )
+    else:
+        if str(accession.species_id) != str(species_id):
+            logger.warning(
+                "plant_create_species_mismatch",
+                accession_id=accession_id,
+                accession_species_id=accession.species_id,
+                requested_species_id=species_id,
+            )
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Accession does not belong to this species",
+            )
 
     # Verify species belongs to organization
     species = db.query(Species).filter(Species.id == species_id).first()
@@ -260,17 +276,33 @@ def list_plants(
             status_code=status.HTTP_404_NOT_FOUND, detail="Accession not found"
         )
 
-    if str(accession.species_id) != str(species_id):
-        logger.warning(
-            "plant_list_species_mismatch",
-            accession_id=accession_id,
-            accession_species_id=accession.species_id,
-            requested_species_id=species_id,
-        )
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Accession does not belong to this species",
-        )
+    # For hybrids, check if species_id matches one of the parent species
+    # For non-hybrids, check if species_id matches the accession's species_id
+    if accession.is_hybrid:
+        if str(species_id) not in [str(accession.parent_species_1_id), str(accession.parent_species_2_id)]:
+            logger.warning(
+                "plant_list_hybrid_species_mismatch",
+                accession_id=accession_id,
+                parent_species_1_id=accession.parent_species_1_id,
+                parent_species_2_id=accession.parent_species_2_id,
+                requested_species_id=species_id,
+            )
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Species must be one of the hybrid's parent species",
+            )
+    else:
+        if str(accession.species_id) != str(species_id):
+            logger.warning(
+                "plant_list_species_mismatch",
+                accession_id=accession_id,
+                accession_species_id=accession.species_id,
+                requested_species_id=species_id,
+            )
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Accession does not belong to this species",
+            )
 
     # Verify species belongs to organization
     species = db.query(Species).filter(Species.id == species_id).first()
@@ -281,7 +313,11 @@ def list_plants(
         )
 
     # Get all plants for this accession
-    plants = db.query(Plant).filter(Plant.accession_id == accession_id).all()
+    plants = (
+        db.query(Plant)
+        .filter(Plant.accession_id == accession_id)
+        .all()
+    )
 
     # Get project_id from accession for field values
     project_id = None
@@ -401,7 +437,9 @@ def get_plant(
     plant = (
         db.query(Plant)
         .filter(Plant.id == plant_id)
-        .options(joinedload(Plant.accession).joinedload(Accession.species))
+        .options(
+            joinedload(Plant.accession).joinedload(Accession.species)
+        )
         .first()
     )
 
@@ -423,24 +461,61 @@ def get_plant(
         )
 
     # Verify accession belongs to the correct species
-    if str(plant.accession.species_id) != str(species_id):
-        logger.warning(
-            "plant_get_species_mismatch",
-            plant_id=plant_id,
-            accession_species_id=plant.accession.species_id,
-            requested_species_id=species_id,
-        )
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Accession does not belong to this species",
-        )
+    # For hybrids, check if species_id matches one of the parent species
+    # For non-hybrids, check if species_id matches the accession's species_id
+    if plant.accession.is_hybrid:
+        if str(species_id) not in [str(plant.accession.parent_species_1_id), str(plant.accession.parent_species_2_id)]:
+            logger.warning(
+                "plant_get_hybrid_species_mismatch",
+                plant_id=plant_id,
+                parent_species_1_id=plant.accession.parent_species_1_id,
+                parent_species_2_id=plant.accession.parent_species_2_id,
+                requested_species_id=species_id,
+            )
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Species must be one of the hybrid's parent species",
+            )
+    else:
+        if str(plant.accession.species_id) != str(species_id):
+            logger.warning(
+                "plant_get_species_mismatch",
+                plant_id=plant_id,
+                accession_species_id=plant.accession.species_id,
+                requested_species_id=species_id,
+            )
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Accession does not belong to this species",
+            )
 
     # Verify species belongs to organization
-    if str(plant.accession.species.organization_id) != str(organization_id):
+    # For hybrids, check parent species; for non-hybrids, check species
+    if plant.accession.is_hybrid:
+        if plant.accession.parent_species_2:
+            species_org_id = plant.accession.parent_species_2.organization_id
+        elif plant.accession.parent_species_1:
+            species_org_id = plant.accession.parent_species_1.organization_id
+        else:
+            logger.error("plant_get_hybrid_missing_parents", plant_id=plant_id)
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Hybrid accession has no parent species",
+            )
+    else:
+        if not plant.accession.species:
+            logger.error("plant_get_missing_species", plant_id=plant_id)
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Accession has no species",
+            )
+        species_org_id = plant.accession.species.organization_id
+
+    if str(species_org_id) != str(organization_id):
         logger.warning(
             "plant_get_org_mismatch",
             plant_id=plant_id,
-            species_org_id=plant.accession.species.organization_id,
+            species_org_id=species_org_id,
             requested_org_id=organization_id,
         )
         raise HTTPException(
@@ -497,6 +572,19 @@ def get_plant(
                     )
                 )
 
+    # Get species info from accession
+    # For hybrids, use parent_species_2 as the primary species
+    if plant.accession.is_hybrid:
+        species_ref = plant.accession.parent_species_2 or plant.accession.parent_species_1
+    else:
+        species_ref = plant.accession.species
+
+    species_id = species_ref.id if species_ref else None
+    species_genus = species_ref.genus if species_ref else None
+    species_name = species_ref.species_name if species_ref else None
+    species_variety = species_ref.variety if species_ref else None
+    species_common_name = species_ref.common_name if species_ref else None
+
     # Build the detailed response
     result = PlantWithDetailsResponse(
         id=plant.id,
@@ -505,11 +593,11 @@ def get_plant(
         created_at=plant.created_at,
         created_by=plant.created_by,
         accession=plant.accession.accession,
-        species_id=plant.accession.species.id,
-        species_genus=plant.accession.species.genus,
-        species_name=plant.accession.species.species_name,
-        species_variety=plant.accession.species.variety,
-        species_common_name=plant.accession.species.common_name,
+        species_id=species_id,
+        species_genus=species_genus,
+        species_name=species_name,
+        species_variety=species_variety,
+        species_common_name=species_common_name,
         project_id=project_id,
         project_title=project_title,
         field_values=field_values,
@@ -587,11 +675,26 @@ def update_plant(
 
     # Verify accession belongs to species/organization
     accession = db.query(Accession).filter(Accession.id == accession_id).first()
-    if not accession or str(accession.species_id) != str(species_id):
+    if not accession:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Accession does not belong to this species",
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Accession not found",
         )
+
+    # For hybrids, check if species_id matches one of the parent species
+    # For non-hybrids, check if species_id matches the accession's species_id
+    if accession.is_hybrid:
+        if str(species_id) not in [str(accession.parent_species_1_id), str(accession.parent_species_2_id)]:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Species must be one of the hybrid's parent species",
+            )
+    else:
+        if str(accession.species_id) != str(species_id):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Accession does not belong to this species",
+            )
 
     species = db.query(Species).filter(Species.id == species_id).first()
     if not species or str(species.organization_id) != str(organization_id):
@@ -600,10 +703,44 @@ def update_plant(
             detail="Species not found in this organization",
         )
 
+    # Validate hybrid updates if provided
+    update_data_dict = plant_update.model_dump(exclude_unset=True, exclude={"field_values"})
+
+    if "is_hybrid" in update_data_dict and update_data_dict["is_hybrid"]:
+        # If setting to hybrid, ensure both parent species IDs are provided
+        parent_1_id = update_data_dict.get("parent_species_1_id", plant.parent_species_1_id)
+        parent_2_id = update_data_dict.get("parent_species_2_id", plant.parent_species_2_id)
+
+        if not parent_1_id or not parent_2_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Both parent species are required for hybrid plants"
+            )
+
+        # Verify parent species exist and belong to the organization
+        parent_species_1 = db.query(Species).filter(
+            Species.id == parent_1_id,
+            Species.organization_id == organization_id
+        ).first()
+        parent_species_2 = db.query(Species).filter(
+            Species.id == parent_2_id,
+            Species.organization_id == organization_id
+        ).first()
+
+        if not parent_species_1 or not parent_species_2:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="One or both parent species not found in this organization"
+            )
+
     # Update fields (exclude field_values as it's handled separately)
-    update_data = plant_update.model_dump(exclude_unset=True, exclude={"field_values"})
-    for field, value in update_data.items():
+    for field, value in update_data_dict.items():
         setattr(plant, field, value)
+
+    # Clear parent species if is_hybrid is set to False
+    if "is_hybrid" in update_data_dict and not update_data_dict["is_hybrid"]:
+        plant.parent_species_1_id = None
+        plant.parent_species_2_id = None
 
     db.commit()
     db.refresh(plant)
@@ -740,11 +877,26 @@ def delete_plant(
 
     # Verify accession belongs to species/organization
     accession = db.query(Accession).filter(Accession.id == accession_id).first()
-    if not accession or str(accession.species_id) != str(species_id):
+    if not accession:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Accession does not belong to this species",
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Accession not found",
         )
+
+    # For hybrids, check if species_id matches one of the parent species
+    # For non-hybrids, check if species_id matches the accession's species_id
+    if accession.is_hybrid:
+        if str(species_id) not in [str(accession.parent_species_1_id), str(accession.parent_species_2_id)]:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Species must be one of the hybrid's parent species",
+            )
+    else:
+        if str(accession.species_id) != str(species_id):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Accession does not belong to this species",
+            )
 
     species = db.query(Species).filter(Species.id == species_id).first()
     if not species or str(species.organization_id) != str(organization_id):

@@ -44,15 +44,31 @@
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                        <h3 class="text-lg font-semibold text-gray-700 mb-2">Species</h3>
-                        <p class="text-gray-600">
-                            <a href="#" id="species-link" class="text-blue-600 hover:underline">
-                                <span id="species-genus"></span>
-                                <span id="species-name"></span>
-                                <span id="species-variety" class="text-gray-600"></span>
-                            </a>
-                        </p>
-                        <p id="species-common-name" class="text-sm text-gray-500 mt-1"></p>
+                        <h3 class="text-lg font-semibold text-gray-700 mb-2">
+                            <span id="species-or-hybrid-label">Species</span>
+                        </h3>
+                        <!-- Non-hybrid species display -->
+                        <div id="species-display">
+                            <p class="text-gray-600">
+                                <a href="#" id="species-link" class="text-blue-600 hover:underline">
+                                    <span id="species-genus"></span>
+                                    <span id="species-name"></span>
+                                    <span id="species-variety" class="text-gray-600"></span>
+                                </a>
+                            </p>
+                            <p id="species-common-name" class="text-sm text-gray-500 mt-1"></p>
+                        </div>
+                        <!-- Hybrid display -->
+                        <div id="hybrid-display" class="hidden">
+                            <p class="text-gray-600">
+                                <span class="inline-block bg-purple-100 text-purple-800 text-xs font-medium px-2 py-1 rounded mb-2">Hybrid</span>
+                            </p>
+                            <p class="text-gray-800 font-medium" id="hybrid-name"></p>
+                            <div class="mt-2 text-sm text-gray-600">
+                                <p>Parent 1: <span id="parent-1-name"></span></p>
+                                <p>Parent 2: <span id="parent-2-name"></span></p>
+                            </div>
+                        </div>
                     </div>
 
                     <div id="project-container" class="hidden">
@@ -195,6 +211,7 @@
         let accession = null;
         let locationTypes = [];
         let selectedLocationTypeForNewPlant = null;
+        let organizationSpecies = [];
 
         async function init() {
             currentUser = await Auth.checkAuth();
@@ -237,6 +254,7 @@
 
             await loadPlants();
             await loadLocationTypes();
+            await loadOrganizationSpecies();
         }
 
         async function loadAccession() {
@@ -252,22 +270,36 @@
                 // Display accession ID
                 document.getElementById('accession-id').textContent = accession.accession;
 
-                // Display species information
-                document.getElementById('species-genus').textContent = accession.species_genus;
-                document.getElementById('species-name').textContent = ' ' + accession.species_name;
-
-                if (accession.species_variety) {
-                    document.getElementById('species-variety').textContent = ' var. ' + accession.species_variety;
-                }
-
-                if (accession.species_common_name) {
-                    document.getElementById('species-common-name').textContent = accession.species_common_name;
+                // Display species or hybrid information
+                if (accession.is_hybrid && accession.hybrid_display_name) {
+                    // Show hybrid display
+                    document.getElementById('species-or-hybrid-label').textContent = 'Hybrid';
+                    document.getElementById('species-display').classList.add('hidden');
+                    document.getElementById('hybrid-display').classList.remove('hidden');
+                    document.getElementById('hybrid-name').textContent = accession.hybrid_display_name;
+                    document.getElementById('parent-1-name').textContent = accession.parent_species_1_name || 'Unknown';
+                    document.getElementById('parent-2-name').textContent = accession.parent_species_2_name || 'Unknown';
                 } else {
-                    document.getElementById('species-common-name').classList.add('hidden');
-                }
+                    // Show normal species display
+                    document.getElementById('species-display').classList.remove('hidden');
+                    document.getElementById('hybrid-display').classList.add('hidden');
 
-                // Set species link
-                document.getElementById('species-link').href = buildUrl('organizations', organizationId, 'species', speciesId);
+                    document.getElementById('species-genus').textContent = accession.species_genus;
+                    document.getElementById('species-name').textContent = ' ' + accession.species_name;
+
+                    if (accession.species_variety) {
+                        document.getElementById('species-variety').textContent = ' var. ' + accession.species_variety;
+                    }
+
+                    if (accession.species_common_name) {
+                        document.getElementById('species-common-name').textContent = accession.species_common_name;
+                    } else {
+                        document.getElementById('species-common-name').classList.add('hidden');
+                    }
+
+                    // Set species link
+                    document.getElementById('species-link').href = buildUrl('organizations', organizationId, 'species', speciesId);
+                }
 
                 // Display project information if available
                 if (accession.project_id && accession.project_title) {
@@ -413,6 +445,14 @@
             }
         }
 
+        async function loadOrganizationSpecies() {
+            try {
+                organizationSpecies = await api.getSpecies(organizationId);
+            } catch (error) {
+                console.error('Failed to load organization species:', error);
+            }
+        }
+
         function openAddPlantModal() {
             // Clear form
             document.getElementById('new-plant-id').value = '';
@@ -542,7 +582,7 @@
                     locationId = newLocation.id;
                 }
 
-                // Create plant with location_id
+                // Create plant
                 const plantData = {
                     plant_id: plantIdValue,
                     accession_id: accessionId,

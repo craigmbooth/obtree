@@ -34,10 +34,8 @@
             </div>
 
             <div class="bg-white rounded-lg shadow-md p-6 mb-6">
-                <h2 class="text-3xl font-bold text-gray-800 mb-2">
-                    <span id="species-genus"></span>
-                    <span id="species-name"></span>
-                    <span id="species-variety" class="text-gray-600"></span>
+                <h2 class="text-3xl font-bold text-gray-800 mb-2 italic">
+                    <span id="species-formatted-name"></span>
                 </h2>
                 <p id="species-common-name" class="text-xl text-gray-600 mb-4"></p>
 
@@ -128,12 +126,7 @@
                 document.getElementById('species-content').classList.remove('hidden');
 
                 // Display species information
-                document.getElementById('species-genus').textContent = species.genus;
-                document.getElementById('species-name').textContent = ' ' + species.species_name;
-
-                if (species.variety) {
-                    document.getElementById('species-variety').textContent = ' var. ' + species.variety;
-                }
+                document.getElementById('species-formatted-name').textContent = species.formatted_name;
 
                 if (species.common_name) {
                     document.getElementById('species-common-name').textContent = species.common_name;

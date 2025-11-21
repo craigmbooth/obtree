@@ -337,6 +337,13 @@ class ApiClient {
         });
     }
 
+    async parseSpeciesName(organizationId, name) {
+        return this.request(`/api/organizations/${organizationId}/species/parse-name`, {
+            method: 'POST',
+            body: JSON.stringify({ name: name })
+        });
+    }
+
     // Accession endpoints (organization-level)
     async getAllAccessions(organizationId) {
         return this.request(`/api/organizations/${organizationId}/accessions`);
@@ -408,6 +415,10 @@ class ApiClient {
 
     // Plant endpoints
     async getPlants(organizationId, speciesId, accessionId) {
+        // Use org-level route for hybrids (when speciesId is null)
+        if (!speciesId || speciesId === 'null') {
+            return this.request(`/api/organizations/${organizationId}/plants/accession/${accessionId}`);
+        }
         return this.request(`/api/organizations/${organizationId}/species/${speciesId}/accessions/${accessionId}/plants`);
     }
 

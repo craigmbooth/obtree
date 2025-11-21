@@ -44,20 +44,69 @@
 
     <!-- Add Species Modal -->
     <div id="add-species-modal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-        <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+        <div class="relative top-10 mx-auto p-5 border w-auto max-w-2xl shadow-lg rounded-md bg-white">
             <div class="mt-3">
                 <h3 class="text-lg font-medium text-gray-900 mb-4">Add New Species</h3>
                 <form id="add-species-form">
+                    <!-- Auto-parse section -->
+                    <div class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-md">
+                        <label class="block text-gray-700 text-sm font-bold mb-2">Auto-Parse Name</label>
+                        <p class="text-xs text-gray-600 mb-2">Enter a full scientific name and click Parse to auto-fill the fields below</p>
+                        <div class="flex gap-2">
+                            <input type="text" id="auto-parse-input" placeholder="e.g., Acer rubrum var. trilobum 'October Glory'"
+                                class="flex-1 shadow appearance-none border rounded py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                            <button type="button" id="parse-btn"
+                                class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                                Parse
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Individual fields -->
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-gray-700 text-sm font-bold mb-2">Genus *</label>
+                            <input type="text" id="genus" required
+                                class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                        </div>
+                        <div>
+                            <label class="block text-gray-700 text-sm font-bold mb-2">Species</label>
+                            <input type="text" id="species-name"
+                                class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-gray-700 text-sm font-bold mb-2">Subspecies</label>
+                            <input type="text" id="subspecies"
+                                class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                        </div>
+                        <div>
+                            <label class="block text-gray-700 text-sm font-bold mb-2">Variety</label>
+                            <input type="text" id="variety"
+                                class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
+                        </div>
+                    </div>
+
                     <div class="mb-4">
-                        <label class="block text-gray-700 text-sm font-bold mb-2">Scientific Name *</label>
-                        <input type="text" id="scientific-name" required
+                        <label class="block text-gray-700 text-sm font-bold mb-2">Cultivar</label>
+                        <input type="text" id="cultivar" placeholder="Without quotes, e.g., October Glory"
                             class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
                     </div>
+
                     <div class="mb-4">
                         <label class="block text-gray-700 text-sm font-bold mb-2">Common Name</label>
                         <input type="text" id="common-name"
                             class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline">
                     </div>
+
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2">Description</label>
+                        <textarea id="description" rows="3"
+                            class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"></textarea>
+                    </div>
+
                     <div class="flex justify-end space-x-2">
                         <button type="button" id="cancel-species-btn"
                             class="bg-gray-300 hover:bg-gray-400 text-gray-800 font-bold py-2 px-4 rounded">
@@ -136,19 +185,27 @@
                 // Define columns
                 const columns = [
                     {
+                        field: 'formatted_name',
+                        label: 'Name',
+                        visible: true,
+                        sortable: false,
+                        width: 300,
+                        formatter: (cell) => {
+                            const speciesData = cell.getData();
+                            const link = document.createElement('a');
+                            link.href = buildUrl('organizations', organizationId, 'species', speciesData.id);
+                            link.className = 'text-blue-600 hover:underline font-medium italic';
+                            link.textContent = speciesData.formatted_name;
+                            return link;
+                        }
+                    },
+                    {
                         field: 'genus',
                         label: 'Genus',
                         visible: true,
                         sortable: true,
                         width: 150,
-                        formatter: (cell) => {
-                            const speciesData = cell.getData();
-                            const link = document.createElement('a');
-                            link.href = buildUrl('organizations', organizationId, 'species', speciesData.id);
-                            link.className = 'text-blue-600 hover:underline font-medium';
-                            link.textContent = speciesData.genus;
-                            return link;
-                        }
+                        formatter: 'plaintext'
                     },
                     {
                         field: 'species_name',
@@ -159,8 +216,24 @@
                         formatter: 'plaintext'
                     },
                     {
+                        field: 'subspecies',
+                        label: 'Subspecies',
+                        visible: true,
+                        sortable: true,
+                        width: 150,
+                        formatter: 'plaintext'
+                    },
+                    {
                         field: 'variety',
                         label: 'Variety',
+                        visible: true,
+                        sortable: true,
+                        width: 150,
+                        formatter: 'plaintext'
+                    },
+                    {
+                        field: 'cultivar',
+                        label: 'Cultivar',
                         visible: true,
                         sortable: true,
                         width: 150,
@@ -210,23 +283,66 @@
         document.getElementById('cancel-species-btn').addEventListener('click', () => {
             document.getElementById('add-species-modal').classList.add('hidden');
             document.getElementById('add-species-form').reset();
+            document.getElementById('auto-parse-input').value = '';
+        });
+
+        // Parse button handler
+        document.getElementById('parse-btn').addEventListener('click', async () => {
+            const nameInput = document.getElementById('auto-parse-input').value.trim();
+
+            if (!nameInput) {
+                showError('Please enter a name to parse');
+                return;
+            }
+
+            try {
+                const parsed = await api.parseSpeciesName(organizationId, nameInput);
+
+                // Fill in the form fields
+                document.getElementById('genus').value = parsed.genus || '';
+                document.getElementById('species-name').value = parsed.species_name || '';
+                document.getElementById('subspecies').value = parsed.subspecies || '';
+                document.getElementById('variety').value = parsed.variety || '';
+                document.getElementById('cultivar').value = parsed.cultivar || '';
+
+                showSuccess('Name parsed successfully! Please review the fields below.');
+            } catch (error) {
+                console.error('Failed to parse name:', error);
+                showError('Failed to parse name');
+            }
         });
 
         document.getElementById('add-species-form').addEventListener('submit', async (e) => {
             e.preventDefault();
 
-            const scientificName = document.getElementById('scientific-name').value;
-            const commonName = document.getElementById('common-name').value;
+            const genus = document.getElementById('genus').value.trim();
+            const speciesName = document.getElementById('species-name').value.trim();
+            const subspecies = document.getElementById('subspecies').value.trim();
+            const variety = document.getElementById('variety').value.trim();
+            const cultivar = document.getElementById('cultivar').value.trim();
+            const commonName = document.getElementById('common-name').value.trim();
+            const description = document.getElementById('description').value.trim();
+
+            if (!genus) {
+                showError('Genus is required');
+                return;
+            }
 
             try {
                 await api.createSpecies(organizationId, {
-                    scientific_name: scientificName,
-                    common_name: commonName || null
+                    genus: genus,
+                    species_name: speciesName,
+                    subspecies: subspecies || null,
+                    variety: variety || null,
+                    cultivar: cultivar || null,
+                    common_name: commonName || null,
+                    description: description || null
                 });
 
                 showSuccess('Species created successfully');
                 document.getElementById('add-species-modal').classList.add('hidden');
                 document.getElementById('add-species-form').reset();
+                document.getElementById('auto-parse-input').value = '';
                 await loadSpecies();
             } catch (error) {
                 console.error('Failed to create species:', error);

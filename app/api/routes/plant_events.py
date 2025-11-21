@@ -177,18 +177,40 @@ def list_plant_events(
         )
 
     # Verify plant exists and belongs to correct hierarchy
-    plant = db.query(Plant).join(Accession).join(Species).filter(
-        Plant.id == plant_id,
-        Plant.accession_id == accession_id,
-        Accession.species_id == species_id,
-        Species.organization_id == organization_id
-    ).first()
-
+    plant = db.query(Plant).filter(Plant.id == plant_id).first()
     if not plant:
         logger.warning("plant_not_found", plant_id=plant_id)
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Plant not found"
+        )
+
+    # Verify plant belongs to the correct accession and species/organization
+    if str(plant.accession_id) != str(accession_id):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Plant does not belong to this accession",
+        )
+
+    accession = plant.accession
+    if accession.is_hybrid:
+        if str(species_id) not in [str(accession.parent_species_1_id), str(accession.parent_species_2_id)]:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Species must be one of the hybrid's parent species",
+            )
+    else:
+        if str(accession.species_id) != str(species_id):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Accession does not belong to this species",
+            )
+
+    species = db.query(Species).filter(Species.id == species_id).first()
+    if not species or str(species.organization_id) != str(organization_id):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Species not found in this organization",
         )
 
     # Query events
@@ -287,18 +309,69 @@ def create_plant_event(
         )
 
     # Verify plant exists
-    plant = db.query(Plant).join(Accession).join(Species).filter(
-        Plant.id == plant_id,
-        Plant.accession_id == accession_id,
-        Accession.species_id == species_id,
-        Species.organization_id == organization_id
-    ).first()
-
+    plant = db.query(Plant).filter(Plant.id == plant_id).first()
     if not plant:
         logger.warning("plant_not_found", plant_id=plant_id)
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Plant not found"
+        )
+
+    # Verify plant belongs to the correct accession
+    if str(plant.accession_id) != str(accession_id):
+        logger.warning(
+            "plant_event_accession_mismatch",
+            plant_id=plant_id,
+            plant_accession_id=plant.accession_id,
+            requested_accession_id=accession_id,
+        )
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Plant does not belong to this accession",
+        )
+
+    # Verify accession belongs to the correct species
+    # For hybrids, check if species_id matches one of the parent species
+    # For non-hybrids, check if species_id matches the accession's species_id
+    accession = plant.accession
+    if accession.is_hybrid:
+        if str(species_id) not in [str(accession.parent_species_1_id), str(accession.parent_species_2_id)]:
+            logger.warning(
+                "plant_event_hybrid_species_mismatch",
+                plant_id=plant_id,
+                parent_species_1_id=accession.parent_species_1_id,
+                parent_species_2_id=accession.parent_species_2_id,
+                requested_species_id=species_id,
+            )
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Species must be one of the hybrid's parent species",
+            )
+    else:
+        if str(accession.species_id) != str(species_id):
+            logger.warning(
+                "plant_event_species_mismatch",
+                plant_id=plant_id,
+                accession_species_id=accession.species_id,
+                requested_species_id=species_id,
+            )
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Accession does not belong to this species",
+            )
+
+    # Verify species belongs to organization
+    species = db.query(Species).filter(Species.id == species_id).first()
+    if not species or str(species.organization_id) != str(organization_id):
+        logger.warning(
+            "plant_event_org_mismatch",
+            plant_id=plant_id,
+            species_id=species_id,
+            organization_id=organization_id,
+        )
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Species not found in this organization",
         )
 
     # Get event type and verify it's accessible
@@ -373,10 +446,10 @@ def create_plant_event(
                 )
 
             # Create field value with appropriate type
-            if field.field_type.value == 'string':
+            if field.field_type.value == 'STRING':
                 value_string = str(fv_data.value)
                 value_number = None
-            else:  # number
+            else:  # NUMBER
                 value_string = None
                 value_number = float(fv_data.value)
 
@@ -462,13 +535,11 @@ def get_plant_event(
     # Query event
     event = db.query(PlantEvent).options(
         joinedload(PlantEvent.event_type),
-        joinedload(PlantEvent.field_values).joinedload(EventFieldValue.field)
-    ).join(Plant).join(Accession).join(Species).filter(
+        joinedload(PlantEvent.field_values).joinedload(EventFieldValue.field),
+        joinedload(PlantEvent.plant).joinedload(Plant.accession)
+    ).filter(
         PlantEvent.id == event_id,
-        PlantEvent.plant_id == plant_id,
-        Plant.accession_id == accession_id,
-        Accession.species_id == species_id,
-        Species.organization_id == organization_id
+        PlantEvent.plant_id == plant_id
     ).first()
 
     if not event:
@@ -476,6 +547,35 @@ def get_plant_event(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Event not found"
+        )
+
+    # Verify hierarchy
+    plant = event.plant
+    if str(plant.accession_id) != str(accession_id):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Plant does not belong to this accession",
+        )
+
+    accession = plant.accession
+    if accession.is_hybrid:
+        if str(species_id) not in [str(accession.parent_species_1_id), str(accession.parent_species_2_id)]:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Species must be one of the hybrid's parent species",
+            )
+    else:
+        if str(accession.species_id) != str(species_id):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Accession does not belong to this species",
+            )
+
+    species = db.query(Species).filter(Species.id == species_id).first()
+    if not species or str(species.organization_id) != str(organization_id):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Species not found in this organization",
         )
 
     logger.info("plant_event_retrieved", event_id=event_id)
@@ -559,13 +659,11 @@ def update_plant_event(
 
     # Query event
     event = db.query(PlantEvent).options(
-        joinedload(PlantEvent.event_type)
-    ).join(Plant).join(Accession).join(Species).filter(
+        joinedload(PlantEvent.event_type),
+        joinedload(PlantEvent.plant).joinedload(Plant.accession)
+    ).filter(
         PlantEvent.id == event_id,
-        PlantEvent.plant_id == plant_id,
-        Plant.accession_id == accession_id,
-        Accession.species_id == species_id,
-        Species.organization_id == organization_id
+        PlantEvent.plant_id == plant_id
     ).first()
 
     if not event:
@@ -573,6 +671,35 @@ def update_plant_event(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Event not found"
+        )
+
+    # Verify hierarchy
+    plant = event.plant
+    if str(plant.accession_id) != str(accession_id):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Plant does not belong to this accession",
+        )
+
+    accession = plant.accession
+    if accession.is_hybrid:
+        if str(species_id) not in [str(accession.parent_species_1_id), str(accession.parent_species_2_id)]:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Species must be one of the hybrid's parent species",
+            )
+    else:
+        if str(accession.species_id) != str(species_id):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Accession does not belong to this species",
+            )
+
+    species = db.query(Species).filter(Species.id == species_id).first()
+    if not species or str(species.organization_id) != str(organization_id):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Species not found in this organization",
         )
 
     # Update basic fields
@@ -598,10 +725,10 @@ def update_plant_event(
                     detail=f"Invalid field ID: {fv_data.field_id}"
                 )
 
-            if field.field_type.value == 'string':
+            if field.field_type.value == 'STRING':
                 value_string = str(fv_data.value)
                 value_number = None
-            else:
+            else:  # NUMBER
                 value_string = None
                 value_number = float(fv_data.value)
 
@@ -676,12 +803,11 @@ def delete_plant_event(
         )
 
     # Query event
-    event = db.query(PlantEvent).join(Plant).join(Accession).join(Species).filter(
+    event = db.query(PlantEvent).options(
+        joinedload(PlantEvent.plant).joinedload(Plant.accession)
+    ).filter(
         PlantEvent.id == event_id,
-        PlantEvent.plant_id == plant_id,
-        Plant.accession_id == accession_id,
-        Accession.species_id == species_id,
-        Species.organization_id == organization_id
+        PlantEvent.plant_id == plant_id
     ).first()
 
     if not event:
@@ -689,6 +815,35 @@ def delete_plant_event(
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Event not found"
+        )
+
+    # Verify hierarchy
+    plant = event.plant
+    if str(plant.accession_id) != str(accession_id):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Plant does not belong to this accession",
+        )
+
+    accession = plant.accession
+    if accession.is_hybrid:
+        if str(species_id) not in [str(accession.parent_species_1_id), str(accession.parent_species_2_id)]:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Species must be one of the hybrid's parent species",
+            )
+    else:
+        if str(accession.species_id) != str(species_id):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Accession does not belong to this species",
+            )
+
+    species = db.query(Species).filter(Species.id == species_id).first()
+    if not species or str(species.organization_id) != str(organization_id):
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Species not found in this organization",
         )
 
     db.delete(event)  # CASCADE will delete field_values

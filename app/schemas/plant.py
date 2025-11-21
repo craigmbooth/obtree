@@ -100,13 +100,13 @@ class PlantWithDetailsResponse(PlantResponse):
     """Schema for plant response with full details.
 
     Includes plant data plus species and accession information
-    for the plant detail page.
+    for the plant detail page. Species info comes from the accession.
 
     Attributes:
         accession: Accession identifier string.
-        species_id: UUID of the species.
-        species_genus: Genus of the plant's species.
-        species_name: Species name.
+        species_id: Optional UUID of the species (None for hybrid accessions).
+        species_genus: Optional genus of the plant's species.
+        species_name: Optional species name.
         species_variety: Optional variety name.
         species_common_name: Optional common name.
         project_id: Optional project ID (inherited from accession).
@@ -115,11 +115,11 @@ class PlantWithDetailsResponse(PlantResponse):
     """
 
     accession: str
-    species_id: UUID
-    species_genus: str
-    species_name: str
-    species_variety: Optional[str]
-    species_common_name: Optional[str]
+    species_id: Optional[UUID] = None
+    species_genus: Optional[str] = None
+    species_name: Optional[str] = None
+    species_variety: Optional[str] = None
+    species_common_name: Optional[str] = None
     project_id: Optional[UUID] = None
     project_title: Optional[str] = None
     location: Optional[LocationResponse] = None

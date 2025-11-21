@@ -1,17 +1,33 @@
-from typing import List
+from typing import List, Optional
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from pydantic import BaseModel
 
 from app.database import get_db
 from app.models import Organization, Species, User
 from app.schemas import SpeciesCreate, SpeciesUpdate, SpeciesResponse
 from app.api.deps import get_current_user
 from app.core.permissions import is_org_member, can_manage_organization
+from app.core.botanical_name_parser import parse_botanical_name
 from app.logging_config import get_logger
 
 router = APIRouter()
 logger = get_logger(__name__)
+
+
+class ParseNameRequest(BaseModel):
+    """Request schema for parsing a botanical name."""
+    name: str
+
+
+class ParseNameResponse(BaseModel):
+    """Response schema for parsed botanical name components."""
+    genus: Optional[str] = None
+    species_name: Optional[str] = None
+    subspecies: Optional[str] = None
+    variety: Optional[str] = None
+    cultivar: Optional[str] = None
 
 
 @router.post("/", response_model=SpeciesResponse, status_code=status.HTTP_201_CREATED)
@@ -54,7 +70,9 @@ def create_species(
     new_species = Species(
         genus=species_data.genus,
         species_name=species_data.species_name,
+        subspecies=species_data.subspecies,
         variety=species_data.variety,
+        cultivar=species_data.cultivar,
         common_name=species_data.common_name,
         description=species_data.description,
         organization_id=organization_id,
@@ -246,3 +264,40 @@ def delete_species(
     db.commit()
 
     logger.info("species_deleted", species_id=species_id)
+
+
+@router.post("/parse-name", response_model=ParseNameResponse)
+def parse_species_name(
+    parse_request: ParseNameRequest,
+    current_user: User = Depends(get_current_user)
+):
+    """Parse a botanical name into its components.
+
+    This is a utility endpoint that parses a scientific name string into
+    structured components (genus, species, subspecies, variety, cultivar).
+    No database access required, just parsing logic.
+
+    Args:
+        parse_request: Request containing the name to parse.
+        current_user: Authenticated user (required but not used).
+
+    Returns:
+        ParseNameResponse: Parsed name components.
+
+    Examples:
+        "Acer rubrum" -> genus="Acer", species_name="rubrum"
+        "Acer rubrum var. trilobum" -> genus="Acer", species_name="rubrum", variety="trilobum"
+        "Rosa 'Peace'" -> genus="Rosa", cultivar="Peace"
+    """
+    logger.info("species_name_parse_started", name=parse_request.name, user_id=current_user.id)
+
+    parsed = parse_botanical_name(parse_request.name)
+
+    logger.info(
+        "species_name_parse_success",
+        name=parse_request.name,
+        genus=parsed.get('genus'),
+        species=parsed.get('species_name')
+    )
+
+    return ParseNameResponse(**parsed)

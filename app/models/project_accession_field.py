@@ -10,9 +10,9 @@ from app.models.types import GUID
 
 class FieldType(str, enum.Enum):
     """Type of custom field."""
-    STRING = "string"
-    NUMBER = "number"
-    SELECT = "select"
+    STRING = "STRING"
+    NUMBER = "NUMBER"
+    SELECT = "SELECT"
 
 
 class ProjectAccessionField(Base):

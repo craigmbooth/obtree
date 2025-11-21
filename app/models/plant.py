@@ -8,7 +8,7 @@ associated with both an accession and a species (inherited from the accession).
 import uuid as uuid_lib
 from datetime import datetime
 
-from sqlalchemy import Column, DateTime, ForeignKey, String
+from sqlalchemy import Boolean, Column, DateTime, ForeignKey, String
 from sqlalchemy.orm import relationship
 
 from app.database import Base
@@ -19,17 +19,18 @@ class Plant(Base):
     """Plant model representing individual plants within an accession.
 
     A plant represents a single physical plant that belongs to an accession.
-    It inherits its species from the parent accession.
+    It inherits its species information from the parent accession.
 
     Attributes:
         id: Unique identifier (UUID) for the plant.
         plant_id: User-provided string identifier for the plant.
         accession_id: Foreign key to the parent accession.
+        location_id: Optional foreign key to the plant's location.
         created_at: Timestamp when the plant was created.
         created_by: User who created the plant record.
         accession: Relationship to the parent Accession.
-        species: Relationship to the Species (via accession).
         creator: Relationship to the User who created the plant.
+        location: Relationship to the Location.
     """
 
     __tablename__ = "plants"
