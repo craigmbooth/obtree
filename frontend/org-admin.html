@@ -10,6 +10,8 @@
     <link href="https://unpkg.com/tabulator-tables@6.2.5/dist/css/tabulator.min.css" rel="stylesheet">
     <link href="/css/table-custom.css" rel="stylesheet">
     <script src="https://unpkg.com/tabulator-tables@6.2.5/dist/js/tabulator.min.js"></script>
+    <!-- QR Code Generator -->
+    <script src="https://cdn.jsdelivr.net/npm/davidshimjs-qrcodejs@0.0.2/qrcode.min.js"></script>
 </head>
 <body class="bg-gray-100 min-h-screen">
     <!-- Navigation -->
@@ -130,38 +132,81 @@
     </div>
 
     <!-- Invite Modal -->
-    <div id="invite-modal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50" onclick="if(event.target === this) closeInviteModal()">
-        <div class="relative top-20 mx-auto p-5 border w-auto max-w-2xl shadow-lg rounded-md bg-white">
-            <div class="mt-3">
-                <h3 class="text-lg font-medium text-gray-900 mb-4">Invite Created!</h3>
+    <div id="invite-modal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+        <div class="relative top-10 mx-auto p-5 border w-full max-w-lg shadow-lg rounded-md bg-white">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold text-gray-900">Create Organization Invite</h3>
+                <button id="close-invite-modal" class="text-gray-400 hover:text-gray-600">
+                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            <!-- Loading State -->
+            <div id="invite-loading" class="text-center py-8">
+                <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+                <p class="mt-4 text-gray-600">Creating invite...</p>
+            </div>
+
+            <!-- Display -->
+            <div id="invite-display" class="hidden">
+                <!-- QR Code Display -->
+                <div class="mb-4 flex justify-center">
+                    <div class="bg-white p-4 rounded-lg border-2 border-gray-200" id="qrcode-container">
+                    </div>
+                </div>
+
+                <!-- Signup URL -->
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2">
+                        Signup URL (scan QR code or copy link)
+                    </label>
+                    <div class="flex items-center space-x-2">
+                        <input type="text" id="invite-url" readonly
+                            class="flex-1 shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline bg-gray-100 text-sm">
+                        <button id="copy-url-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded whitespace-nowrap">
+                            Copy URL
+                        </button>
+                    </div>
+                </div>
 
                 <!-- Invite Code -->
-                <div class="mb-4 px-4 py-3 bg-gray-50 rounded-md">
-                    <p class="text-sm font-medium text-gray-700 mb-2">Invite Code:</p>
+                <div class="mb-4">
+                    <label class="block text-gray-700 text-sm font-bold mb-2">
+                        Invite Code (for manual entry)
+                    </label>
                     <div class="flex items-center space-x-2">
-                        <input type="text" id="invite-code-input" readonly
-                            class="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-md bg-white font-mono">
-                        <button onclick="copyInviteCode()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm whitespace-nowrap">
+                        <input type="text" id="invite-code" readonly
+                            class="flex-1 shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline bg-gray-100 font-mono">
+                        <button id="copy-code-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded whitespace-nowrap">
                             Copy Code
                         </button>
                     </div>
                 </div>
 
-                <!-- Full URL -->
-                <div class="px-4 py-3 bg-gray-50 rounded-md">
-                    <p class="text-sm font-medium text-gray-700 mb-2">Full URL:</p>
-                    <div class="flex items-center space-x-2">
-                        <input type="text" id="invite-link-input" readonly
-                            class="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-md bg-white">
-                        <button onclick="copyInviteLink()" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm whitespace-nowrap">
-                            Copy Link
-                        </button>
+                <!-- Role and Expiration Info -->
+                <div class="mb-4 bg-blue-50 border border-blue-200 rounded p-3">
+                    <div class="flex items-start">
+                        <svg class="h-5 w-5 text-blue-600 mr-2 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <div class="flex-1">
+                            <p class="text-sm font-medium text-blue-800">
+                                Role: <span id="invite-role-display" class="font-semibold"></span>
+                            </p>
+                            <p class="text-xs text-blue-700 mt-1">
+                                Expires: <span id="invite-expires-at" class="font-mono"></span>
+                            </p>
+                            <p class="text-xs text-blue-700 mt-1">
+                                Share this QR code or URL with the person you want to invite to your organization.
+                            </p>
+                        </div>
                     </div>
                 </div>
 
-                <div class="mt-4 flex justify-end">
-                    <button onclick="closeInviteModal()" class="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300">
-                        Close
+                <div class="flex justify-end">
+                    <button id="done-invite-btn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
+                        Done
                     </button>
                 </div>
             </div>
@@ -525,17 +570,16 @@
                     width: 200,
                     formatter: (cell) => {
                         const invite = cell.getData();
-                        const inviteUrl = `${window.location.origin}/signup.html?invite=${invite.uuid}`;
 
                         // Create container div
                         const container = document.createElement('div');
                         container.className = 'flex gap-2';
 
-                        // Copy Link button
-                        const copyButton = document.createElement('button');
-                        copyButton.className = 'text-blue-600 hover:text-blue-800 text-sm font-medium';
-                        copyButton.textContent = 'Copy Link';
-                        copyButton.onclick = () => copyToClipboard(inviteUrl);
+                        // View Invite button
+                        const viewButton = document.createElement('button');
+                        viewButton.className = 'text-blue-600 hover:text-blue-800 text-sm font-medium';
+                        viewButton.textContent = 'View Invite';
+                        viewButton.onclick = () => viewInvite(invite);
 
                         // Revoke button
                         const revokeButton = document.createElement('button');
@@ -543,7 +587,7 @@
                         revokeButton.textContent = 'Revoke';
                         revokeButton.onclick = () => revokeInvite(invite.uuid);
 
-                        container.appendChild(copyButton);
+                        container.appendChild(viewButton);
                         container.appendChild(revokeButton);
 
                         return container;
@@ -569,30 +613,90 @@
         async function createInvite() {
             const role = document.getElementById('invite-role').value;
 
+            // Show modal with loading state
+            document.getElementById('invite-modal').classList.remove('hidden');
+            document.getElementById('invite-loading').classList.remove('hidden');
+            document.getElementById('invite-display').classList.add('hidden');
+
+            // Create invite immediately
             try {
                 const invite = await api.createInvite(organizationId, role);
 
-                // Show modal with invite code and link
-                const inviteUrl = `${window.location.origin}/signup.html?invite=${invite.uuid}`;
-                document.getElementById('invite-code-input').value = invite.uuid;
-                document.getElementById('invite-link-input').value = inviteUrl;
-                document.getElementById('invite-modal').classList.remove('hidden');
+                // Build signup URL with invite code
+                const signupUrl = `${window.location.origin}/signup.html?invite=${invite.uuid}`;
 
-                // Reload invites table in background
+                // Set the invite code and URL
+                document.getElementById('invite-code').value = invite.uuid;
+                document.getElementById('invite-url').value = signupUrl;
+
+                // Set role display
+                const roleDisplay = role.charAt(0).toUpperCase() + role.slice(1);
+                document.getElementById('invite-role-display').textContent = roleDisplay;
+
+                // Set expiration time
+                document.getElementById('invite-expires-at').textContent = formatDate(invite.expires_at);
+
+                // Clear any previous QR code
+                const qrcodeContainer = document.getElementById('qrcode-container');
+                qrcodeContainer.innerHTML = '';
+
+                // Generate QR code
+                new QRCode(qrcodeContainer, {
+                    text: signupUrl,
+                    width: 256,
+                    height: 256,
+                    colorDark: '#000000',
+                    colorLight: '#FFFFFF',
+                    correctLevel: QRCode.CorrectLevel.H
+                });
+
+                // Switch to display view
+                document.getElementById('invite-loading').classList.add('hidden');
+                document.getElementById('invite-display').classList.remove('hidden');
+
+                // Reload invites table
                 await loadInvites();
+
+                showSuccess('Organization invite created successfully!');
             } catch (error) {
                 showError(error.message || 'Failed to create invite');
+                closeInviteModal();
             }
         }
 
-        function copyInviteCode() {
-            const inviteCode = document.getElementById('invite-code-input').value;
-            copyToClipboard(inviteCode);
-        }
+        function viewInvite(invite) {
+            // Show modal with invite data (skip loading state)
+            document.getElementById('invite-modal').classList.remove('hidden');
+            document.getElementById('invite-loading').classList.add('hidden');
+            document.getElementById('invite-display').classList.remove('hidden');
 
-        function copyInviteLink() {
-            const inviteLink = document.getElementById('invite-link-input').value;
-            copyToClipboard(inviteLink);
+            // Build signup URL with invite code
+            const signupUrl = `${window.location.origin}/signup.html?invite=${invite.uuid}`;
+
+            // Set the invite code and URL
+            document.getElementById('invite-code').value = invite.uuid;
+            document.getElementById('invite-url').value = signupUrl;
+
+            // Set role display
+            const roleDisplay = invite.role.charAt(0).toUpperCase() + invite.role.slice(1);
+            document.getElementById('invite-role-display').textContent = roleDisplay;
+
+            // Set expiration time
+            document.getElementById('invite-expires-at').textContent = formatDate(invite.expires_at);
+
+            // Clear any previous QR code
+            const qrcodeContainer = document.getElementById('qrcode-container');
+            qrcodeContainer.innerHTML = '';
+
+            // Generate QR code
+            new QRCode(qrcodeContainer, {
+                text: signupUrl,
+                width: 256,
+                height: 256,
+                colorDark: '#000000',
+                colorLight: '#FFFFFF',
+                correctLevel: QRCode.CorrectLevel.H
+            });
         }
 
         function closeInviteModal() {
@@ -1393,6 +1497,26 @@
                 showError(error.message || 'Failed to delete location type');
             }
         }
+
+        // Invite modal event listeners
+        document.getElementById('close-invite-modal').addEventListener('click', closeInviteModal);
+        document.getElementById('done-invite-btn').addEventListener('click', closeInviteModal);
+
+        document.getElementById('copy-code-btn').addEventListener('click', () => {
+            const inviteCode = document.getElementById('invite-code');
+            inviteCode.select();
+            navigator.clipboard.writeText(inviteCode.value).then(() => {
+                showSuccess('Invite code copied to clipboard!');
+            });
+        });
+
+        document.getElementById('copy-url-btn').addEventListener('click', () => {
+            const inviteUrl = document.getElementById('invite-url');
+            inviteUrl.select();
+            navigator.clipboard.writeText(inviteUrl.value).then(() => {
+                showSuccess('Signup URL copied to clipboard!');
+            });
+        });
 
         // Close modal on Escape key
         document.addEventListener('keydown', (e) => {
